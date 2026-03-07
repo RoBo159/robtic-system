@@ -1,0 +1,57 @@
+name: Robtic CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install Dependencies
+        run: bun install
+
+      - name: TypeScript Check
+        run: bunx tsc --noEmit
+
+      - name: Build Project
+        run: bun run build
+
+      - name: Send Success Webhook
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+          -d '{
+            "username": "Robtic CI",
+            "embeds": [{
+              "title": "🟢 CI Passed",
+              "description": "Build and checks completed successfully.",
+              "color": 5763719
+            }]
+          }' \
+          ${{ secrets.DISCORD_WEBHOOK_CI }}
+
+      - name: Send Failure Webhook
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+          -d '{
+            "username": "Robtic CI",
+            "embeds": [{
+              "title": "🔴 CI Failed",
+              "description": "Build or checks failed.",
+              "color": 15548997
+            }]
+          }' \
+          ${{ secrets.DISCORD_WEBHOOK_CI }}
