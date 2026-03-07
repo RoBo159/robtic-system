@@ -45,7 +45,7 @@ export const BOT_DEFINITIONS: BotDefinition<GatewayIntentBits,Partials>[] = [
         ],
     },
     {
-        name: "modemail",
+        name: "modmail",
         tokenKey: "ModeMailBotToken",
         description: "Private user-staff communication",
         intents: [

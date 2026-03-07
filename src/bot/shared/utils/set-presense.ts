@@ -1,7 +1,7 @@
 import type { BotClient } from "@core/BotClient";
 import { ActivityType, type PresenceStatusData } from "discord.js";
 
-const PRESENCE_INTERVAL = 1000;
+const PRESENCE_INTERVAL = 10000;
 
 export function setPresence(
     client: BotClient,

@@ -8,6 +8,7 @@ export interface IModMailThread extends Document {
     language: "en" | "ar";
     requestType: "appeal" | "report" | "support";
     status: "open" | "closed";
+    paused: boolean;
     claimedBy: string | null;
     messages: {
         authorId: string;
@@ -44,6 +45,7 @@ const modMailThreadSchema = new Schema<IModMailThread>(
             default: "open",
             index: true,
         },
+        paused: { type: Boolean, default: false },
         claimedBy: { type: String, default: null },
         messages: [
             {

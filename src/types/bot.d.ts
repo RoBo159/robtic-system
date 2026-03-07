@@ -1,4 +1,4 @@
-type BotName = "main" | "support" | "moderation" | "hr" | "modemail" | "activity" | "service";
+type BotName = "main" | "support" | "moderation" | "hr" | "modmail" | "activity" | "service";
 
 type BotTokenKey =
     | "MainBotToken"
@@ -38,12 +38,35 @@ interface ModuleDefinition {
     onUnload?: () => Promise<void>;
 }
 
+type Department =
+    | "Dev"
+    | "Design"
+    | "Moderation"
+    | "Community"
+    | "Events"
+    | "Support"
+    | "HR";
+
 type PermissionLevel =
     | "Owner"
-    | "Lead"
-    | "Manager"
-    | "Staff"
-    | "Support"
-    | "Moderator"
-    | "HR"
+    | "LeadDev"
+    | "LeadDesign"
+    | "LeadModerator"
+    | "LeadCommunity"
+    | "LeadSupport"
+    | "StaffLead"
+    | "SeniorStaffLead"
+    | "PrincipalStaff"
+    | "DevManager"
+    | "DesignManager"
+    | "CommunityManager"
+    | "EventManager"
+    | "SupportManager"
+    | "ModerationManager"
+    | "HRManager"
+    | "ContentManager"
+    | "OperationManager"
+    | "Expert"
+    | "Professional"
+    | "Associate"
     | "Member";

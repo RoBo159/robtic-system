@@ -54,4 +54,32 @@ export class ModMailRepository {
     static async findAllOpen(guildId: string): Promise<IModMailThread[]> {
         return ModMailThread.find({ guildId, status: "open" }).sort({ createdAt: -1 });
     }
+
+    static async setPaused(threadId: string, paused: boolean): Promise<IModMailThread | null> {
+        return ModMailThread.findOneAndUpdate(
+            { threadId },
+            { paused },
+            { new: true }
+        );
+    }
+
+    static async transfer(threadId: string, newStaffId: string): Promise<IModMailThread | null> {
+        return ModMailThread.findOneAndUpdate(
+            { threadId },
+            { claimedBy: newStaffId },
+            { new: true }
+        );
+    }
+
+    static async reopen(threadId: string): Promise<IModMailThread | null> {
+        return ModMailThread.findOneAndUpdate(
+            { threadId, status: "closed" },
+            { status: "open", closedBy: null, closedAt: null, paused: false },
+            { new: true }
+        );
+    }
+
+    static async findAllClosed(guildId: string): Promise<IModMailThread[]> {
+        return ModMailThread.find({ guildId, status: "closed" }).sort({ closedAt: -1 });
+    }
 }

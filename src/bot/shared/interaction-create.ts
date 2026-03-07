@@ -11,6 +11,18 @@ export default {
     async execute(interaction: Interaction, client: BotClient) {
         await HandlingComponent(interaction, client);
 
+        if (interaction.isAutocomplete()) {
+            const command = client.commands.get(interaction.commandName);
+            if (command?.autocomplete) {
+                try {
+                    await command.autocomplete(interaction, client);
+                } catch (error) {
+                    Logger.warn(`Autocomplete error for "${interaction.commandName}": ${error}`, client.botName);
+                }
+            }
+            return;
+        }
+
         if (!interaction.isChatInputCommand()) return;
 
         const command = client.commands.get(interaction.commandName);

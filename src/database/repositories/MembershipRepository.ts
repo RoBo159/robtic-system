@@ -37,7 +37,6 @@ export class MembershipRepository {
         return Membership.find({ guildId, active: true });
     }
 
-    // Service Tier methods
     static async createTier(data: Partial<IServiceTier>): Promise<IServiceTier> {
         return ServiceTier.create(data);
     }
