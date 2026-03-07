@@ -1,0 +1,38 @@
+name: Repository Activity
+
+on:
+  push:
+  issues:
+    types: [opened, closed, reopened]
+  pull_request:
+    types: [opened, closed, reopened, synchronize]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Discord notification
+        run: |
+          curl -H "Content-Type: application/json" \
+          -d '{
+            "username": "Robtic Repo",
+            "embeds": [{
+              "title": "Repository Activity",
+              "description": "**Actor:** ${{ github.actor }}\n**Event:** ${{ github.event_name }}",
+              "color": 3447003,
+              "fields": [
+                {
+                  "name": "Repository",
+                  "value": "${{ github.repository }}",
+                  "inline": true
+                },
+                {
+                  "name": "Branch",
+                  "value": "${{ github.ref_name }}",
+                  "inline": true
+                }
+              ]
+            }]
+          }' \
+          ${{ secrets.DISCORD_WEBHOOK_ACTIVITY }}
