@@ -36,7 +36,7 @@ jobs:
             "username": "Robtic CI",
             "embeds": [{
               "title": "🟢 CI Passed",
-              "description": "Build and checks completed successfully.",
+              "description": "Build and checks completed successfully. \n 📦 Repository: [${{ github.repository }}](${{ github.repository }}/${{ github.repository }})",
               "color": 5763719
             }]
           }' \
@@ -50,7 +50,7 @@ jobs:
             "username": "Robtic CI",
             "embeds": [{
               "title": "🔴 CI Failed",
-              "description": "Build or checks failed.",
+              "description": "Build or checks failed. \n 📦 Repository: [${{ github.repository }}](${{ github.repository }}/${{ github.repository }})",
               "color": 15548997
             }]
           }' \

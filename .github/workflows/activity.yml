@@ -24,7 +24,7 @@ jobs:
               "fields": [
                 {
                   "name": "Repository",
-                  "value": "${{ github.repository }}",
+                  "value": "[${{ github.repository }}](${{ github.repository }}/${{ github.repository }})",
                   "inline": true
                 },
                 {
