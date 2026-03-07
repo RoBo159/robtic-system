@@ -1,4 +1,4 @@
-import { Logger } from "@core/Logger.ts";
+import { Logger } from "@core/libs";
 
 export class BotError extends Error {
     constructor(

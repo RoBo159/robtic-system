@@ -1,0 +1,39 @@
+name: Discord Notifications
+
+on:
+    watch:
+        types: [started]
+    fork:
+
+jobs:
+    notify:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Send Discord notification
+              run: |
+                  curl -H "Content-Type: application/json" \
+                  -d '{
+                    "username": "GitHub Bot",
+                    "embeds": [{
+                      "title": "Repository Activity",
+                      "description": "${{ github.actor }} interacted with the repository!",
+                      "color": 5814783,
+                      "fields": [
+                        {
+                          "name": "Repository",
+                          "value": "${{ github.repository }}",
+                          "inline": true
+                        },
+                        {
+                          "name": "Action",
+                          "value": "${{ github.event_name }}",
+                          "inline": true
+                        }
+                      ],
+                      "footer": {
+                        "text": "GitHub Activity Tracker"
+                      }
+                    }]
+                  }' \
+                  ${{ secrets.DISCORD_WEBHOOK }}

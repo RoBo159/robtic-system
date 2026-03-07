@@ -28,6 +28,7 @@
       "@shared/*": ["bot/shared/*"],
       "@database/*": ["database/*"],
       "@core/*": ["core/*"],
+      "@types/*": ["types/*"],
     }
   },
   "include": ["src"],
