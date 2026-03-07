@@ -7,6 +7,7 @@ import {
     TextInputStyle,
     ActionRowBuilder
 } from "discord.js";
+import { Send } from "@database/models";
 
 export default {
     data: new SlashCommandBuilder()
@@ -37,7 +38,7 @@ export default {
         const type = interaction.options.getString("type") ?? "none";
 
         const modal = new ModalBuilder()
-            .setCustomId(`create-embed:${channel?.id}:${type}`)
+            .setCustomId(`create-embed`)
             .setTitle("Create Embed");
 
         const titleInput = new TextInputBuilder()
@@ -58,6 +59,17 @@ export default {
             new ActionRowBuilder<TextInputBuilder>().addComponents(titleInput),
             new ActionRowBuilder<TextInputBuilder>().addComponents(descInput)
         );
+
+        await Send.create({
+            channel: channel?.id,
+            type,
+            user: interaction.user.id
+        });
+
+        setTimeout(async () => {
+            const doc = await Send.findOne({ user: interaction.user.id, channel: channel?.id });
+            if (doc) await Send.deleteOne({ _id: doc._id });
+        }, 180000);
 
         await interaction.showModal(modal);
     }

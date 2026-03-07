@@ -1,33 +1,43 @@
-import { Events, MessageFlags, ModalSubmitInteraction, EmbedBuilder } from "discord.js";
+import {
+    ModalSubmitInteraction,
+    EmbedBuilder,
+    MessageFlags
+} from "discord.js";
+
 import { Send } from "@database/models";
+import type { BotClient } from "@core/BotClient";
+import type { ComponentHandler } from "@core/config";
 
-export default {
-    name: Events.InteractionCreate,
+const createEmbedModal: ComponentHandler<ModalSubmitInteraction> = {
+    customId: "create-embed",
 
-    async execute(interaction: ModalSubmitInteraction) {
+    async run(interaction: ModalSubmitInteraction, client: BotClient) {
 
         if (!interaction.isModalSubmit()) return;
-        if (interaction.customId !== "create-embed") return;
 
         const title = interaction.fields.getTextInputValue("embed-title");
         const description = interaction.fields.getTextInputValue("embed-desc");
 
-        const data = await Send.findOneAndDelete({ user: interaction.user.id });
+        const data = await Send.findOneAndDelete({
+            user: interaction.user.id
+        });
 
         if (!data) {
-            return interaction.reply({
+            await interaction.reply({
                 content: "⛔ Embed session expired or not found.",
                 flags: MessageFlags.Ephemeral
             });
+            return;
         }
 
         const channel = await interaction.guild?.channels.fetch(data.channel);
 
         if (!channel || !channel.isTextBased()) {
-            return interaction.reply({
+            await interaction.reply({
                 content: "❌ Channel not found.",
                 flags: MessageFlags.Ephemeral
             });
+            return;
         }
 
         const embed = new EmbedBuilder()
@@ -45,3 +55,5 @@ export default {
         });
     }
 };
+
+export default createEmbedModal;

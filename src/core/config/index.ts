@@ -20,10 +20,12 @@ interface CommandConfig {
     autocomplete?: (interaction: AutocompleteInteraction, client: BotClient) => Promise<void>;
 }
 
-interface ComponentHandler {
+type ComponentInteraction = ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction;
+
+interface ComponentHandler<T extends ComponentInteraction = ComponentInteraction> {
     customId: string | RegExp;
     run: (
-        interaction: ButtonInteraction | StringSelectMenuInteraction | ModalSubmitInteraction,
+        interaction: T,
         client: BotClient
     ) => Promise<void>;
 }

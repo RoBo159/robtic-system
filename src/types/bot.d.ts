@@ -1,4 +1,4 @@
-type BotName = "main" | "support" | "moderation" | "hr" | "modemail" | "activity" | "service" | "test";
+type BotName = "main" | "support" | "moderation" | "hr" | "modemail" | "activity" | "service";
 
 type BotTokenKey =
     | "MainBotToken"
