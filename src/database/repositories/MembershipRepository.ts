@@ -1,5 +1,5 @@
-import { Membership, type IMembership } from "@database/models/Membership.ts";
-import { ServiceTier, type IServiceTier } from "@database/models/ServiceTier.ts";
+import { Membership, type IMembership } from "@database/models/Membership";
+import { ServiceTier, type IServiceTier } from "@database/models/ServiceTier";
 
 export class MembershipRepository {
     static async findByUser(discordId: string, guildId: string): Promise<IMembership | null> {

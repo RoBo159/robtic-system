@@ -1,4 +1,4 @@
-import { BotConfig, type IBotConfig } from "@database/models/BotConfig.ts";
+import { BotConfig, type IBotConfig } from "@database/models/BotConfig";
 
 export class ConfigRepository {
     static async get(key: string, botName: string): Promise<IBotConfig | null> {

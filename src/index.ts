@@ -1,4 +1,4 @@
-import { ClientManager } from "@core/ClientManager.ts";
+import { ClientManager } from "@core/ClientManager";
 import { connectDatabase } from "@database/connection";
 import { Logger } from "@core/libs";
 

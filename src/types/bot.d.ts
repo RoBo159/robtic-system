@@ -1,4 +1,4 @@
-type BotName = "main" | "support" | "moderation" | "hr" | "modemail" | "activity" | "service";
+type BotName = "main" | "support" | "moderation" | "hr" | "modemail" | "activity" | "service" | "test";
 
 type BotTokenKey =
     | "MainBotToken"
@@ -7,7 +7,8 @@ type BotTokenKey =
     | "HRBotToken"
     | "ModeMailBotToken"
     | "ActivityBotToken"
-    | "ServiceBotToken";
+    | "ServiceBotToken"
+    | "TestBot"
 
 
 interface BotDefinition<Gateway, Partials> {

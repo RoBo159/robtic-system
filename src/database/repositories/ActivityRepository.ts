@@ -1,4 +1,4 @@
-import { ActivityXP, type IActivityXP } from "@database/models/ActivityXP.ts";
+import { ActivityXP, type IActivityXP } from "@database/models/ActivityXP";
 
 export class ActivityRepository {
     static async findOrCreate(discordId: string, guildId: string, username: string): Promise<IActivityXP> {

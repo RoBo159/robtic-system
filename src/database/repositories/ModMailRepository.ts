@@ -1,4 +1,4 @@
-import { ModMailThread, type IModMailThread } from "@database/models/ModMailThread.ts";
+import { ModMailThread, type IModMailThread } from "@database/models/ModMailThread";
 
 export class ModMailRepository {
     static async create(data: Partial<IModMailThread>): Promise<IModMailThread> {

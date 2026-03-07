@@ -1,4 +1,4 @@
-import { Punishment, type IPunishment } from "@database/models/Punishment.ts";
+import { Punishment, type IPunishment } from "@database/models/Punishment";
 
 export class PunishmentRepository {
     static async create(data: Partial<IPunishment>): Promise<IPunishment> {

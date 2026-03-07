@@ -1,5 +1,5 @@
-import { StaffMember, type IStaffMember } from "@database/models/StaffMember.ts";
-import { StaffPromotion, type IStaffPromotion } from "@database/models/StaffPromotion.ts";
+import { StaffMember, type IStaffMember } from "@database/models/StaffMember";
+import { StaffPromotion, type IStaffPromotion } from "@database/models/StaffPromotion";
 
 export class StaffRepository {
     static async create(data: Partial<IStaffMember>): Promise<IStaffMember> {

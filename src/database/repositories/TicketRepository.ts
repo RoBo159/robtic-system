@@ -1,4 +1,4 @@
-import { Ticket, type ITicket } from "@database/models/Ticket.ts";
+import { Ticket, type ITicket } from "@database/models/Ticket";
 
 export class TicketRepository {
     static async create(data: Partial<ITicket>): Promise<ITicket> {

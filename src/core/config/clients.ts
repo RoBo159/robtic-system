@@ -2,8 +2,8 @@ import { GatewayIntentBits, Partials } from "discord.js";
 
 export const BOT_DEFINITIONS: BotDefinition<GatewayIntentBits,Partials>[] = [
     {
-        name: "main",
-        tokenKey: "MainBotToken",
+        name: process.env.NODE_ENV === "production" ? "main" : "test",
+        tokenKey: process.env.NODE_ENV === "production" ? "MainBotToken" : "TestBot",
         description: "System controller and admin bot",
         intents: [
             GatewayIntentBits.Guilds,
