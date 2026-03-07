@@ -8,3 +8,4 @@ export { Membership, type IMembership } from "./Membership.ts";
 export { ServiceTier, type IServiceTier } from "./ServiceTier.ts";
 export { ModMailThread, type IModMailThread } from "./ModMailThread.ts";
 export { BotConfig, type IBotConfig } from "./BotConfig.ts";
+export { Send, type ISend } from "./send.ts";
