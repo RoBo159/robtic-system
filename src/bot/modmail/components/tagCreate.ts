@@ -15,6 +15,7 @@ const tagCreate: ComponentHandler<ModalSubmitInteraction> = {
         const key = interaction.fields.getTextInputValue("tag_key").toLowerCase().trim();
         const description = interaction.fields.getTextInputValue("tag_description").trim();
         const content = interaction.fields.getTextInputValue("tag_content");
+        const contentAr = interaction.fields.getTextInputValue("tag_content_ar");
 
         const existing = await TagRepository.findByKey(key);
         if (existing) {
@@ -25,7 +26,7 @@ const tagCreate: ComponentHandler<ModalSubmitInteraction> = {
             return;
         }
 
-        await TagRepository.create(key, description, content, interaction.user.id);
+        await TagRepository.create(key, description, { en: content, ar: contentAr }, interaction.user.id);
 
         await interaction.reply({
             content: messages.success.tag_created.replace(/\{key\}/g, key),

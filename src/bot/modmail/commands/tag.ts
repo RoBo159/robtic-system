@@ -84,9 +84,17 @@ export default {
                 .setRequired(true)
                 .setMaxLength(100);
 
-            const contentInput = new TextInputBuilder()
+            const contentInputEn = new TextInputBuilder()
                 .setCustomId("tag_content")
                 .setLabel("Tag Message")
+                .setStyle(TextInputStyle.Paragraph)
+                .setPlaceholder("{user} {username} {staff} {server} {date} {nl}")
+                .setRequired(true)
+                .setMaxLength(2000);
+
+            const contentInputAr = new TextInputBuilder()
+                .setCustomId("tag_content_ar")
+                .setLabel("Tag Message (Arabic)")
                 .setStyle(TextInputStyle.Paragraph)
                 .setPlaceholder("{user} {username} {staff} {server} {date} {nl}")
                 .setRequired(true)
@@ -95,7 +103,8 @@ export default {
             modal.addComponents(
                 new ActionRowBuilder<TextInputBuilder>().addComponents(keyInput),
                 new ActionRowBuilder<TextInputBuilder>().addComponents(descInput),
-                new ActionRowBuilder<TextInputBuilder>().addComponents(contentInput),
+                new ActionRowBuilder<TextInputBuilder>().addComponents(contentInputEn),
+                new ActionRowBuilder<TextInputBuilder>().addComponents(contentInputAr),
             );
 
             await interaction.showModal(modal);

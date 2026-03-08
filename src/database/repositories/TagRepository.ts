@@ -1,7 +1,7 @@
 import { Tag, type ITag } from "@database/models/Tag";
 
 export class TagRepository {
-    static async create(key: string, description: string, content: string, createdBy: string): Promise<ITag> {
+    static async create(key: string, description: string, content: { en: string; ar: string }, createdBy: string): Promise<ITag> {
         return Tag.create({ key, description, content, createdBy });
     }
 

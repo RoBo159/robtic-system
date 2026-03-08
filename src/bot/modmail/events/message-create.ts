@@ -115,7 +115,7 @@ export default {
                 const user = await client.users.fetch(modmail.userId).catch(() => null);
                 if (!user) return;
 
-                const resolved = await resolveTagVariables(tag.content, {
+                const resolved = await resolveTagVariables(modmail.language === "en" ? tag.content.en : tag.content.ar, {
                     userId: modmail.userId,
                     staffId: message.author.id,
                     client,
