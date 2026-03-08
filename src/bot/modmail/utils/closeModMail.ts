@@ -1,4 +1,7 @@
 import {
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
     EmbedBuilder,
     TextChannel,
     type ThreadChannel,
@@ -9,6 +12,7 @@ import type { IModMailThread } from "@database/models/ModMailThread";
 import { Colors, STAFF_TEAM_ROLE_ID } from "@core/config";
 import data from "@shared/data.json";
 import messages from "./messages.json";
+import { getTranscriptUrl } from "../../../api/server";
 
 export async function closeModMail(
     modmail: IModMailThread,
@@ -51,15 +55,22 @@ export async function closeModMail(
         )
         .setTimestamp();
 
+    const transcriptButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+            .setLabel("📄 View Transcript")
+            .setStyle(ButtonStyle.Link)
+            .setURL(getTranscriptUrl(modmail.threadId)),
+    );
+
     const staffGuild = client.guilds.cache.get(process.env.MainGuild!);
     const logChannel = staffGuild?.channels.cache.get(data.modmail_log_channel_id) as TextChannel | undefined;
 
     if (logChannel) {
-        await logChannel.send({ embeds: [logEmbed] }).catch(() => null);
+        await logChannel.send({ embeds: [logEmbed], components: [transcriptButton] }).catch(() => null);
     }
 
     if (thread) {
-        await thread.send({ content: messages.thread.thread_locked_notice, embeds: [logEmbed] }).catch(() => null);
+        await thread.send({ content: messages.thread.thread_locked_notice, embeds: [logEmbed], components: [transcriptButton] }).catch(() => null);
 
         const staffGuild = client.guilds.cache.get(process.env.MainGuild!);
         if (staffGuild) {
