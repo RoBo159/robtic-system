@@ -24,7 +24,7 @@ export async function closeModMail(
 
     if (user) {
         await user.send({
-            content: messages.dm.thread_closed_user,
+            content: messages.dm[modmail.language].thread_closed_user,
         }).catch(() => null);
     }
 

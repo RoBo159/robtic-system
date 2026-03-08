@@ -122,9 +122,7 @@ const modmailType: ComponentHandler<StringSelectMenuInteraction> = {
 
         pendingSessions.delete(userId);
 
-        const confirmMsg = language === "ar"
-            ? messages.dm.thread_created_ar
-            : messages.dm.thread_created_en;
+        const confirmMsg = messages.dm[language].thread_created
 
         await interaction.update({
             content: confirmMsg,

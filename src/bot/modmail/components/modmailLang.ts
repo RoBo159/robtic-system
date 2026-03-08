@@ -40,21 +40,17 @@ const modmailLang: ComponentHandler<StringSelectMenuInteraction> = {
             new StringSelectMenuBuilder()
                 .setCustomId(`modmail_type_${userId}`)
                 .setPlaceholder(
-                    language === "ar"
-                        ? messages.dm.type_placeholder_ar
-                        : messages.dm.type_placeholder_en
+                    messages.dm[language].type_placeholder
                 )
                 .addOptions(
-                    { label: language === "ar" ? messages.dm.support_ar : messages.dm.support_en, value: "support", emoji: "🛠️" },
-                    { label: language === "ar" ? messages.dm.report_ar : messages.dm.report_en, value: "report", emoji: "🚨" },
-                    { label: language === "ar" ? messages.dm.appeal_ar : messages.dm.appeal_en, value: "appeal", emoji: "📝" },
+                    { label: messages.dm[language].support, value: "support", emoji: "🛠️" },
+                    { label: messages.dm[language].report, value: "report", emoji: "🚨" },
+                    { label: messages.dm[language].appeal, value: "appeal", emoji: "📝" },
                 )
         );
 
         await interaction.update({
-            content: language === "ar"
-                ? messages.dm.language_selected_ar
-                : messages.dm.language_selected_en,
+            content: messages.dm[language].language_selected,
             components: [typeRow],
         });
     },

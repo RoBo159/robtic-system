@@ -41,7 +41,7 @@ const modmailClaim: ComponentHandler<ButtonInteraction> = {
         if (!user) return;
 
         await user.send({
-            content: messages.dm.staff_claimed,
+            content: messages.dm[modmail.language].staff_claimed,
         }).catch(() => null);
     },
 };
