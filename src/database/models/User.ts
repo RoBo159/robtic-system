@@ -6,6 +6,7 @@ export interface IUser extends Document {
     joinedAt: Date;
     roles: string[];
     warnings: number;
+    punishmentLevel: number;
     isBanned: boolean;
     notes: string[];
     createdAt: Date;
@@ -19,6 +20,7 @@ const userSchema = new Schema<IUser>(
         joinedAt: { type: Date, default: Date.now },
         roles: [{ type: String }],
         warnings: { type: Number, default: 0 },
+        punishmentLevel: { type: Number, default: 0 },
         isBanned: { type: Boolean, default: false },
         notes: [{ type: String }],
     },

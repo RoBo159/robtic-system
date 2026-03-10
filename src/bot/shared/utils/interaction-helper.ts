@@ -1,9 +1,11 @@
 import type { CommandConfig } from "@core/config";
+import { FULL_POWER_ROLE_ID } from "@core/config";
 import { hasPermission } from "@core/libs";
 import { isOnCooldown, getRemainingCooldown, errorEmbed } from "@core/utils";
 import { ChatInputCommandInteraction, MessageFlags, type GuildMember, type Interaction } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 import { BotError, handleError } from "@core/handlers";
+import { getMemberLevel, isInDepartment } from "@shared/utils/access";
 
 export const HandlingComponent = async (interaction: Interaction, client: BotClient) => {
     if (
@@ -41,20 +43,37 @@ export const HandlingComponent = async (interaction: Interaction, client: BotCli
     }
 }
 
-export const checkPermissions = async (intract: Interaction, command: CommandConfig) => {
+export const checkPermissions = async (intract: Interaction, command: CommandConfig): Promise<boolean> => {
     let interaction = intract as ChatInputCommandInteraction;
 
     const member = interaction.member as GuildMember;
-    if (command.requiredPermission && !hasPermission(member, command.requiredPermission)) {
+
+    if (member.roles.cache.has(FULL_POWER_ROLE_ID)) return true;
+
+    const { score } = getMemberLevel(member);
+
+    if (score >= 90) return true;
+
+    if (command.requiredPermission && score < command.requiredPermission) {
         await interaction.reply({
             embeds: [errorEmbed("You don't have permission to use this command.")],
             flags: MessageFlags.Ephemeral,
         });
-        return;
+        return false;
     }
+
+    if (command.department && !isInDepartment(member, command.department)) {
+        await interaction.reply({
+            embeds: [errorEmbed(`This command is restricted to the ${command.department} department.`)],
+            flags: MessageFlags.Ephemeral,
+        });
+        return false;
+    }
+
+    return true;
 }
 
-export const cooldowns = async (intract: Interaction, command: CommandConfig) => {
+export const cooldowns = async (intract: Interaction, command: CommandConfig): Promise<boolean> => {
     let interaction = intract as ChatInputCommandInteraction;
 
     const cooldownMs = (command.cooldown ?? 5) * 1000;
@@ -64,8 +83,9 @@ export const cooldowns = async (intract: Interaction, command: CommandConfig) =>
             embeds: [errorEmbed(`Please wait ${remaining}s before using this command again.`)],
             flags: MessageFlags.Ephemeral,
         });
-        return;
+        return false;
     }
+    return true;
 }
 
 export const commandError = async (error : unknown, intract : Interaction, client: BotClient) => {

@@ -9,6 +9,7 @@ import type { BotClient } from "@core/BotClient";
 import type { ComponentHandler } from "@core/config";
 import { pendingSessions } from "../utils/handleModMailDM";
 import messages from "../utils/messages.json";
+import { t, type Lang } from "@shared/utils/lang";
 
 const modmailLang: ComponentHandler<StringSelectMenuInteraction> = {
     customId: /^modmail_lang_\d+$/,
@@ -33,24 +34,24 @@ const modmailLang: ComponentHandler<StringSelectMenuInteraction> = {
             return;
         }
 
-        const language = interaction.values[0] as "en" | "ar";
+        const language = interaction.values[0] as Lang;
         session.language = language;
 
         const typeRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
             new StringSelectMenuBuilder()
                 .setCustomId(`modmail_type_${userId}`)
                 .setPlaceholder(
-                    messages.dm[language].type_placeholder
+                    t("modmail.type_placeholder", language)
                 )
                 .addOptions(
-                    { label: messages.dm[language].support, value: "support", emoji: "🛠️" },
-                    { label: messages.dm[language].report, value: "report", emoji: "🚨" },
-                    { label: messages.dm[language].appeal, value: "appeal", emoji: "📝" },
+                    { label: t("modmail.support", language), value: "support", emoji: "🛠️" },
+                    { label: t("modmail.report", language), value: "report", emoji: "🚨" },
+                    { label: t("modmail.appeal", language), value: "appeal", emoji: "📝" },
                 )
         );
 
         await interaction.update({
-            content: messages.dm[language].language_selected,
+            content: t("modmail.language_selected", language),
             components: [typeRow],
         });
     },

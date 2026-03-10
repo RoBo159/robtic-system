@@ -4,6 +4,7 @@ import type { BotClient } from "@core/BotClient";
 import { hasDepartmentAuthority } from "@shared/utils/access";
 import type { GuildMember } from "discord.js";
 import messages from "./messages.json";
+import { t } from "@shared/utils/lang";
 
 export async function handleModMailStaff(message: Message, client: BotClient) {
     if (message.author.bot) return;
@@ -69,7 +70,7 @@ export async function handleModMailStaff(message: Message, client: BotClient) {
     if (!user) return;
 
     const parts: string[] = [];
-    if (message.content) parts.push(`${messages.dm.moderator_prefix} ${message.content}`);
+    if (message.content) parts.push(`${t("modmail.moderator_prefix", modmail.language as "en" | "ar")} ${message.content}`);
     if (attachments.length) parts.push("📎 Attachment(s)");
 
     await user.send({

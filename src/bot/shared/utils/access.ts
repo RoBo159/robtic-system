@@ -6,6 +6,7 @@ import {
     MANAGER_DEPARTMENT_MAP,
     DEPARTMENT_ROLES,
     STAFF_TEAM_ROLE_ID,
+    FULL_POWER_ROLE_ID,
 } from "@core/config";
 
 export function getMemberLevel(member: GuildMember): { level: PermissionLevel; score: number } {
@@ -107,6 +108,16 @@ export function isAnyManager(member: GuildMember): boolean {
 }
 
 export function isAnyLead(member: GuildMember): boolean {
+    const { score } = getMemberLevel(member);
+    return score >= 90;
+}
+
+export function hasFullPower(member: GuildMember): boolean {
+    return member.roles.cache.has(FULL_POWER_ROLE_ID);
+}
+
+export function isOwnerOrLead(member: GuildMember): boolean {
+    if (hasFullPower(member)) return true;
     const { score } = getMemberLevel(member);
     return score >= 90;
 }

@@ -14,7 +14,8 @@ interface CommandConfig {
         | SlashCommandBuilder
         | SlashCommandSubcommandsOnlyBuilder
         | Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;
-    requiredPermission?: PermissionLevel;
+    requiredPermission?: number;
+    department?: Department;
     cooldown?: number;
     run: (interaction: ChatInputCommandInteraction, client: BotClient) => Promise<void>;
     autocomplete?: (interaction: AutocompleteInteraction, client: BotClient) => Promise<void>;

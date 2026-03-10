@@ -26,7 +26,7 @@
         "no_threads_found": "📭 No ModMail records found."
     },
     "success": {
-        "thread_closed": "🔒 ModMail thread successfully closed.",
+        "thread_closed": "{emoji:closed} ModMail thread successfully closed.",
         "thread_claimed": "✋ <@{userId}> is now handling this thread.",
         "thread_transferred": "🔄 Thread reassigned to <@{targetId}> by <@{userId}>.",
         "chat_paused": "⏸️ Conversation paused. Staff replies will not be forwarded until `/thread start` is executed.",
@@ -41,31 +41,11 @@
     },
     "dm": {
         "select_language": "Welcome to the support system! Please select your preferred language / مرحبًا بك في نظام الدعم! يرجى اختيار لغتك المفضلة",
-        "en": {
-            "language_selected": "✅ Language set to English.\nPlease choose the type of request:",
-            "type_placeholder": "Select request category",
-            "support": "Technical Support",
-            "report": "User Report",
-            "appeal": "Appeal / Review Request",
-            "thread_created": "✅ Your request has been submitted. A staff member will review it shortly.",
-            "thread_closed_user": "Thank you for contacting our team. If you require further assistance, please feel free to send a new message.",
-            "staff_claimed": "**✋ A staff member has taken ownership of your request and will assist you shortly.**"
-        },
-        "ar": {
-            "language_selected": "✅ تم اختيار اللغة العربية.\nاختر نوع الطلب:",
-            "type_placeholder": "اختر نوع الطلب",
-            "support": "الدعم التقني",
-            "report": "الإبلاغ عن مستخدم",
-            "appeal": "طلب استئناف",
-            "thread_created": "✅ تم إرسال طلبك. سيقوم أحد أعضاء الفريق بمراجعته قريبًا.",
-            "thread_closed_user": "شكرًا لتواصلك مع فريقنا. إذا كنت بحاجة إلى مزيد من المساعدة، لا تتردد في إرسال رسالة جديدة.",
-            "staff_claimed": "**✋ قام أحد أعضاء الفريق بأخذ مسؤولية طلبك وسوف يساعدك قريبًا.**"
-        },
         "moderator_prefix": "**Moderator:**"
     },
     "thread": {
         "chat_paused_notice": "⏸️ Conversation paused. Run `/thread start` to resume communication.",
-        "thread_locked_notice": "🔒 This ModMail thread has been closed."
+        "thread_locked_notice": "{emoji:closed} This ModMail thread has been closed."
     },
     "embed": {
         "new_modmail_title": "📨 New ModMail Request",

@@ -6,6 +6,10 @@ import {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
+    ModalBuilder,
+    TextInputBuilder,
+    TextInputStyle,
+    StringSelectMenuBuilder,
 } from "discord.js";
 
 import { ModMailRepository } from "@database/repositories";
@@ -15,6 +19,7 @@ import { Colors } from "@core/config";
 import data from "@shared/data.json";
 import { pendingSessions } from "../utils/handleModMailDM";
 import messages from "../utils/messages.json";
+import { t, type Lang } from "@shared/utils/lang";
 
 const modmailType: ComponentHandler<StringSelectMenuInteraction> = {
     customId: /^modmail_type_\d+$/,
@@ -40,7 +45,64 @@ const modmailType: ComponentHandler<StringSelectMenuInteraction> = {
         }
 
         const requestType = interaction.values[0] as "appeal" | "report" | "support";
-        const language = session.language;
+        const language = session.language as Lang;
+
+        if (requestType === "report") {
+            const modal = new ModalBuilder()
+                .setCustomId(`modmail_report_${userId}_${language}`)
+                .setTitle(t("modmail.report_title", language));
+
+            modal.addComponents(
+                new ActionRowBuilder<TextInputBuilder>().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId("reported_user")
+                        .setLabel(t("modmail.report_user_label", language))
+                        .setStyle(TextInputStyle.Short)
+                        .setRequired(true)
+                        .setMaxLength(100)
+                ),
+                new ActionRowBuilder<TextInputBuilder>().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId("report_reason")
+                        .setLabel(t("modmail.report_reason_label", language))
+                        .setStyle(TextInputStyle.Paragraph)
+                        .setRequired(true)
+                        .setMaxLength(1000)
+                ),
+                new ActionRowBuilder<TextInputBuilder>().addComponents(
+                    new TextInputBuilder()
+                        .setCustomId("report_evidence")
+                        .setLabel(t("modmail.report_evidence_label", language))
+                        .setStyle(TextInputStyle.Paragraph)
+                        .setRequired(false)
+                        .setMaxLength(1000)
+                ),
+            );
+
+            await interaction.showModal(modal);
+            pendingSessions.delete(userId);
+            return;
+        }
+
+        if (requestType === "appeal") {
+            const appealRow = new ActionRowBuilder<StringSelectMenuBuilder>().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId(`modmail_appeal_menu_${userId}_${language}`)
+                    .setPlaceholder(t("modmail.appeal_placeholder", language))
+                    .addOptions(
+                        { label: t("modmail.appeal_know_reason", language), value: "knowreason", emoji: "🔍" },
+                        { label: t("modmail.appeal_ban_review", language), value: "banreview", emoji: "🔨" },
+                        { label: t("modmail.appeal_mute_review", language), value: "mutereview", emoji: "🔇" },
+                        { label: t("modmail.appeal_request", language), value: "appealrequest", emoji: "📝" },
+                    )
+            );
+
+            await interaction.update({
+                content: t("modmail.appeal_select_prompt", language),
+                components: [appealRow],
+            });
+            return;
+        }
 
         const staffGuild = client.guilds.cache.get(process.env.MainGuild!);
         const staffChannel = staffGuild?.channels.cache.get(data.modmail_channel_id) as TextChannel;
@@ -122,10 +184,8 @@ const modmailType: ComponentHandler<StringSelectMenuInteraction> = {
 
         pendingSessions.delete(userId);
 
-        const confirmMsg = messages.dm[language].thread_created
-
         await interaction.update({
-            content: confirmMsg,
+            content: t("modmail.thread_created", language),
             components: [],
         });
     },

@@ -7,6 +7,7 @@ import { ModMailRepository } from "@database/repositories";
 import type { BotClient } from "@core/BotClient";
 import type { ComponentHandler } from "@core/config";
 import messages from "../utils/messages.json";
+import { t } from "@shared/utils/lang";
 
 const modmailClaim: ComponentHandler<ButtonInteraction> = {
     customId: /^modmail_claim_\d+$/,
@@ -41,7 +42,7 @@ const modmailClaim: ComponentHandler<ButtonInteraction> = {
         if (!user) return;
 
         await user.send({
-            content: messages.dm[modmail.language].staff_claimed,
+            content: t("modmail.staff_claimed", modmail.language as "en" | "ar"),
         }).catch(() => null);
     },
 };

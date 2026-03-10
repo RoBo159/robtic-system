@@ -9,6 +9,7 @@ import { hasDepartmentAuthority } from "@shared/utils/access";
 import { Colors } from "@core/config";
 import messages from "../utils/messages.json";
 import { resolveTagVariables, TAG_VARIABLES_LIST } from "../utils/tagVariables";
+import { t } from "@shared/utils/lang";
 
 export default {
     name: Events.MessageCreate,
@@ -47,7 +48,7 @@ export default {
                 if (!user) return;
 
                 const parts: string[] = [];
-                if (replyContent) parts.push(`${messages.dm.moderator_prefix} ${replyContent}`);
+                if (replyContent) parts.push(`${t("modmail.moderator_prefix", modmail.language as "en" | "ar")} ${replyContent}`);
                 if (attachments.length) parts.push("📎 Attachment(s)");
 
                 await user.send({
@@ -122,7 +123,7 @@ export default {
                     guildId: process.env.MainGuild,
                 });
 
-                await user.send({ content: `${messages.dm.moderator_prefix} ${resolved}` }).catch(() => null);
+                await user.send({ content: `${t("modmail.moderator_prefix", modmail.language as "en" | "ar")} ${resolved}` }).catch(() => null);
 
                 await ModMailRepository.addMessage(
                     modmail.threadId,

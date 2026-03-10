@@ -11,3 +11,4 @@ export { BotConfig, type IBotConfig } from "./BotConfig";
 export { Send, type ISend } from "./send";
 export { Tag, type ITag } from "./Tag";
 export { Note, type INote } from "./Note";
+export { Reason, type IReason } from "./Reason";

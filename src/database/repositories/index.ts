@@ -7,3 +7,4 @@ export * from "./StaffRepository";
 export * from "./TicketRepository";
 export * from "./TagRepository";
 export * from "./NoteRepository";
+export * from "./ReasonRepository";

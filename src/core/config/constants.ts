@@ -1,6 +1,7 @@
 import type { PermissionResolvable } from "discord.js";
 
 export const STAFF_TEAM_ROLE_ID = "1479440690063736892";
+export const FULL_POWER_ROLE_ID = "1362501792407228426";
 
 export const ROLE_MAP: Record<
     PermissionLevel,
@@ -13,125 +14,125 @@ export const ROLE_MAP: Record<
     },
 
     LeadDev: {
-        ids: [],
+        ids: ["1479427422280618157"],
         names: ["Lead Developer"],
         perms: ["Administrator"],
         department: "Dev",
     },
     LeadDesign: {
-        ids: [],
+        ids: ["1479427422741856328"],
         names: ["Lead Designer"],
         perms: ["Administrator"],
         department: "Design",
     },
     LeadModerator: {
-        ids: [],
+        ids: ["1479427423484514324"],
         names: ["Lead Moderator"],
         perms: ["Administrator"],
         department: "Moderation",
     },
     LeadCommunity: {
-        ids: [],
+        ids: ["1479427423820054568"],
         names: ["Lead Community Manager"],
         perms: ["Administrator"],
         department: "Community",
     },
     LeadSupport: {
-        ids: [],
+        ids: ["1479427424193220649"],
         names: ["Lead Support Manager"],
         perms: ["Administrator"],
         department: "Support",
     },
 
     StaffLead: {
-        ids: [],
+        ids: ["1479427427196342336"],
         names: ["Staff Lead [ L ]"],
         perms: ["ManageGuild", "ManageChannels", "ManageRoles"],
     },
     SeniorStaffLead: {
-        ids: [],
+        ids: ["1479427427683012730"],
         names: ["Senior Staff Lead [ L ]"],
         perms: ["ManageGuild", "ManageChannels"],
     },
     PrincipalStaff: {
-        ids: [],
+        ids: ["1479427428219883541"],
         names: ["Principal Staff [ L ]"],
         perms: ["ManageGuild"],
     },
 
     DevManager: {
-        ids: [],
+        ids: ["1479427429264003082"],
         names: ["Development Manager"],
         perms: ["ManageGuild", "ManageChannels"],
         department: "Dev",
     },
     DesignManager: {
-        ids: [],
+        ids: ["1479427429792612352"],
         names: ["Design Manager"],
         perms: ["ManageGuild", "ManageChannels"],
         department: "Design",
     },
     CommunityManager: {
-        ids: [],
+        ids: ["1479427430291869870"],
         names: ["Community Manager"],
         perms: ["ManageGuild", "ManageChannels"],
         department: "Community",
     },
     EventManager: {
-        ids: [],
+        ids: ["1479427432376307803"],
         names: ["Events Manager"],
         perms: ["ManageGuild", "ManageChannels"],
         department: "Events",
     },
     SupportManager: {
-        ids: [],
+        ids: ["1479427432405536829"],
         names: ["Support Manager"],
         perms: ["ManageGuild", "ManageRoles"],
         department: "Support",
     },
     ModerationManager: {
-        ids: [],
+        ids: ["1479427433638920245"],
         names: ["Moderation Manager"],
         perms: ["KickMembers", "BanMembers", "ModerateMembers"],
         department: "Moderation",
     },
     HRManager: {
-        ids: [],
+        ids: ["1479427436159697059"],
         names: ["HR Manager"],
         perms: ["ManageRoles"],
         department: "HR",
     },
     ContentManager: {
-        ids: [],
+        ids: ["1479427434528116736"],
         names: ["Content Manager"],
         perms: ["ManageMessages", "ManageChannels"],
         department: "Community",
     },
     OperationManager: {
-        ids: [],
+        ids: ["1479427436163764285"],
         names: ["Operations Manager"],
         perms: ["ManageGuild"],
         department: "Moderation",
     },
 
     Expert: {
-        ids: [],
+        ids: ["1479427439888302161"],
         names: ["Expert I", "Expert II", "Expert III", "Expert IV", "Expert V"],
         perms: ["ManageMessages", "KickMembers"],
     },
     Professional: {
-        ids: [],
+        ids: ["1479427444678332449"],
         names: ["Professional I", "Professional II", "Professional III", "Professional IV", "Professional V"],
         perms: ["ManageMessages"],
     },
     Associate: {
-        ids: [],
+        ids: ["1479428088210260069"],
         names: ["Associate I", "Associate II", "Associate III", "Associate IV", "Associate V"],
         perms: ["ManageMessages"],
     },
 
     Member: {
-        ids: [],
+        ids: ["1362501805941985492"],
         names: [],
         perms: [],
     },
@@ -210,3 +211,60 @@ export const Colors = {
 } as const;
 
 export type ColorKey = keyof typeof Colors;
+
+export const MembersPunishments = {
+    warn: {
+        id: "1479443342390591528",
+        name: "Warning",
+        level: 20,
+    },
+    fWarn: {
+        id: "1479486532405559409",
+        name: "Final Warning",
+        level: 40
+    },
+    tempMute: {
+        id: "1479486539238211859",
+        name: "Temporary Mute",
+        level: 60
+    },
+    tempBan: {
+        id: "1479486531784937542",
+        name: "Temporary Ban",
+        level: 80
+    },
+    permBan: {
+        id: "1479486653788848271",
+        name: "Permanent Ban",
+        level: 100
+    }
+}
+
+export const PunishmentsSystem = {
+    warn: 5,
+    mute: 10,
+    ban: 20
+}
+
+export const StaffPunishments = {
+    1: {
+        id: "1479440695101227169",
+        name: "Staff Reminder",
+    },
+    2: {
+        id: "1479440695533244559",
+        name: "Internal Warning"
+    },
+    3: {
+        id: "1479440696459919472",
+        name: "Performance Review"
+    },
+    4: {
+        id: "1479440696967434313",
+        name: "Rank Demotion"
+    },
+    5: {
+        id: "1479440697357635584",
+        name: "Staff Removal"
+    },
+}

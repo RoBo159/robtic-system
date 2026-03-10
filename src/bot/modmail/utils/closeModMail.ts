@@ -9,6 +9,7 @@ import type { IModMailThread } from "@database/models/ModMailThread";
 import { Colors, STAFF_TEAM_ROLE_ID } from "@core/config";
 import data from "@shared/data.json";
 import messages from "./messages.json";
+import { t } from "@shared/utils/lang";
 
 export async function closeModMail(
     modmail: IModMailThread,
@@ -24,7 +25,7 @@ export async function closeModMail(
 
     if (user) {
         await user.send({
-            content: messages.dm[modmail.language].thread_closed_user,
+            content: t("modmail.thread_closed", modmail.language as "en" | "ar"),
         }).catch(() => null);
     }
 

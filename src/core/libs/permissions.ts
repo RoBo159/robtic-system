@@ -1,19 +1,16 @@
 import { GuildMember } from "discord.js";
-import { PERMISSION_HIERARCHY, ROLE_MAP } from "@core/config";
+import { PERMISSION_HIERARCHY, ROLE_MAP, FULL_POWER_ROLE_ID } from "@core/config";
 
 export function hasPermission(
     member: GuildMember,
-    required: PermissionLevel
+    requiredScore: number
 ): boolean {
-
-    if (required === "Member") return true;
-
-    const requiredLevel = PERMISSION_HIERARCHY[required] ?? 0;
+    if (requiredScore <= 0) return true;
+    if (member.roles.cache.has(FULL_POWER_ROLE_ID)) return true;
 
     for (const [level, config] of Object.entries(ROLE_MAP)) {
-
         const levelValue = PERMISSION_HIERARCHY[level] ?? 0;
-        if (levelValue < requiredLevel) continue;
+        if (levelValue < requiredScore) continue;
 
         const hasRoleId =
             config.ids.length > 0 &&
@@ -28,12 +25,6 @@ export function hasPermission(
             );
 
         if (hasRoleName) return true;
-
-        const hasPerm =
-            config.perms.length > 0 &&
-            config.perms.some(p => member.permissions.has(p));
-
-        if (hasPerm) return true;
     }
 
     return false;

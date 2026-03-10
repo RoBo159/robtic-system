@@ -7,12 +7,11 @@ import {
     ActionRowBuilder,
     MessageFlags,
     AutocompleteInteraction,
-    EmbedBuilder,
 } from "discord.js";
 import { TagRepository } from "@database/repositories/TagRepository";
 import type { BotClient } from "@core/BotClient";
-import { Colors } from "@core/config";
 import { TAG_VARIABLES_LIST } from "../utils/tagVariables";
+import { tagHelpEmbed } from "@shared/utils/help-embed";
 import messages from "../utils/messages.json";
 
 export default {
@@ -49,17 +48,7 @@ export default {
                 ? allTags.map(t => `\`${t.key}\` — ${t.description}`).join("\n")
                 : "No tags created yet.";
 
-            const embed = new EmbedBuilder()
-                .setTitle(messages.embed.tag_help_title)
-                .setColor(Colors.info)
-                .addFields(
-                    { name: "Usage", value: "`!tag` — List all tags\n`!tag <key>` — Send a tag to the user\n`/tag create` — Create a new tag\n`/tag delete` — Delete a tag" },
-                    { name: "Available Tags", value: tagList },
-                    { name: "Template Variables", value: TAG_VARIABLES_LIST },
-                )
-                .setTimestamp();
-
-            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            await interaction.reply({ embeds: [tagHelpEmbed(tagList, TAG_VARIABLES_LIST)], flags: MessageFlags.Ephemeral });
             return;
         }
 
