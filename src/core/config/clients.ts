@@ -61,8 +61,8 @@ export const BOT_DEFINITIONS: BotDefinition<GatewayIntentBits,Partials>[] = [
         ],
     },
     {
-        name: "activity",
-        tokenKey: "ActivityBotToken",
+        name: "community",
+        tokenKey: "CommunityBotToken",
         description: "XP and activity tracking",
         intents: [
             GatewayIntentBits.Guilds,
