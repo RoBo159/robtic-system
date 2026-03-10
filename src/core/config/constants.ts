@@ -246,25 +246,25 @@ export const PunishmentsSystem = {
     ban: 20
 }
 
-export const StaffPunishments = {
-    1: {
+export const StaffPunishments = [
+    {
         id: "1479440695101227169",
         name: "Staff Reminder",
     },
-    2: {
+    {
         id: "1479440695533244559",
         name: "Internal Warning"
     },
-    3: {
+    {
         id: "1479440696459919472",
         name: "Performance Review"
     },
-    4: {
+    {
         id: "1479440696967434313",
         name: "Rank Demotion"
     },
-    5: {
+    {
         id: "1479440697357635584",
         name: "Staff Removal"
     },
-}
+]
