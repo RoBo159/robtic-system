@@ -24,7 +24,7 @@ export class ConfigRepository {
         return BotConfig.findOneAndUpdate(
             { key, botName },
             { enabled, updatedBy },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 

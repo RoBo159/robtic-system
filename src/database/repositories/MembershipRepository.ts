@@ -14,7 +14,7 @@ export class MembershipRepository {
         return Membership.findOneAndUpdate(
             { discordId, guildId },
             { tier },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -22,7 +22,7 @@ export class MembershipRepository {
         return Membership.findOneAndUpdate(
             { discordId, guildId },
             { active: false, endDate: new Date() },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 

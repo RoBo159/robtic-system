@@ -38,7 +38,7 @@ export class PunishmentRepository {
         return Punishment.findOneAndUpdate(
             { caseId },
             { active: false },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -46,7 +46,7 @@ export class PunishmentRepository {
         return Punishment.findOneAndUpdate(
             { caseId },
             { appealed: true, active: false, appealReason: reason },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 

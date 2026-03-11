@@ -27,7 +27,7 @@ export class TicketRepository {
         return Ticket.findOneAndUpdate(
             { ticketId },
             { status: "closed", closedBy, closedAt: new Date() },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -35,7 +35,7 @@ export class TicketRepository {
         return Ticket.findOneAndUpdate(
             { ticketId },
             { assignedTo: staffId, status: "in-progress" },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -43,7 +43,7 @@ export class TicketRepository {
         return Ticket.findOneAndUpdate(
             { ticketId },
             { status: "escalated" },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -51,7 +51,7 @@ export class TicketRepository {
         return Ticket.findOneAndUpdate(
             { ticketId },
             { $push: { messages: { authorId, content, timestamp: new Date() } } },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 

@@ -11,6 +11,20 @@ export interface IActivityXP extends Document {
     lastXPGrant: Date;
     spamCount: number;
     currentRole: string;
+
+    staff: {
+        supportPoints: number;
+        publicChatPoints: number;
+        staffChatPoints: number;
+        penalties: number;
+    };
+
+    decay: {
+        enabled: boolean;
+        lastActiveAt: Date;
+        inactiveDays: number;
+    };
+
     createdAt: Date;
     updatedAt: Date;
 }
@@ -27,6 +41,19 @@ const activityXPSchema = new Schema<IActivityXP>(
         lastXPGrant: { type: Date, default: new Date(0) },
         spamCount: { type: Number, default: 0 },
         currentRole: { type: String, default: "Member" },
+
+        staff: {
+            supportPoints: { type: Number, default: 0 },
+            publicChatPoints: { type: Number, default: 0 },
+            staffChatPoints: { type: Number, default: 0 },
+            penalties: { type: Number, default: 0 },
+        },
+
+        decay: {
+            enabled: { type: Boolean, default: true },
+            lastActiveAt: { type: Date, default: Date.now },
+            inactiveDays: { type: Number, default: 0 },
+        },
     },
     { timestamps: true }
 );

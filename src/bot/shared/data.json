@@ -11,5 +11,13 @@
     "en_role_id": "1480460792213274714",
     "ar_role_id": "1480460771984019587",
 
-    "members_role_id": "1362501805941985492"
+    "members_role_id": "1362501805941985492",
+    "bots_role_id": "1362501806604943410",
+
+    "xp_gain_log_channel_id": "1480925517317275761",
+    "rewards_log_channel_id": "1480925517317275761",
+    "support_points_log_channel_id": "1480925517317275761",
+    "staff_activity_log_channel_id": "1480925517317275761",
+    "decay_log_channel_id": "1480925517317275761",
+    "ai_log_channel_id": "1480925517317275761"
 }

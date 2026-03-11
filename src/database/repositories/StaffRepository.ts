@@ -27,7 +27,7 @@ export class StaffRepository {
         return StaffMember.findOneAndUpdate(
             { discordId },
             { position: newPosition, department: newDepartment },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -39,7 +39,7 @@ export class StaffRepository {
         return StaffMember.findOneAndUpdate(
             { discordId },
             { $push: { warnings: { reason, issuedBy, date: new Date() } } },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -47,7 +47,7 @@ export class StaffRepository {
         return StaffMember.findOneAndUpdate(
             { discordId },
             { status: "terminated" },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 

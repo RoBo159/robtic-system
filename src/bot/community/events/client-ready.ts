@@ -2,6 +2,8 @@ import { Events } from "discord.js";
 import type { BotClient } from "@core/BotClient.ts";
 import { Logger } from "@core/libs";
 import { setPresence, setupGuildGuard } from "@shared/index";
+import { startDecayScheduler } from "../services/decay-service";
+import { startSessionCleanupScheduler } from "../services/support-service";
 
 export default {
     name: Events.ClientReady,
@@ -12,9 +14,14 @@ export default {
         Logger.debug(`Serving ${client.guilds.cache.size} guild(s)`, client.botName);
 
         const activityNames = [
-            "under construction 🚧",
-        ]
-        setPresence(client, "online", "Streaming", activityNames)
+            "Tracking community activity 📊",
+            "Leveling up members ⬆️",
+            "Monitoring staff performance 🏆",
+            "XP system online 🎮",
+        ];
+        setPresence(client, "online", "Watching", activityNames);
         setupGuildGuard(client);
+        startDecayScheduler(client);
+        startSessionCleanupScheduler();
     },
 };

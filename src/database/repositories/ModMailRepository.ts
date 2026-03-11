@@ -21,7 +21,7 @@ export class ModMailRepository {
         return ModMailThread.findOneAndUpdate(
             { threadId, claimedBy: null },
             { claimedBy: staffId },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -39,7 +39,7 @@ export class ModMailRepository {
                     messages: { authorId, authorType, content, attachments, timestamp: new Date() },
                 },
             },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -47,7 +47,7 @@ export class ModMailRepository {
         return ModMailThread.findOneAndUpdate(
             { threadId },
             { status: "closed", closedBy, closedAt: new Date() },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -59,7 +59,7 @@ export class ModMailRepository {
         return ModMailThread.findOneAndUpdate(
             { threadId },
             { paused },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -67,7 +67,7 @@ export class ModMailRepository {
         return ModMailThread.findOneAndUpdate(
             { threadId },
             { claimedBy: newStaffId },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
@@ -75,7 +75,7 @@ export class ModMailRepository {
         return ModMailThread.findOneAndUpdate(
             { threadId, status: "closed" },
             { status: "open", closedBy: null, closedAt: null, paused: false },
-            { new: true }
+            { returnDocument: "after" }
         );
     }
 
