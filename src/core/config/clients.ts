@@ -13,17 +13,6 @@ export const BOT_DEFINITIONS: BotDefinition<GatewayIntentBits,Partials>[] = [
         ],
     },
     {
-        name: "support",
-        tokenKey: "SupportBotToken",
-        description: "Ticket and support system",
-        intents: [
-            GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages,
-            GatewayIntentBits.GuildMembers,
-            GatewayIntentBits.MessageContent,
-        ],
-    },
-    {
         name: "moderation",
         tokenKey: "ModerationBotToken",
         description: "Moderation and punishment system",
