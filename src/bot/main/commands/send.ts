@@ -13,29 +13,17 @@ export default {
     data: new SlashCommandBuilder()
         .setName("send")
         .setDescription("Send an embed message to a channel")
-
         .addChannelOption(option =>
             option
                 .setName("channel")
                 .setDescription("Select the target channel")
                 .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
                 .setRequired(true)
-        )
-
-        .addStringOption(option =>
-            option
-                .setName("type")
-                .setDescription("Embed style")
-                .addChoices(
-                    { name: "With Line", value: "line" },
-                    { name: "Default Embed", value: "none" }
-                )
         ),
 
     async run(interaction: ChatInputCommandInteraction) {
 
         const channel = interaction.options.getChannel("channel");
-        const type = interaction.options.getString("type") ?? "none";
 
         const modal = new ModalBuilder()
             .setCustomId(`create-embed`)
@@ -62,7 +50,6 @@ export default {
 
         await Send.create({
             channel: channel?.id,
-            type,
             user: interaction.user.id
         });
 
