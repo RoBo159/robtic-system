@@ -65,17 +65,18 @@ export async function analyzeActivity(content: string): Promise<AiAnalysisResult
     try {
         const client = AiClient.getInstance();
         const prompt = buildActivityPrompt(content);
-        const raw = await client.generate(prompt, 60);
+        const raw = await client.generate(prompt, 80, true);
         const parsed = client.parseJsonResponse<{
             meaningful: boolean;
             confidence: number;
             reason?: string;
         }>(raw);
 
-        if (parsed && typeof parsed.meaningful === "boolean" && typeof parsed.confidence === "number") {
+        if (parsed && typeof parsed.meaningful === "boolean") {
+            const confidence = typeof parsed.confidence === "number" ? parsed.confidence : 0.7;
             const result: AiAnalysisResult = {
                 meaningful: parsed.meaningful,
-                confidence: Math.min(Math.max(parsed.confidence, 0), 1),
+                confidence: Math.min(Math.max(confidence, 0), 1),
                 fallback: false,
                 reason: parsed.reason,
             };
@@ -121,16 +122,17 @@ export async function analyzeStaffActivity(
     try {
         const client = AiClient.getInstance();
         const prompt = buildStaffActivityPrompt(content, channelType);
-        const raw = await client.generate(prompt, 60);
+        const raw = await client.generate(prompt, 80, true);
         const parsed = client.parseJsonResponse<{
             meaningful: boolean;
             confidence: number;
         }>(raw);
 
-        if (parsed && typeof parsed.meaningful === "boolean" && typeof parsed.confidence === "number") {
+        if (parsed && typeof parsed.meaningful === "boolean") {
+            const confidence = typeof parsed.confidence === "number" ? parsed.confidence : 0.7;
             const result: AiAnalysisResult = {
                 meaningful: parsed.meaningful,
-                confidence: Math.min(Math.max(parsed.confidence, 0), 1),
+                confidence: Math.min(Math.max(confidence, 0), 1),
                 fallback: false,
             };
             Logger.debug(

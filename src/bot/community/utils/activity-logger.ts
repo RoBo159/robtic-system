@@ -86,7 +86,7 @@ export function staffActivityEmbed(userId: string, username: string, points: num
 }
 
 export function supportSessionEmbed(
-    action: "created" | "claimed" | "resolved" | "auto-closed",
+    action: "created" | "claimed" | "resolved" | "auto-closed" | "reassigned",
     userId: string,
     staffId?: string,
     details?: string,
@@ -96,10 +96,11 @@ export function supportSessionEmbed(
         claimed: "🤚 Support Session Claimed",
         resolved: "✅ Support Session Resolved",
         "auto-closed": "⏰ Support Session Auto-Closed",
+        reassigned: "🔄 Support Session Reassigned",
     };
 
     const embed = new EmbedBuilder()
-        .setColor(action === "resolved" ? Colors.success : action === "auto-closed" ? Colors.warning : Colors.info)
+        .setColor(action === "resolved" ? Colors.success : action === "auto-closed" || action === "reassigned" ? Colors.warning : Colors.info)
         .setTitle(titles[action])
         .addFields({ name: "User", value: `<@${userId}>`, inline: true })
         .setTimestamp();
@@ -191,6 +192,28 @@ export function ratingFeedbackEmbed(): EmbedBuilder {
             "We'd love to hear your feedback!\n\n" +
             "How would you rate the support you received?\n" +
             "Your response helps us improve our service.",
+        )
+        .setTimestamp();
+}
+
+export function claimWarningEmbed(channelId: string): EmbedBuilder {
+    return new EmbedBuilder()
+        .setColor(Colors.warning)
+        .setTitle("⚠️ Session Already Claimed")
+        .setDescription(
+            `Another staff member has already claimed the support session in <#${channelId}>.\n\n` +
+            "Please do not interfere with claimed sessions. If the assigned staff is unavailable for more than **10 minutes**, the session will be automatically reassigned.",
+        )
+        .setTimestamp();
+}
+
+export function claimTakeoverEmbed(channelId: string, originalStaffId: string): EmbedBuilder {
+    return new EmbedBuilder()
+        .setColor(Colors.info)
+        .setTitle("🔄 Session Reassigned to You")
+        .setDescription(
+            `The previous staff member (<@${originalStaffId}>) did not respond for over **10 minutes** in <#${channelId}>.\n\n` +
+            "The session has been reassigned to you. Please assist the user.",
         )
         .setTimestamp();
 }

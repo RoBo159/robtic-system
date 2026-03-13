@@ -3,6 +3,17 @@ import type { PermissionResolvable } from "discord.js";
 export const STAFF_TEAM_ROLE_ID = "1479440690063736892";
 export const FULL_POWER_ROLE_ID = "1362501792407228426";
 
+export const SUPPORTED_LANGUAGES = {
+    en: {
+        id: "1480460792213274714",
+        name: "English"
+    },
+    ar: {
+        id: "1480460771984019587",
+        name: "Arabic"
+    }
+} as const;
+
 export const ROLE_MAP: Record<
     PermissionLevel,
     { ids: string[]; names: string[]; perms: PermissionResolvable[]; department?: Department }

@@ -9,6 +9,7 @@ export const BOT_DEFINITIONS: BotDefinition<GatewayIntentBits,Partials>[] = [
             GatewayIntentBits.Guilds,
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.GuildMembers,
+            GatewayIntentBits.MessageContent,
         ],
     },
     {
@@ -42,6 +43,8 @@ export const BOT_DEFINITIONS: BotDefinition<GatewayIntentBits,Partials>[] = [
             GatewayIntentBits.Guilds,
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.GuildMembers,
+            GatewayIntentBits.DirectMessages,
+            GatewayIntentBits.MessageContent,
         ],
     },
     {
@@ -68,6 +71,7 @@ export const BOT_DEFINITIONS: BotDefinition<GatewayIntentBits,Partials>[] = [
             GatewayIntentBits.Guilds,
             GatewayIntentBits.GuildMessages,
             GatewayIntentBits.GuildMembers,
+            GatewayIntentBits.DirectMessages,
             GatewayIntentBits.MessageContent,
         ],
     },
@@ -81,4 +85,16 @@ export const BOT_DEFINITIONS: BotDefinition<GatewayIntentBits,Partials>[] = [
             GatewayIntentBits.GuildMembers,
         ],
     },
+    {
+        name: "ticket",
+        tokenKey: "TicketBotToken",
+        description: "Ticket management system",
+        intents: [
+            GatewayIntentBits.Guilds,
+            GatewayIntentBits.GuildMessages,
+            GatewayIntentBits.GuildMembers,
+            GatewayIntentBits.DirectMessages,
+            GatewayIntentBits.MessageContent,
+        ]
+    }
 ];

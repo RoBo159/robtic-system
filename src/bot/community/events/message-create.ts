@@ -1,11 +1,11 @@
 import { Events, type Message, type GuildMember } from "discord.js";
 import type { BotClient } from "@core/BotClient.ts";
 import { Logger } from "@core/libs";
-import { analyzeSupportMessage, analyzeUserFeedback, detectStaffChat } from "@core/ai";
+import { analyzeSupportMessage, analyzeUserFeedback } from "@core/ai";
 import { normalizeElongated } from "@core/utils/normalize";
 import { grantXP, isXPChannel, hasAllowedRole } from "../services/xp-service";
 import { trackPublicChat, trackStaffChat } from "../services/staff-activity-service";
-import { isSupportChannel, createSession, recordResponse, resolveSession, autoClaimSession } from "../services/support-service";
+import { isSupportChannel, createSession, recordResponse, resolveSession, autoClaimSession, type ClaimResult } from "../services/support-service";
 import { SupportSessionRepository } from "@database/repositories/SupportSessionRepository";
 import { ActivityRepository } from "@database/repositories/ActivityRepository";
 import { ActivityLogRepository } from "@database/repositories/ActivityLogRepository";
@@ -21,15 +21,34 @@ import {
     sorryDmEmbed,
     ratingFeedbackEmbed,
     aiDecisionEmbed,
+    claimWarningEmbed,
+    claimTakeoverEmbed,
 } from "../utils/activity-logger";
 
-const staffChatCounters = new Map<string, { staffIds: Set<string>; count: number }>();
+const STAFF_SESSION_TIMEOUT_MS = 3_600_000; // 1 hour
+const STAFF_CHAT_THRESHOLD = 4;
 
-function trackStaffToStaff(channelId: string, staffId: string): { isStaffOnly: boolean; count: number } {
+interface StaffChatTracker {
+    staffIds: Set<string>;
+    count: number;
+    warned: boolean;
+    startedAt: number;
+}
+
+const staffChatCounters = new Map<string, StaffChatTracker>();
+
+function trackStaffToStaff(channelId: string, staffId: string): { reachedThreshold: boolean; count: number; warned: boolean } {
     let tracker = staffChatCounters.get(channelId);
-    Logger.debug(`[activity:track] Tracking staff message for staffId=${staffId} in channelId=${channelId}. Current tracker: ${tracker ? `count=${tracker.count}, staffIds=[${[...tracker.staffIds].join(", ")}]` : "none"}`, "BotClient");
+
+    if (tracker && Date.now() - tracker.startedAt >= STAFF_SESSION_TIMEOUT_MS) {
+        Logger.debug(`[activity:track] Staff tracker expired for channelId=${channelId}, resetting`, "BotClient");
+        staffChatCounters.delete(channelId);
+        tracker = undefined;
+    }
+
+    Logger.debug(`[activity:track] Tracking staff message for staffId=${staffId} in channelId=${channelId}. Current tracker: ${tracker ? `count=${tracker.count}, warned=${tracker.warned}, staffIds=[${[...tracker.staffIds].join(", ")}]` : "none"}`, "BotClient");
     if (!tracker) {
-        tracker = { staffIds: new Set(), count: 0 };
+        tracker = { staffIds: new Set(), count: 0, warned: false, startedAt: Date.now() };
         Logger.debug(`[activity:track] Initializing staff tracker for channelId=${channelId}`, "BotClient");
         staffChatCounters.set(channelId, tracker);
     }
@@ -37,22 +56,50 @@ function trackStaffToStaff(channelId: string, staffId: string): { isStaffOnly: b
     Logger.debug(`[activity:track] Adding staffId=${staffId} to tracker for channelId=${channelId}`, "BotClient");
     tracker.staffIds.add(staffId);
     tracker.count++;
-    const isStaffOnly = tracker.staffIds.size >= 2 && tracker.count >= 4;
-    return { isStaffOnly, count: tracker.count };
+    const reachedThreshold = tracker.staffIds.size >= 2 && tracker.count >= STAFF_CHAT_THRESHOLD;
+    return { reachedThreshold, count: tracker.count, warned: tracker.warned };
 }
 
 function resetStaffTracker(channelId: string): void {
     staffChatCounters.delete(channelId);
 }
 
-const reminderCooldowns = new Map<string, number>();
-const REMINDER_COOLDOWN_MS = 300_000; // 5 minutes
+const CLAIM_INTRUSION_TIMEOUT_MS = 3_600_000; // 1 hour
 
-function canSendReminder(staffId: string): boolean {
-    const last = reminderCooldowns.get(staffId);
-    if (last && Date.now() - last < REMINDER_COOLDOWN_MS) return false;
-    reminderCooldowns.set(staffId, Date.now());
-    return true;
+interface ClaimIntrusionTracker {
+    count: number;
+    warned: boolean;
+    startedAt: number;
+}
+
+const claimIntrusionCounters = new Map<string, ClaimIntrusionTracker>();
+
+function trackClaimIntrusion(staffId: string, channelId: string): { warned: boolean; shouldDeduct: boolean } {
+    const key = `${staffId}:${channelId}`;
+    let tracker = claimIntrusionCounters.get(key);
+
+    if (tracker && Date.now() - tracker.startedAt >= CLAIM_INTRUSION_TIMEOUT_MS) {
+        claimIntrusionCounters.delete(key);
+        tracker = undefined;
+    }
+
+    if (!tracker) {
+        tracker = { count: 0, warned: false, startedAt: Date.now() };
+        claimIntrusionCounters.set(key, tracker);
+    }
+
+    tracker.count++;
+
+    if (!tracker.warned) {
+        tracker.warned = true;
+        return { warned: true, shouldDeduct: false };
+    }
+
+    return { warned: false, shouldDeduct: true };
+}
+
+function resetClaimIntrusion(staffId: string, channelId: string): void {
+    claimIntrusionCounters.delete(`${staffId}:${channelId}`);
 }
 
 async function handleSessionResolution(
@@ -127,7 +174,55 @@ export default {
                 const normalizedContent = normalizeElongated(content);
 
                 if (isStaff(member)) {
-                    await autoClaimSession(channelId, member.id, guildId);
+                    const claimResult = await autoClaimSession(channelId, member.id, guildId);
+
+                    if (claimResult.takeover) {
+                        const { previousStaff, sessionUserId } = claimResult.takeover;
+                        Logger.debug(`[activity:claim] Takeover in channelId=${channelId}: ${previousStaff} → ${member.id}`, client.botName);
+
+                        await logToChannel(message.guild!, "support_points", supportSessionEmbed(
+                            "reassigned", sessionUserId, member.id,
+                            `Previous staff: <@${previousStaff}> (inactive >10min, -1 point)`,
+                        ));
+                        await logToChannel(message.guild!, "support_points", staffPenaltyEmbed(
+                            previousStaff, -1, "Ignored user for 10+ minutes, session reassigned",
+                        ));
+
+                        const newStaffMember = await message.guild!.members.fetch(member.id).catch(() => null);
+                        if (newStaffMember) {
+                            await newStaffMember.send({ embeds: [claimTakeoverEmbed(channelId, previousStaff)] }).catch(() => {});
+                        }
+
+                        resetClaimIntrusion(member.id, channelId);
+                    }
+
+                    if (claimResult.intruding) {
+                        const intrusion = trackClaimIntrusion(member.id, channelId);
+                        Logger.debug(`[activity:claim] Staff ${member.id} intruding on session claimed by ${claimResult.intruding.claimedBy} in channelId=${channelId} (warned=${intrusion.warned}, deduct=${intrusion.shouldDeduct})`, client.botName);
+
+                        if (intrusion.warned) {
+                            const intruder = await message.guild!.members.fetch(member.id).catch(() => null);
+                            if (intruder) {
+                                await intruder.send({ embeds: [claimWarningEmbed(channelId)] }).catch(() => {});
+                                Logger.debug(`[activity:claim] Sent claim warning DM to ${member.id}`, client.botName);
+                            }
+                        }
+
+                        if (intrusion.shouldDeduct) {
+                            await ActivityRepository.findOrCreate(member.id, guildId, "staff");
+                            await ActivityRepository.addSupportPoints(member.id, guildId, -1);
+                            await ActivityLogRepository.log({
+                                guildId,
+                                userId: member.id,
+                                type: "support_penalty",
+                                amount: -1,
+                                details: `Intruding on session claimed by ${claimResult.intruding.claimedBy} in ${channelId}`,
+                            });
+                            await logToChannel(message.guild!, "support_points", staffPenaltyEmbed(
+                                member.id, -1, `Intruding on session claimed by <@${claimResult.intruding.claimedBy}>`,
+                            ));
+                        }
+                    }
 
                     const openSessions = await SupportSessionRepository.findOpen(channelId);
                     for (const session of openSessions) {
@@ -137,34 +232,35 @@ export default {
                     }
 
                     const staffTrack = trackStaffToStaff(channelId, member.id);
-                    if (staffTrack.isStaffOnly) {
-                        const recentStaffMsgs = openSessions[0]?.staffMessages?.slice(-6) ?? [];
-                        const staffChatResult = await detectStaffChat(recentStaffMsgs);
+                    const tracker = staffChatCounters.get(channelId);
 
-                        if (staffChatResult.isStaffChat && staffChatResult.confidence >= 0.6) {
-                            for (const sid of staffChatCounters.get(channelId)?.staffIds ?? []) {
-                                await ActivityRepository.findOrCreate(sid, guildId, "staff");
-                                await ActivityRepository.addSupportPoints(sid, guildId, -1);
-                                await ActivityLogRepository.log({
-                                    guildId,
-                                    userId: sid,
-                                    type: "support_penalty",
-                                    amount: -1,
-                                    details: "Staff-to-staff chatting in support channel",
-                                });
-                                await logToChannel(message.guild!, "support_points", staffPenaltyEmbed(
-                                    sid, -1, "Staff-to-staff chatting in support channel",
-                                ));
+                    if (staffTrack.reachedThreshold && tracker) {
+                        if (!staffTrack.warned) {
+                            tracker.warned = true;
+                            Logger.debug(`[activity:track2] Staff-to-staff threshold reached in channelId=${channelId}, sending warnings`, client.botName);
 
-                                if (canSendReminder(sid)) {
-                                    const staffMember = await message.guild!.members.fetch(sid).catch(() => null);
-                                    if (staffMember) {
-                                        await staffMember.send({ embeds: [staffReminderEmbed()] }).catch(() => {});
-                                        Logger.debug(`[activity] Sent staff chat reminder DM to ${sid}`, client.botName);
-                                    }
+                            for (const sid of tracker.staffIds) {
+                                const staffMember = await message.guild!.members.fetch(sid).catch(() => null);
+                                if (staffMember) {
+                                    await staffMember.send({ embeds: [staffReminderEmbed()] }).catch(() => {});
+                                    Logger.debug(`[activity] Sent staff chat reminder DM to ${sid}`, client.botName);
                                 }
                             }
-                            resetStaffTracker(channelId);
+                        } else {
+                            Logger.debug(`[activity:track2] Post-warning staff message from ${member.id} in channelId=${channelId}, deducting points`, client.botName);
+
+                            await ActivityRepository.findOrCreate(member.id, guildId, "staff");
+                            await ActivityRepository.addSupportPoints(member.id, guildId, -1);
+                            await ActivityLogRepository.log({
+                                guildId,
+                                userId: member.id,
+                                type: "support_penalty",
+                                amount: -1,
+                                details: "Continued staff-to-staff chatting after warning",
+                            });
+                            await logToChannel(message.guild!, "support_points", staffPenaltyEmbed(
+                                member.id, -1, "Continued staff-to-staff chatting after warning",
+                            ));
                         }
                     }
 
@@ -192,6 +288,7 @@ export default {
                                     message, session, guildId, normalizedContent,
                                     member.id, "AI-detected conversation end (staff)", client,
                                 );
+                                resetClaimIntrusion(member.id, channelId);
                             }
                         }
                     }

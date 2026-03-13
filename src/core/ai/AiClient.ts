@@ -19,7 +19,7 @@ export class AiClient {
         return AiClient.instance;
     }
 
-    async generate(prompt: string, maxTokens = 100): Promise<string | null> {
+    async generate(prompt: string, maxTokens = 100, jsonMode = false): Promise<string | null> {
         if (!AI_CONFIG.enabled) {
             Logger.debug("AI disabled, skipping generation", CTX);
             return null;
@@ -36,12 +36,20 @@ export class AiClient {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), AI_CONFIG.timeoutMs);
 
+            const messages: { role: "system" | "user"; content: string }[] = jsonMode
+                ? [
+                    { role: "system", content: "You are a JSON-only classifier. Always respond with valid raw JSON. No markdown, no code blocks, no extra text." },
+                    { role: "user", content: trimmedPrompt },
+                ]
+                : [{ role: "user", content: trimmedPrompt }];
+
             const completion = await this.groq.chat.completions.create(
                 {
                     model: AI_CONFIG.model,
-                    messages: [{ role: "user", content: trimmedPrompt }],
+                    messages,
                     temperature: 0.1,
                     max_tokens: maxTokens,
+                    ...(jsonMode && { response_format: { type: "json_object" } }),
                 },
                 { signal: controller.signal },
             );

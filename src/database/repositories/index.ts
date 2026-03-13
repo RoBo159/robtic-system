@@ -12,3 +12,4 @@ export * from "./LevelRewardRepository";
 export * from "./XPSettingsRepository";
 export * from "./SupportSessionRepository";
 export * from "./ActivityLogRepository";
+export * from "./ServerConfigRepository";

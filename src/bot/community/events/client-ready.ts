@@ -19,7 +19,7 @@ export default {
             "Monitoring staff performance 🏆",
             "XP system online 🎮",
         ];
-        setPresence(client, "online", "Watching", activityNames);
+        setPresence(client, "online", "Streaming", activityNames);
         setupGuildGuard(client);
         startDecayScheduler(client);
         startSessionCleanupScheduler();

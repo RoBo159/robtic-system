@@ -54,6 +54,14 @@ export class SupportSessionRepository {
         );
     }
 
+    static async reassign(userMessageId: string, newStaffId: string): Promise<ISupportSession | null> {
+        return SupportSession.findOneAndUpdate(
+            { userMessageId, resolved: false },
+            { claimedBy: newStaffId, claimedAt: new Date(), respondedAt: null, responseTimeMs: null },
+            { returnDocument: "after" },
+        );
+    }
+
     static async findStale(maxAgeMs: number): Promise<ISupportSession[]> {
         const cutoff = new Date(Date.now() - maxAgeMs);
         return SupportSession.find({

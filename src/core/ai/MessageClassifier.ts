@@ -76,16 +76,17 @@ export async function classifyMessage(
     try {
         const client = AiClient.getInstance();
         const prompt = buildSupportClassificationPrompt(content, hasReference);
-        const raw = await client.generate(prompt, 60);
+        const raw = await client.generate(prompt, 80, true);
         const parsed = client.parseJsonResponse<{
             classification: MessageClassification;
             confidence: number;
         }>(raw);
 
-        if (parsed && parsed.classification && typeof parsed.confidence === "number") {
+        if (parsed && parsed.classification) {
+            const confidence = typeof parsed.confidence === "number" ? parsed.confidence : 0.7;
             const result: AiClassificationResult = {
                 classification: parsed.classification,
-                confidence: Math.min(Math.max(parsed.confidence, 0), 1),
+                confidence: Math.min(Math.max(confidence, 0), 1),
                 fallback: false,
             };
             Logger.debug(

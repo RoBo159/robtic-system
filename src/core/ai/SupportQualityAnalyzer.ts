@@ -50,13 +50,14 @@ export async function analyzeSessionQuality(staffMessages: string[]): Promise<Se
     try {
         const client = AiClient.getInstance();
         const prompt = buildSessionQualityPrompt(staffMessages);
-        const raw = await client.generate(prompt, 60);
+        const raw = await client.generate(prompt, 80, true);
         const parsed = client.parseJsonResponse<{ quality: SessionQuality; confidence: number }>(raw);
 
-        if (parsed && ["professional", "normal", "bad"].includes(parsed.quality) && typeof parsed.confidence === "number") {
+        if (parsed && ["professional", "normal", "bad"].includes(parsed.quality)) {
+            const confidence = typeof parsed.confidence === "number" ? parsed.confidence : 0.7;
             const result: SessionQualityResult = {
                 quality: parsed.quality,
-                confidence: Math.min(Math.max(parsed.confidence, 0), 1),
+                confidence: Math.min(Math.max(confidence, 0), 1),
                 fallback: false,
             };
             Logger.debug(`[quality] Session quality → ${result.quality} (conf=${result.confidence.toFixed(2)}, ai)`, CTX);
@@ -94,13 +95,14 @@ export async function analyzeUserFeedback(content: string): Promise<UserSentimen
     try {
         const client = AiClient.getInstance();
         const prompt = buildUserFeedbackPrompt(content);
-        const raw = await client.generate(prompt, 60);
+        const raw = await client.generate(prompt, 80, true);
         const parsed = client.parseJsonResponse<{ sentiment: UserSentiment; confidence: number }>(raw);
 
-        if (parsed && ["positive", "negative", "neutral"].includes(parsed.sentiment) && typeof parsed.confidence === "number") {
+        if (parsed && ["positive", "negative", "neutral"].includes(parsed.sentiment)) {
+            const confidence = typeof parsed.confidence === "number" ? parsed.confidence : 0.7;
             const result: UserSentimentResult = {
                 sentiment: parsed.sentiment,
-                confidence: Math.min(Math.max(parsed.confidence, 0), 1),
+                confidence: Math.min(Math.max(confidence, 0), 1),
                 fallback: false,
             };
             Logger.debug(`[quality] User sentiment → ${result.sentiment} (conf=${result.confidence.toFixed(2)}, ai)`, CTX);
@@ -125,13 +127,14 @@ export async function detectStaffChat(messages: string[]): Promise<StaffChatChec
     try {
         const client = AiClient.getInstance();
         const prompt = buildStaffChatReminderPrompt(messages);
-        const raw = await client.generate(prompt, 60);
+        const raw = await client.generate(prompt, 80, true);
         const parsed = client.parseJsonResponse<{ isStaffChat: boolean; confidence: number }>(raw);
 
-        if (parsed && typeof parsed.isStaffChat === "boolean" && typeof parsed.confidence === "number") {
+        if (parsed && typeof parsed.isStaffChat === "boolean") {
+            const confidence = typeof parsed.confidence === "number" ? parsed.confidence : 0.7;
             const result: StaffChatCheckResult = {
                 isStaffChat: parsed.isStaffChat,
-                confidence: Math.min(Math.max(parsed.confidence, 0), 1),
+                confidence: Math.min(Math.max(confidence, 0), 1),
                 fallback: false,
             };
             Logger.debug(`[quality] Staff chat detection → isStaffChat=${result.isStaffChat} (conf=${result.confidence.toFixed(2)}, ai)`, CTX);

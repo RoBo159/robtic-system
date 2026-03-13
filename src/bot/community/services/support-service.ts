@@ -38,18 +38,26 @@ export async function createSession(
     return true;
 }
 
+const CLAIM_INACTIVE_MS = 600_000; // 10 minutes
+
+export interface ClaimResult {
+    claimed: boolean;
+    intruding?: { sessionUserId: string; claimedBy: string };
+    takeover?: { sessionUserId: string; previousStaff: string };
+}
+
 export async function autoClaimSession(
     channelId: string,
     staffId: string,
     guildId: string,
-): Promise<boolean> {
+): Promise<ClaimResult> {
     const openSessions = await SupportSessionRepository.findOpen(channelId);
-    let claimed = false;
+    const result: ClaimResult = { claimed: false };
 
     for (const session of openSessions) {
         if (!session.claimedBy) {
-            const result = await SupportSessionRepository.claim(session.userMessageId, staffId);
-            if (result) {
+            const claimResult = await SupportSessionRepository.claim(session.userMessageId, staffId);
+            if (claimResult) {
                 Logger.debug(`Auto-claimed session msg=${session.userMessageId} by staff=${staffId}`, CTX);
                 await ActivityLogRepository.log({
                     guildId,
@@ -58,12 +66,43 @@ export async function autoClaimSession(
                     amount: 0,
                     details: `Auto-claimed support session in channel ${channelId}`,
                 });
-                claimed = true;
+                result.claimed = true;
+            }
+        } else if (session.claimedBy !== staffId) {
+            const lastActivity = session.respondedAt ?? session.claimedAt;
+            const inactiveMs = lastActivity ? Date.now() - lastActivity.getTime() : Infinity;
+
+            if (inactiveMs >= CLAIM_INACTIVE_MS) {
+                const previousStaff = session.claimedBy;
+                const reassigned = await SupportSessionRepository.reassign(session.userMessageId, staffId);
+                if (reassigned) {
+                    Logger.debug(`Takeover: session msg=${session.userMessageId} reassigned from ${previousStaff} to ${staffId} (inactive ${Math.round(inactiveMs / 1000)}s)`, CTX);
+                    await ActivityLogRepository.log({
+                        guildId,
+                        userId: staffId,
+                        type: "support_claim",
+                        amount: 0,
+                        details: `Took over session from ${previousStaff} (inactive ${Math.round(inactiveMs / 1000)}s) in ${channelId}`,
+                    });
+                    await ActivityRepository.findOrCreate(previousStaff, guildId, "staff");
+                    await ActivityRepository.addSupportPoints(previousStaff, guildId, -1);
+                    await ActivityLogRepository.log({
+                        guildId,
+                        userId: previousStaff,
+                        type: "support_penalty",
+                        amount: -1,
+                        details: `Ignored user in ${channelId}, session taken over by ${staffId}`,
+                    });
+                    result.claimed = true;
+                    result.takeover = { sessionUserId: session.userId, previousStaff };
+                }
+            } else {
+                result.intruding = { sessionUserId: session.userId, claimedBy: session.claimedBy };
             }
         }
     }
 
-    return claimed;
+    return result;
 }
 
 export async function claimSession(
@@ -183,7 +222,7 @@ export async function penalizeAbandon(
     });
 }
 
-const STALE_SESSION_MS = 3_600_000;
+const STALE_SESSION_MS = 600_000; // 10 minutes
 let staleInterval: ReturnType<typeof setInterval> | null = null;
 
 export async function closeStaleSessions(): Promise<void> {
@@ -206,7 +245,7 @@ export function startSessionCleanupScheduler(): void {
             Logger.error(`Session cleanup failed: ${err}`, CTX)
         );
     }, 300_000);
-    Logger.info("Support session cleanup scheduler started (every 5min, stale after 1hr)", CTX);
+    Logger.info("Support session cleanup scheduler started (every 5min, stale after 10min)", CTX);
 }
 
 export function stopSessionCleanupScheduler(): void {
