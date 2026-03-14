@@ -14,10 +14,10 @@
     "members_role_id": "1362501805941985492",
     "bots_role_id": "1362501806604943410",
 
-    "xp_gain_log_channel_id": "1480925517317275761",
-    "rewards_log_channel_id": "1480925517317275761",
-    "support_points_log_channel_id": "1480925517317275761",
-    "staff_activity_log_channel_id": "1480925517317275761",
-    "decay_log_channel_id": "1480925517317275761",
-    "ai_log_channel_id": "1480925517317275761"
+    "xp_gain_log_channel_id": "1482383755309092885",
+    "rewards_log_channel_id": "1482383755309092885",
+    "support_points_log_channel_id": "1482383301472813166",
+    "staff_activity_log_channel_id": "1482383301472813166",
+    "decay_log_channel_id": "1482383861798146079",
+    "ai_log_channel_id": "1482383788087705740"
 }

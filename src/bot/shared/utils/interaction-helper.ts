@@ -28,11 +28,15 @@ export const HandlingComponent = async (interaction: Interaction, client: BotCli
                         new BotError(`Error handling component "${customId}": ${error}`, "EVENT"),
                         `${client.botName}/InteractionCreate`
                     );
-                    if (!interaction.replied && !interaction.deferred) {
-                        await interaction.reply({
-                            embeds: [errorEmbed("Something went wrong.")],
-                            flags: MessageFlags.Ephemeral,
-                        });
+                    try {
+                        if (!interaction.replied && !interaction.deferred) {
+                            await interaction.reply({
+                                embeds: [errorEmbed("Something went wrong.")],
+                                flags: MessageFlags.Ephemeral,
+                            });
+                        }
+                    } catch {
+                        // Interaction already acknowledged or expired — suppress to avoid client error noise
                     }
                 }
                 return;
@@ -87,7 +91,7 @@ export const cooldowns = async (intract: Interaction, command: CommandConfig): P
     return true;
 }
 
-export const commandError = async (error : unknown, intract : Interaction, client: BotClient) => {
+export const commandError = async (error: unknown, intract: Interaction, client: BotClient) => {
     let interaction = intract as ChatInputCommandInteraction;
 
     handleError(
@@ -100,9 +104,13 @@ export const commandError = async (error : unknown, intract : Interaction, clien
         ephemeral: true,
     };
 
-    if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(reply);
-    } else {
-        await interaction.reply(reply);
+    try {
+        if (interaction.replied || interaction.deferred) {
+            await interaction.followUp(reply);
+        } else {
+            await interaction.reply(reply);
+        }
+    } catch {
+        // Interaction already acknowledged or expired — suppress to avoid client error noise
     }
 }
