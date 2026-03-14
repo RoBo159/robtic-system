@@ -23,7 +23,7 @@ const SubmissionSchema = new Schema<ISubmission>({
   questions: {
     type: [
       {
-        id: { type: Number },
+        id: { type: String, required: true },
         question: { type: String, required: true },
         answer: { type: String, required: true },
       },

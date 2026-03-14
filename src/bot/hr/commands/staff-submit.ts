@@ -4,9 +4,8 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ActionRowBuilder,
-  PermissionOverwrites,
-  ChannelType,
-  ComponentType,
+  TextChannel,
+  MessageFlags
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 import { StaffRepository } from "@database/repositories";
@@ -36,12 +35,12 @@ export default {
     const department = interaction.options.getString("department", true);
     const selected = departments.find((d) => d.name === department)!;
 
-    const channel = interaction.guild?.channels.cache.get(selected.channelId);
+    const channel = interaction.guild?.channels.cache.get(selected.channelId) as TextChannel | undefined;
 
     if (!channel) {
       return await interaction.reply({
         content: "Channel not found",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -72,7 +71,7 @@ export default {
 
     await interaction.reply({
       content: `:white_check_mark: | Submission for ${selected.name} department staff is now open `,
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   },
 };

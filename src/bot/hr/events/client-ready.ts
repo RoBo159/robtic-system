@@ -1,5 +1,5 @@
 import { Events } from "discord.js";
-import type { BotClient } from "@core/BotClient.ts";
+import type { BotClient } from "@core/BotClient";
 import { Logger } from "@core/libs";
 import { setPresence, setupGuildGuard } from "@shared/index";
 

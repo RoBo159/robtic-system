@@ -4,6 +4,9 @@ import {
   DMChannel,
   ActionRowBuilder,
   ButtonBuilder,
+  ActionRow,
+  type MessageActionRowComponent,
+  ButtonComponent,
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 import { startInterview } from "../utils/startInterview";
@@ -17,17 +20,24 @@ export default {
     const userId = parts[2];
     const user = await client.users.fetch(userId);
 
+    const firstRow = interaction.message.components[0] as ActionRow<MessageActionRowComponent>;
+    const components = firstRow.components;
+
+    const acceptBtn = components[0];
+    const rejectBtn = components[1];
+
+    if (acceptBtn?.type !== 2 || rejectBtn?.type !== 2) return;
+
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      ButtonBuilder.from(
-        interaction.message.components[0].components[0] as any,
-      ).setDisabled(true),
-      ButtonBuilder.from(
-        interaction.message.components[0].components[1] as any,
-      ).setDisabled(true),
+      ButtonBuilder.from(acceptBtn as ButtonComponent).setDisabled(true),
+      ButtonBuilder.from(rejectBtn as ButtonComponent).setDisabled(true)
     );
     await interaction.update({ components: [row] });
 
-    const thr = await (interaction.channel as TextChannel).threads.create({
+    const channel = interaction.channel as TextChannel;
+    if (!channel) return;
+
+    const thr = await channel.threads.create({
       name: `Interview | ${dep} | ${user.displayName}`,
       startMessage: interaction.message,
     });

@@ -1,6 +1,7 @@
 import {
   ActionRowBuilder,
   ButtonInteraction,
+  MessageFlags,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -21,7 +22,7 @@ export default {
     if (data) {
       return await interaction.reply({
         content: ":x: | You already have an active submission ",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 

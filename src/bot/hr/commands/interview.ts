@@ -2,12 +2,12 @@ import {
   resultChannelId,
   STAFF_TRAINEE_ROLE_ID,
 } from "./../config/departments";
-import { STAFF_TEAM_ROLE_ID } from "./../../../core/config/constants";
+import { STAFF_TEAM_ROLE_ID } from "@core/config/constants";
 import {
   SlashCommandBuilder,
-  ChatInputCommandInteraction,
-  TextChannel,
   EmbedBuilder,
+  ChatInputCommandInteraction,
+  MessageFlags
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 import { StaffRepository } from "@database/repositories";
@@ -35,14 +35,13 @@ export default {
     if (!data) {
       return await interaction.reply({
         content: "❌ | Interview not found",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
     const user = await client.users.fetch(data.userId);
-    const member = await interaction.guild.members.fetch(data.userId);
+    const member = await interaction.guild?.members.fetch(data.userId);
 
-    // stop collecting msgs
     const collectors = interviewCollectors.get(data.userId);
     if (collectors) {
       collectors.DMCollector.stop();
@@ -56,15 +55,15 @@ export default {
 
       const dep = departments.find((d) => d.name === data.department);
 
-      await member.roles.add([
-        dep.roleId,
+      await member?.roles.add([
+        dep?.roleId!,
         STAFF_TEAM_ROLE_ID,
         STAFF_TRAINEE_ROLE_ID,
       ]);
 
       await interaction.reply({
         content: "✅ | Submission accepted",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
 
       user.send("Your submission has been accepted");
@@ -74,7 +73,7 @@ export default {
       if (data.isApproved) {
         return interaction.reply({
           content: "❌ | This submission was accepted. You can’t reject it now",
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
 
@@ -82,7 +81,7 @@ export default {
 
       await interaction.reply({
         content: "✅ | Submission rejected",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
 
       user.send("Your submission has been rejected");
@@ -100,9 +99,9 @@ export default {
       .setColor(sub === "accept" ? "Green" : "Red")
       .setTimestamp();
 
-    const resultChannel =
-      await interaction.guild?.channels.cache.get(resultChannelId);
-    resultChannel.send({
+    const resultChannel = interaction.guild?.channels.cache.get(resultChannelId);
+    if (!resultChannel?.isTextBased()) return;
+    resultChannel?.send({
       embeds: [embed],
     });
   },

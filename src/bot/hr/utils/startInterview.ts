@@ -1,10 +1,10 @@
 import type { BotClient } from "@core/BotClient";
-import type { DMChannel } from "discord.js";
+import type { DMChannel, ThreadChannel } from "discord.js";
 import { interviewCollectors } from "./interviewCollectors";
 
 export async function startInterview(
   client: BotClient,
-  thr,
+  thr: ThreadChannel,
   DM: DMChannel,
   userId: string,
   managerId: string,
@@ -22,7 +22,6 @@ export async function startInterview(
     time: timer,
   });
 
-  //set collectors in Map so i can stop them using command
   interviewCollectors.set(userId, { DMCollector, thrCollector });
 
   DMCollector.on("collect", async (msg) => {

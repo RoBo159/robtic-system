@@ -1,14 +1,14 @@
 import {
+  ActionRow,
   ActionRowBuilder,
   ButtonBuilder,
+  ButtonComponent,
   ButtonInteraction,
-  ModalBuilder,
-  TextInputBuilder,
-  TextInputStyle,
+  MessageFlags,
+  type MessageActionRowComponent,
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 
-import { questions } from "../config/questions";
 import { StaffRepository } from "@database/repositories";
 
 export default {
@@ -21,13 +21,16 @@ export default {
 
     await StaffRepository.deleteSubmission(userId);
 
+    const firstRow = interaction.message
+      .components[0] as ActionRow<MessageActionRowComponent>;
+    const components = firstRow.components;
+    
+    const acceptBtn = components[0];
+    const rejectBtn = components[1];
+
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-      ButtonBuilder.from(
-        interaction.message.components[0].components[0] as any,
-      ).setDisabled(true),
-      ButtonBuilder.from(
-        interaction.message.components[0].components[1] as any,
-      ).setDisabled(true),
+      ButtonBuilder.from(acceptBtn as ButtonComponent).setDisabled(true),
+      ButtonBuilder.from(rejectBtn as ButtonComponent).setDisabled(true),
     );
     await interaction.update({ components: [row] });
 
@@ -36,9 +39,9 @@ export default {
       `Hello, your submission for the **${dep}** Department was rejected`,
     );
 
-    await interaction.reply({
+    await interaction.followUp({
       content: "✅ | Submission rejected",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   },
 };

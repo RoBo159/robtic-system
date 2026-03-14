@@ -5,6 +5,7 @@ import {
   EmbedBuilder,
   ModalSubmitInteraction,
   TextChannel,
+  MessageFlags
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 
@@ -21,6 +22,7 @@ export default {
     const msgId = parts[2];
 
     const answers = questions.map((q) => ({
+      id: q.id,
       question: q.question,
       answer: interaction.fields.getTextInputValue(q.id),
     }));
@@ -54,7 +56,7 @@ export default {
     if (!approvalChannel) {
       return await interaction.reply({
         content: "Approval channel not found",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -68,7 +70,7 @@ export default {
 
     await interaction.reply({
       content: " Submission sent for approval",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   },
 };
