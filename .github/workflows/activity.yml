@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Send Discord notification
         run: |
-          EVENT_URL="${{ github.event.pull_request.html_url || github.event.issue.html_url || github.event.head_commit.url || github.server_url }}/${{ github.repository }}"
+          EVENT_URL="${{ github.event.pull_request.html_url || github.event.issue.html_url || github.event.head_commit.url || github.server_url }}"
           EVENT_TYPE="${{ github.event_name }}"
           REPO="${{ github.repository }}"
           ACTOR="${{ github.actor }}"
