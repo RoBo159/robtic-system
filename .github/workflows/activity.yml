@@ -1,32 +1,77 @@
 name: Repository Activity
 
 on:
-    push:
-    issues:
-        types: [opened, closed, reopened]
-    pull_request:
-        types: [opened, closed, reopened, synchronize]
+  push:
+  issues:
+    types: [opened, closed, reopened]
+  pull_request:
+    types: [opened, closed, reopened, synchronize]
 
 jobs:
-    notify:
-        runs-on: ubuntu-latest
+  notify:
+    runs-on: ubuntu-latest
 
-        steps:
-            - name: Send Discord notification
-              run: |
-                  EVENT_URL="${{ github.event.pull_request.html_url || github.event.issue.html_url || github.event.head_commit.url || github.server_url }}/${{ github.repository }}"
+    steps:
+      - name: Send Discord notification
+        run: |
+          EVENT_URL="${{ github.event.pull_request.html_url || github.event.issue.html_url || github.event.head_commit.url || github.server_url }}/${{ github.repository }}"
+          EVENT_TYPE="${{ github.event_name }}"
+          REPO="${{ github.repository }}"
+          ACTOR="${{ github.actor }}"
+          BRANCH="${{ github.ref_name }}"
+          COMMIT_MSG="${{ github.event.head_commit.message || github.event.pull_request.title || github.event.issue.title }}"
+          AVATAR="https://github.com/${{ github.actor }}.png"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-                  curl -H "Content-Type: application/json" \
-                  -d "{
-                    \"username\": \"Robtic Repo\",
-                    \"embeds\": [{
-                      \"title\": \"Repository Activity\",
-                      \"url\": \"$EVENT_URL\",
-                      \"description\": \"📌 **Actor:** ${{ github.actor }}\n📂 **Repository:** ${{ github.repository }}\n🔗 [Open Event]($EVENT_URL)\",
-                      \"color\": 3447003,
-                      \"footer\": {
-                        \"text\": \"Robtic CI Activity\"
-                      }
-                    }]
-                  }" \
-                  ${{ secrets.DISCORD_WEBHOOK_ACTIVITY }}
+          curl -H "Content-Type: application/json" \
+          -d "{
+            \"username\": \"Robtic CI\",
+            \"avatar_url\": \"https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png\",
+            \"embeds\": [{
+              \"title\": \"🚀 Robtic Repository Activity\",
+              \"url\": \"$EVENT_URL\",
+              \"description\": \"A new **$EVENT_TYPE** activity occurred in the repository.\",
+              \"color\": 5814783,
+
+              \"author\": {
+                \"name\": \"$ACTOR\",
+                \"icon_url\": \"$AVATAR\",
+                \"url\": \"https://github.com/$ACTOR\"
+              },
+
+              \"fields\": [
+                {
+                  \"name\": \"📦 Repository\",
+                  \"value\": \"[$REPO](https://github.com/$REPO)\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"⚡ Event Type\",
+                  \"value\": \"$EVENT_TYPE\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"🌿 Branch\",
+                  \"value\": \"$BRANCH\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"📝 Commit / Message\",
+                  \"value\": \"$COMMIT_MSG\",
+                  \"inline\": false
+                },
+                {
+                  \"name\": \"🔗 Open Event\",
+                  \"value\": \"[View Activity on GitHub]($EVENT_URL)\",
+                  \"inline\": false
+                }
+              ],
+
+              \"footer\": {
+                \"text\": \"Robtic CI • GitHub Activity\"
+              },
+
+              \"timestamp\": \"$TIMESTAMP\"
+            }]
+          }" \
+          ${{ secrets.DISCORD_WEBHOOK_ACTIVITY }}

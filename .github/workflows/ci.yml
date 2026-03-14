@@ -31,27 +31,131 @@ jobs:
       - name: Send Success Webhook
         if: success()
         run: |
+          ACTOR="${{ github.actor }}"
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          WORKFLOW="${{ github.workflow }}"
+          RUN_NUMBER="${{ github.run_number }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          COMMIT_MSG="${{ github.event.head_commit.message || github.event.pull_request.title }}"
+          AVATAR="https://github.com/${{ github.actor }}.png"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
           curl -H "Content-Type: application/json" \
-          -d '{
-            "username": "Robtic CI",
-            "embeds": [{
-              "title": "🟢 CI Passed",
-              "description": "Build and checks completed successfully. \n 📦 Repository: [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})",
-              "color": 5763719
+          -d "{
+            \"username\": \"Robtic CI\",
+            \"avatar_url\": \"https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png\",
+            \"embeds\": [{
+              \"title\": \"🟢 CI Passed\",
+              \"url\": \"$RUN_URL\",
+              \"color\": 5763719,
+              \"author\": {
+                \"name\": \"$ACTOR\",
+                \"icon_url\": \"$AVATAR\",
+                \"url\": \"https://github.com/$ACTOR\"
+              },
+              \"fields\": [
+                {
+                  \"name\": \"📦 Repository\",
+                  \"value\": \"[$REPO](${{ github.server_url }}/$REPO)\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"🌿 Branch\",
+                  \"value\": \"$BRANCH\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"⚙️ Workflow\",
+                  \"value\": \"$WORKFLOW\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"🔢 Run Number\",
+                  \"value\": \"#$RUN_NUMBER\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"📝 Commit / PR\",
+                  \"value\": \"$COMMIT_MSG\",
+                  \"inline\": false
+                },
+                {
+                  \"name\": \"🔗 View Build Logs\",
+                  \"value\": \"[Open GitHub Actions Run]($RUN_URL)\",
+                  \"inline\": false
+                }
+              ],
+              \"footer\": {
+                \"text\": \"Robtic CI • Build Pipeline\"
+              },
+              \"timestamp\": \"$TIMESTAMP\"
             }]
-          }' \
+          }" \
           ${{ secrets.DISCORD_WEBHOOK_CI }}
 
       - name: Send Failure Webhook
         if: failure()
         run: |
+          ACTOR="${{ github.actor }}"
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          WORKFLOW="${{ github.workflow }}"
+          RUN_NUMBER="${{ github.run_number }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          COMMIT_MSG="${{ github.event.head_commit.message || github.event.pull_request.title }}"
+          AVATAR="https://github.com/${{ github.actor }}.png"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
           curl -H "Content-Type: application/json" \
-          -d '{
-            "username": "Robtic CI",
-            "embeds": [{
-              "title": "🔴 CI Failed",
-              "description": "Build or checks failed. \n 📦 Repository: [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})",
-              "color": 15548997
+          -d "{
+            \"username\": \"Robtic CI\",
+            \"avatar_url\": \"https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png\",
+            \"embeds\": [{
+              \"title\": \"🔴 CI Failed\",
+              \"url\": \"$RUN_URL\",
+              \"color\": 15548997,
+              \"author\": {
+                \"name\": \"$ACTOR\",
+                \"icon_url\": \"$AVATAR\",
+                \"url\": \"https://github.com/$ACTOR\"
+              },
+              \"fields\": [
+                {
+                  \"name\": \"📦 Repository\",
+                  \"value\": \"[$REPO](${{ github.server_url }}/$REPO)\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"🌿 Branch\",
+                  \"value\": \"$BRANCH\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"⚙️ Workflow\",
+                  \"value\": \"$WORKFLOW\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"🔢 Run Number\",
+                  \"value\": \"#$RUN_NUMBER\",
+                  \"inline\": true
+                },
+                {
+                  \"name\": \"📝 Commit / PR\",
+                  \"value\": \"$COMMIT_MSG\",
+                  \"inline\": false
+                },
+                {
+                  \"name\": \"🔗 View Build Logs\",
+                  \"value\": \"[Open GitHub Actions Run]($RUN_URL)\",
+                  \"inline\": false
+                }
+              ],
+              \"footer\": {
+                \"text\": \"Robtic CI • Build Pipeline\"
+              },
+              \"timestamp\": \"$TIMESTAMP\"
             }]
-          }' \
+          }" \
           ${{ secrets.DISCORD_WEBHOOK_CI }}
