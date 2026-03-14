@@ -9,7 +9,8 @@ import {
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 
-import { questions } from "../config/questions";
+import { getQuestionsByDepartment } from "../config/questions";
+import { getDepartmentEmbedConfig } from "../config/embeds";
 import { approvalChannelId } from "../config/departments";
 import { StaffRepository } from "@database/repositories";
 
@@ -19,7 +20,15 @@ export default {
   async run(interaction: ModalSubmitInteraction, client: BotClient) {
     const parts = interaction.customId.split("_");
     const dep = parts[1] as Department;
-    const msgId = parts[2];
+    const questions = getQuestionsByDepartment(dep);
+    const embedConfig = getDepartmentEmbedConfig(dep);
+
+    if (!questions.length) {
+      return await interaction.reply({
+        content: "No questions configured for this department",
+        flags: MessageFlags.Ephemeral,
+      });
+    }
 
     const answers = questions.map((q) => ({
       id: q.id,
@@ -28,10 +37,10 @@ export default {
     }));
 
     const embed = new EmbedBuilder()
-      .setTitle(`New ${dep} Department Submission`)
+      .setTitle(embedConfig.submissionTitle)
       .setDescription(`From <@${interaction.user.id}>`)
       .addFields(answers.map((a) => ({ name: a.question, value: a.answer })))
-      .setColor("Blue")
+      .setColor(embedConfig.submissionColor)
       .setTimestamp();
 
     const accept = new ButtonBuilder()

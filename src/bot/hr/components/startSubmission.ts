@@ -8,7 +8,7 @@ import {
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 
-import { questions } from "../config/questions";
+import { getQuestionsByDepartment } from "../config/questions";
 import { StaffRepository } from "@database/repositories";
 
 export default {
@@ -17,6 +17,14 @@ export default {
   async run(interaction: ButtonInteraction, client: BotClient) {
     const parts = interaction.customId.split("_");
     const dep = parts[1] as Department;
+    const questions = getQuestionsByDepartment(dep);
+
+    if (!questions.length) {
+      return await interaction.reply({
+        content: ":x: | No questions configured for this department",
+        flags: MessageFlags.Ephemeral,
+      });
+    }
 
     const data = await StaffRepository.getSubmission(interaction.user.id);
     if (data) {

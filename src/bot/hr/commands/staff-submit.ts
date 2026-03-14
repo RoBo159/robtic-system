@@ -4,6 +4,7 @@ import {
   ButtonBuilder,
   ButtonStyle,
   ActionRowBuilder,
+  EmbedBuilder,
   TextChannel,
   MessageFlags
 } from "discord.js";
@@ -11,6 +12,7 @@ import type { BotClient } from "@core/BotClient";
 import { StaffRepository } from "@database/repositories";
 
 import { departments } from "../config/departments";
+import { getDepartmentEmbedConfig } from "../config/embeds";
 
 export default {
   data: new SlashCommandBuilder()
@@ -34,6 +36,7 @@ export default {
   async run(interaction: ChatInputCommandInteraction, client: BotClient) {
     const department = interaction.options.getString("department", true);
     const selected = departments.find((d) => d.name === department)!;
+    const embedConfig = getDepartmentEmbedConfig(selected.name);
 
     const channel = interaction.guild?.channels.cache.get(selected.channelId) as TextChannel | undefined;
 
@@ -58,8 +61,15 @@ export default {
       submitButton,
     );
 
+    const openEmbed = new EmbedBuilder()
+      .setTitle(embedConfig.openTitle)
+      .setDescription(embedConfig.openDescription)
+      .setColor(embedConfig.openColor)
+      .setFooter({ text: "Click Submit to start your application" });
+
     const msg = await channel.send({
       content: `<@&1362501792490983716>, You can submit now`,
+      embeds: [openEmbed],
       components: [row],
     });
 
