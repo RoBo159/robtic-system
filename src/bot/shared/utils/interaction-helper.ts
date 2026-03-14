@@ -1,6 +1,5 @@
 import type { CommandConfig } from "@core/config";
 import { FULL_POWER_ROLE_ID } from "@core/config";
-import { hasPermission } from "@core/libs";
 import { isOnCooldown, getRemainingCooldown, errorEmbed } from "@core/utils";
 import { ChatInputCommandInteraction, MessageFlags, type GuildMember, type Interaction } from "discord.js";
 import type { BotClient } from "@core/BotClient";
