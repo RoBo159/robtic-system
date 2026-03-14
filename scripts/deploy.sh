@@ -13,6 +13,8 @@ cd $PROJECT || exit
 STATUS="success"
 echo "Starting deployment pipeline..."
 
+git fetch origin || STATUS="fail"
+git reset --hard origin/main || STATUS="fail"
 git pull origin main || STATUS="fail"
 bun install || STATUS="fail"
 bun run build || STATUS="fail"
