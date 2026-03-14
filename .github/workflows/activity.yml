@@ -26,7 +26,6 @@ jobs:
           curl -H "Content-Type: application/json" \
           -d "{
             \"username\": \"Robtic CI\",
-            \"avatar_url\": \"https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png\",
             \"embeds\": [{
               \"title\": \"🚀 Robtic Repository Activity\",
               \"url\": \"$EVENT_URL\",

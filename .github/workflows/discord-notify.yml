@@ -22,7 +22,6 @@ jobs:
           curl -H "Content-Type: application/json" \
           -d "{
             \"username\": \"Robtic GitHub\",
-            \"avatar_url\": \"https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png\",
             \"embeds\": [{
               \"title\": \"⭐ Repository Interaction\",
               \"url\": \"$REPO_URL\",
