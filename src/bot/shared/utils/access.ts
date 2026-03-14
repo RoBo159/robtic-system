@@ -33,6 +33,7 @@ export function getMemberLevel(member: GuildMember): { level: PermissionLevel; s
 }
 
 export function isInDepartment(member: GuildMember, department: Department): boolean {
+    if(hasFullPower(member)) return true;
     const depRoleNames = DEPARTMENT_ROLES[department];
     if (!depRoleNames) return false;
 
@@ -48,6 +49,7 @@ export function getMemberDepartments(member: GuildMember): Department[] {
 }
 
 export function isManagerOf(member: GuildMember, department: Department): boolean {
+    if(hasFullPower(member)) return true;
     for (const [managerLevel, dept] of Object.entries(MANAGER_DEPARTMENT_MAP)) {
         if (dept !== department) continue;
         const config = ROLE_MAP[managerLevel as PermissionLevel];
@@ -64,6 +66,7 @@ export function isManagerOf(member: GuildMember, department: Department): boolea
 }
 
 export function isLeadOf(member: GuildMember, department: Department): boolean {
+    if(hasFullPower(member)) return true;
     for (const [leadLevel, managedLevels] of Object.entries(LEAD_MANAGER_MAP)) {
         const config = ROLE_MAP[leadLevel as PermissionLevel];
         if (!config) continue;
@@ -83,6 +86,7 @@ export function isLeadOf(member: GuildMember, department: Department): boolean {
 }
 
 export function isOwner(member: GuildMember): boolean {
+    if(hasFullPower(member)) return true;
     const config = ROLE_MAP.Owner;
     return (
         (config.ids.length > 0 && member.roles.cache.some(r => config.ids.includes(r.id))) ||
@@ -93,21 +97,24 @@ export function isOwner(member: GuildMember): boolean {
 }
 
 export function hasDepartmentAuthority(member: GuildMember, department: Department): boolean {
-    return isOwner(member) || isLeadOf(member, department) || isManagerOf(member, department);
+    return isOwner(member) || isLeadOf(member, department) || isManagerOf(member, department) || hasFullPower(member);
 }
 
 export function isStaff(member: GuildMember): boolean {
+    if(hasFullPower(member)) return true;
     if (member.roles.cache.has(STAFF_TEAM_ROLE_ID)) return true;
     const { score } = getMemberLevel(member);
     return score >= (PERMISSION_HIERARCHY["Associate"] ?? 20);
 }
 
 export function isAnyManager(member: GuildMember): boolean {
+    if(hasFullPower(member)) return true;
     const { score } = getMemberLevel(member);
     return score >= 80;
 }
 
 export function isAnyLead(member: GuildMember): boolean {
+    if(hasFullPower(member)) return true;
     const { score } = getMemberLevel(member);
     return score >= 90;
 }

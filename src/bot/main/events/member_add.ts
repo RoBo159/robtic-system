@@ -5,10 +5,12 @@ export default {
     name: Events.GuildMemberAdd,
 
     async execute(member: GuildMember) {
-        const role = member.guild.roles.cache.get(data.members_role_id);
+        if(member.user.bot) return;
+
+        const role = member.guild.roles.cache.get(member.user.bot ? data.bots_role_id : data.members_role_id);
         const channel = member.guild.channels.cache.get(data.general_chat_channel_id);
 
-        if (channel?.isTextBased()) {
+        if (channel?.isTextBased() && !member.user.bot) {
             await channel.send(`🎉 Welcome <@${member.id}> to the Robtic Server!`);
         }
 

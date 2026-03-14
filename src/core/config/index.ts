@@ -33,4 +33,5 @@ interface ComponentHandler<T extends ComponentInteraction = ComponentInteraction
 
 export * from "./clients";
 export * from "./constants";
+export * from "./aiConfig";
 export type { ComponentHandler, CommandConfig};

@@ -8,3 +8,8 @@ export * from "./TicketRepository";
 export * from "./TagRepository";
 export * from "./NoteRepository";
 export * from "./ReasonRepository";
+export * from "./LevelRewardRepository";
+export * from "./XPSettingsRepository";
+export * from "./SupportSessionRepository";
+export * from "./ActivityLogRepository";
+export * from "./ServerConfigRepository";
