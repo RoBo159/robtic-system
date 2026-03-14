@@ -34,9 +34,11 @@ export class ClientManager {
 
         const loader = new ModuleLoader(client);
         const botDir = path.join(import.meta.dir, "..", "bot", definition.name);
+        const sharedDir = path.join(import.meta.dir, "..", "bot", "shared");
 
         await loader.loadCommands(path.join(botDir, "commands"));
         await loader.loadEvents(path.join(botDir, "events"));
+        await loader.loadEvents(path.join(sharedDir, "events"));
         await loader.loadComponents(path.join(botDir, "components"));
 
         client.loadedModules.push(definition.name);
