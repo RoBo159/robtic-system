@@ -2,6 +2,9 @@
 
 PROJECT="/root/robtic/robtic-system"
 
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
 set -a
 source $PROJECT/.env
 set +a
