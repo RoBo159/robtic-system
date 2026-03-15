@@ -1,6 +1,7 @@
 #!/bin/bash
 
 PROJECT="/root/robtic/robtic-system"
+SERVER="core.robtic.org"
 
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
@@ -63,7 +64,7 @@ curl -s -H "Content-Type: application/json" \
 },
 {
 \"name\": \"Server\",
-\"value\": \"Robtic VPS\",
+\"value\": \"$SERVER\",
 \"inline\": true
 }
 ]
@@ -104,7 +105,7 @@ curl -s -H "Content-Type: application/json" \
 },
 {
 \"name\": \"Server\",
-\"value\": \"Robtic VPS\",
+\"value\": \"$SERVER\",
 \"inline\": true
 }
 ]
