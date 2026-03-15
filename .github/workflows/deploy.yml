@@ -50,9 +50,13 @@ jobs:
           username: root
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /root/robtic/robtic-system
-            git pull
-            ./scripts/deploy.sh
+            flock -n /tmp/robtic-deploy.lock bash -c "
+              cd /root/robtic/robtic-system
+              git fetch origin
+              git reset --hard origin/main
+              git pull origin main
+              ./scripts/deploy.sh
+            "
 
       - name: Notify Deployment Success
         if: success()

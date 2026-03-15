@@ -8,47 +8,105 @@ set +a
 
 WEBHOOK=$MONITOR_WEBHOOK
 
-cd $PROJECT || exit
+cd $PROJECT || exit 1
+
+START_TIME=$(date +%s)
 
 STATUS="success"
 MSG=""
-echo "Starting deployment pipeline..."
+STEP=""
 
-git fetch origin || STATUS="fail" MSG="Failed to fetch latest code from repository."
-git reset --hard origin/main || STATUS="fail" MSG="Failed to reset local code to match remote repository."
-git pull origin main || STATUS="fail" MSG="Failed to pull latest code from repository."
-bun install || STATUS="fail" MSG="Failed to install dependencies."
-bun run build || STATUS="fail" MSG="Failed to build application."
-pm2 restart robtic-app || STATUS="fail" MSG="Failed to restart application with PM2."
+echo "🚀 Starting deployment pipeline..."
+
+fail_step () {
+    STATUS="fail"
+    MSG="$1"
+}
+
+STEP="Install dependencies"
+bun install || fail_step "$STEP"
+
+STEP="Build application"
+bun run build || fail_step "$STEP"
+
+STEP="Restart PM2"
+pm2 reload robtic-app || fail_step "$STEP"
+
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+
+COMMIT_HASH=$(git rev-parse --short HEAD)
+COMMIT_MSG=$(git log -1 --pretty=%B | head -n 1)
+COMMIT_AUTHOR=$(git log -1 --pretty=%an)
 
 echo "Deployment finished."
 
 if [ "$STATUS" = "fail" ]; then
 
-echo "Deployment failed. Sending alert..."
+echo "❌ Deployment failed. Sending alert..."
 
-curl -H "Content-Type: application/json" \
--d '{
-"embeds":[
+curl -s -H "Content-Type: application/json" \
+-d "{
+\"embeds\": [
 {
-"title":"Deployment Failed",
-"description":"Deployment pipeline failed on VPS \n Error: '"$MSG"'",
-"color":15158332
+\"title\": \"❌ Robtic Deployment Failed\",
+\"description\": \"Deployment pipeline failed.\",
+\"color\": 15158332,
+\"fields\": [
+{
+\"name\": \"Failed Step\",
+\"value\": \"$MSG\",
+\"inline\": false
+},
+{
+\"name\": \"Server\",
+\"value\": \"Robtic VPS\",
+\"inline\": true
 }
 ]
-}' $WEBHOOK
+}
+]
+}" $WEBHOOK
 
 else
 
-curl -H "Content-Type: application/json" \
--d '{
-"embeds":[
+echo "✅ Deployment successful."
+
+curl -s -H "Content-Type: application/json" \
+-d "{
+\"embeds\": [
 {
-"title":"Deployment Successful",
-"description":"Bot deployed successfully",
-"color":5763719
+\"title\": \"🚀 Robtic Deployment Successful\",
+\"color\": 5763719,
+\"fields\": [
+{
+\"name\": \"Commit\",
+\"value\": \"\`$COMMIT_HASH\`\",
+\"inline\": true
+},
+{
+\"name\": \"Author\",
+\"value\": \"$COMMIT_AUTHOR\",
+\"inline\": true
+},
+{
+\"name\": \"Message\",
+\"value\": \"$COMMIT_MSG\",
+\"inline\": false
+},
+{
+\"name\": \"Duration\",
+\"value\": \"${DURATION}s\",
+\"inline\": true
+},
+{
+\"name\": \"Server\",
+\"value\": \"Robtic VPS\",
+\"inline\": true
 }
 ]
-}' $WEBHOOK
+}
+]
+}" $WEBHOOK
 
 fi
