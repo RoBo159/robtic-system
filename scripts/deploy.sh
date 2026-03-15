@@ -11,14 +11,15 @@ WEBHOOK=$MONITOR_WEBHOOK
 cd $PROJECT || exit
 
 STATUS="success"
+MSG=""
 echo "Starting deployment pipeline..."
 
-git fetch origin || STATUS="fail"
-git reset --hard origin/main || STATUS="fail"
-git pull origin main || STATUS="fail"
-bun install || STATUS="fail"
-bun run build || STATUS="fail"
-pm2 restart robtic-app || STATUS="fail"
+git fetch origin || STATUS="fail" MSG="Failed to fetch latest code from repository."
+git reset --hard origin/main || STATUS="fail" MSG="Failed to reset local code to match remote repository."
+git pull origin main || STATUS="fail" MSG="Failed to pull latest code from repository."
+bun install || STATUS="fail" MSG="Failed to install dependencies."
+bun run build || STATUS="fail" MSG="Failed to build application."
+pm2 restart robtic-app || STATUS="fail" MSG="Failed to restart application with PM2."
 
 echo "Deployment finished."
 
@@ -31,7 +32,7 @@ curl -H "Content-Type: application/json" \
 "embeds":[
 {
 "title":"Deployment Failed",
-"description":"Deployment pipeline failed on VPS",
+"description":"Deployment pipeline failed on VPS \n Error: '"$MSG"'",
 "color":15158332
 }
 ]
