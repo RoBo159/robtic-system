@@ -28,6 +28,7 @@ bun install || fail_step "$STEP"
 
 STEP="Build application"
 bun run build || fail_step "$STEP"
+if ! bun run build; then fail_step "$STEP"
 
 STEP="Restart PM2"
 pm2 reload robtic-app || fail_step "$STEP"
