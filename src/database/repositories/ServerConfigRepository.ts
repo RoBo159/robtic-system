@@ -60,4 +60,44 @@ export class ServerConfigRepository {
         const config = await ServerConfig.findOne({ guildId });
         return config?.sentPanels.find(p => p.messageId === messageId);
     }
+
+    static async getSentPanelByKey(guildId: string, panelKey: string): Promise<ISentPanel | undefined> {
+        const config = await ServerConfig.findOne({ guildId });
+        return config?.sentPanels.find(p => p.panelKey === panelKey);
+    }
+
+    static async upsertSentPanel(
+        guildId: string,
+        panel: Omit<ISentPanel, "guildId">
+    ): Promise<IServerConfig> {
+        const config = await this.findOrCreate(guildId);
+        const index = config.sentPanels.findIndex((p) => p.panelKey === panel.panelKey);
+
+        if (index >= 0) {
+            config.sentPanels[index] = { ...panel, guildId };
+        } else {
+            config.sentPanels.push({ ...panel, guildId });
+        }
+
+        return config.save();
+    }
+
+    static async getAllSentPanelsByKey(panelKey: string): Promise<ISentPanel[]> {
+        const configs = await ServerConfig.find(
+            { "sentPanels.panelKey": panelKey },
+            { sentPanels: 1 }
+        ).lean();
+
+        const panels: ISentPanel[] = [];
+
+        for (const config of configs) {
+            for (const panel of config.sentPanels ?? []) {
+                if (panel.panelKey === panelKey) {
+                    panels.push(panel as ISentPanel);
+                }
+            }
+        }
+
+        return panels;
+    }
 }

@@ -1,7 +1,5 @@
 import pm2 from "pm2"
-import fetch from "node-fetch"
-
-const WEBHOOK = process.env.MONITOR_WEBHOOK || "";
+import { reportServiceStatus } from "../src/core/utils/statusSystem/status";
 
 interface Pm2Packet {
     process: {
@@ -14,30 +12,37 @@ interface Pm2Packet {
 pm2.connect((err: unknown) => {
     if (err) {
         console.error(err);
+        reportServiceStatus("crash-monitor", "Crash Monitor (monitor/crash-monitor.ts)", "OFFLINE", String(err));
         process.exit(2);
     }
+
+    reportServiceStatus("crash-monitor", "Crash Monitor (monitor/crash-monitor.ts)", "HEALTHY", "Connected to PM2 event bus");
     
     pm2.launchBus((err : unknown, bus: any) => {
+        if (err) {
+            reportServiceStatus("crash-monitor", "Crash Monitor (monitor/crash-monitor.ts)", "OFFLINE", String(err));
+            return;
+        }
+
         bus.on("process:event", async (data: Pm2Packet) => {
             if (data.event === "exit") {
-
-                await fetch(WEBHOOK, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        embeds: [{
-                            title: "Bot Crash Detected",
-                            description: `Process **${data.process.name}** crashed`,
-                            color: 15158332,
-                            fields: [
-                                { name: "Process", value: data.process.name },
-                                { name: "Status", value: data.process.status }
-                            ],
-                            timestamp: new Date().toISOString()
-                        }]
-                    })
-                })
-
+                reportServiceStatus(
+                    "crash-monitor",
+                    "Crash Monitor (monitor/crash-monitor.ts)",
+                    "DEGRADED",
+                    `Process ${data.process.name} exited`,
+                    [
+                        `Process: ${data.process.name}`,
+                        `Status: ${data.process.status}`,
+                    ]
+                );
+            } else if (data.event === "online") {
+                reportServiceStatus(
+                    "crash-monitor",
+                    "Crash Monitor (monitor/crash-monitor.ts)",
+                    "HEALTHY",
+                    `Process ${data.process.name} is online`
+                );
             }
         })
     })

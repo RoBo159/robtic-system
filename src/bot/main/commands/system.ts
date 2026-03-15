@@ -1,6 +1,6 @@
 import { ClientManager } from "@core/ClientManager";
 import { BOT_DEFINITIONS } from "@core/config";
-import { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
+import { ChannelType, ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 
 const validBotNames = BOT_DEFINITIONS.map((d) => d.name);
 
@@ -9,7 +9,15 @@ export default {
         .setName("system")
         .setDescription("System management commands")
         .addSubcommand((sub) =>
-            sub.setName("status").setDescription("View status of all bots")
+            sub
+                .setName("status")
+                .setDescription("View status or configure the live status panel")
+                .addChannelOption((opt) =>
+                    opt
+                        .setName("channel")
+                        .setDescription("Channel where the status panel should be posted")
+                        .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+                )
         )
         .addSubcommand((sub) =>
             sub

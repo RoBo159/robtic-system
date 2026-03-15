@@ -1,4 +1,5 @@
 type BotName = "main" | "moderation" | "hr" | "modmail" | "community" | "service" | "ticket";
+type StatusType = "STARTING" | "HEALTHY" | "DEGRADED" | "OFFLINE"
 
 type BotTokenKey =
     | "MainBotToken"
@@ -21,11 +22,13 @@ interface BotDefinition<Gateway, Partials> {
 
 interface BotStatus {
     name: BotName;
-    online: boolean;
-    uptime: number | null;
-    guilds: number;
-    ping: number;
-    modulesLoaded: string[];
+    online?: boolean;
+    status?: StatusType;
+    message?: string;
+    uptime?: number | null;
+    guilds?: number;
+    ping?: number;
+    modulesLoaded?: string[];
 }
 
 interface ModuleDefinition {

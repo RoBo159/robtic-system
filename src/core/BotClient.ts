@@ -26,11 +26,13 @@ export class BotClient extends Client {
 
     async start(): Promise<void> {
         try {
+            await sendStatus(this.botName, "STARTING", "Booting...");
             await this.login(this.token_);
             Logger.success(`Bot started`, this.botName);
-            sendStatus("HEALTHY", "success", `Bot Started ${this.user?.tag} is now online!`);
+            await sendStatus(this.botName, "HEALTHY", `${this.user?.tag} online`)
         } catch (err) {
             Logger.error(`Failed to start: ${err}`, this.botName);
+            await sendStatus(this.botName, "OFFLINE", "Startup failed")
             throw err;
         }
     }

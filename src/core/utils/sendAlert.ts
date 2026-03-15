@@ -1,4 +1,4 @@
-const WEBHOOK = process.env.MONITOR_WEBHOOK!
+import { reportServiceStatus } from "./statusSystem/status";
 
 export async function sendAlert({
     title,
@@ -11,22 +11,19 @@ export async function sendAlert({
     color: number
     fields?: { name: string; value: string; inline?: boolean }[]
 }) {
-    await fetch(WEBHOOK, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            embeds: [
-                {
-                    title,
-                    description,
-                    color,
-                    fields,
-                    timestamp: new Date().toISOString(),
-                    footer: {
-                        text: "Robtic Monitoring System"
-                    }
-                }
-            ]
-        })
-    })
+    const status: StatusType = color >= 0xff0000
+        ? "OFFLINE"
+        : color >= 0xffcc00
+            ? "DEGRADED"
+            : "HEALTHY";
+
+    const detailLines = fields.map((field) => `${field.name}: ${field.value}`);
+
+    reportServiceStatus(
+        "alerts",
+        "Alert Stream",
+        status,
+        `${title} - ${description}`,
+        detailLines
+    );
 }

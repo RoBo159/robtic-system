@@ -8,7 +8,7 @@ export function memberLangDetected(member: GuildMember): string {
     return detectedLang ? detectedLang[0] : "en";
 }
 
-export * from "./status";
+export * from "./statusSystem/status";
 export * from "./cooldown";
 export * from "./embed";
 export * from "./normalize";

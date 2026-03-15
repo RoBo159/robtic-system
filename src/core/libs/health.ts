@@ -1,37 +1,21 @@
-import { sendStatus } from "@core/utils";
+import { reportServiceStatus } from "@core/utils";
 
 export function monitorProcess() {
     process.on("SIGINT", async () => {
-        await sendStatus(
-            "OFFLINE",
-            "Bot Shutdown",
-            "Process received SIGINT"
-        )
+        reportServiceStatus("process", "Node Process", "OFFLINE", "Process received SIGINT");
         process.exit()
     })
 
     process.on("SIGTERM", async () => {
-        await sendStatus(
-            "OFFLINE",
-            "Bot Shutdown",
-            "Process terminated"
-        )
+        reportServiceStatus("process", "Node Process", "OFFLINE", "Process terminated");
         process.exit()
     })
 
     process.on("uncaughtException", async (error) => {
-        await sendStatus(
-            "DEGRADED",
-            "Uncaught Exception",
-            String(error)
-        )
+        reportServiceStatus("process", "Node Process", "DEGRADED", "Uncaught exception", [String(error)]);
     })
 
     process.on("unhandledRejection", async (reason) => {
-        await sendStatus(
-            "DEGRADED",
-            "Unhandled Promise Rejection",
-            String(reason)
-        )
+        reportServiceStatus("process", "Node Process", "DEGRADED", "Unhandled promise rejection", [String(reason)]);
     })
 }
