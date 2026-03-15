@@ -7,8 +7,7 @@ import os from "os";
 import { BOT_STATUSES } from "./botStatus";
 
 const PANEL_KEY = "system_status";
-const SERVER_TARGET = "https://core.robtic.org";
-const SERVER_HEALTH_PATH = "/health";
+const SERVER_TARGET = "core.robtic.org";
 const PANEL_REFRESH_MS = 30_000;
 const CORE_REACHABILITY_CHECK_MS = 20_000;
 
@@ -128,78 +127,6 @@ function mapDbReadyState(readyState: number): StatusType {
     }
 }
 
-async function checkCoreServer(): Promise<CoreSnapshot> {
-    const endpoints = [`${SERVER_TARGET}${SERVER_HEALTH_PATH}`, SERVER_TARGET];
-
-    for (const endpoint of endpoints) {
-        const startedAt = Date.now();
-
-        try {
-            const response = await fetch(endpoint, {
-                method: "GET",
-                signal: AbortSignal.timeout(7000),
-                headers: {
-                    "User-Agent": "Robtic-Status-Monitor/1.0",
-                    "Accept": "application/json,text/plain,*/*",
-                },
-            });
-
-            const latency = Date.now() - startedAt;
-            const status: StatusType = response.status >= 200 && response.status < 300
-                ? "HEALTHY"
-                : "DEGRADED";
-
-            return {
-                status,
-                line: `${ICONS[status]} **Core Server**: ${response.status} in ${latency}ms`,
-                details: [
-                    `Endpoint: ${endpoint}`,
-                    `HTTP: ${response.status} ${response.statusText}`,
-                    `Latency: ${latency}ms`,
-                ],
-                checkedAt: Date.now(),
-            };
-        } catch (error) {
-            Logger.warn(`Core probe failed for ${endpoint}: ${String(error)}`, "StatusSystem");
-        }
-    }
-
-    return {
-        status: "OFFLINE",
-        line: `${ICONS.OFFLINE} **Core Server**: unreachable from local monitor`,
-        details: [
-            `Target: ${SERVER_TARGET}`,
-            "Both /health and / probes failed (timeout/network/DNS).",
-        ],
-        checkedAt: Date.now(),
-    };
-}
-
-async function refreshCoreReachabilityStatus(): Promise<void> {
-    const snapshot = await checkCoreServer();
-    latestCoreSnapshot = snapshot;
-
-    reportServiceStatus(
-        "core-reachability-local",
-        "Core Reachability (local)",
-        snapshot.status,
-        "Local probe against production endpoint",
-        snapshot.details
-    );
-}
-
-function ensureCoreReachabilityMonitor(): void {
-    if (coreReachabilityHandle) {
-        return;
-    }
-
-    coreReachabilityHandle = setInterval(() => {
-        void refreshCoreReachabilityStatus();
-    }, CORE_REACHABILITY_CHECK_MS);
-
-    void refreshCoreReachabilityStatus();
-}
-
 function isMessageChannel(
     channel: Channel | null
 ): channel is Channel & { messages: { fetch: (id: string) => Promise<Message> }; send: (payload: { embeds: EmbedBuilder[] }) => Promise<Message> } {
@@ -230,29 +157,40 @@ function schedulePanelRefresh(reason: string): void {
 export function registerStatusClient(client: Client): void {
     statusClient = client;
     ensurePanelLoop();
-    ensureCoreReachabilityMonitor();
 }
 
 export async function buildSystemStatusEmbed(): Promise<EmbedBuilder> {
     const db = mongoose.connection;
     const dbStatus = mapDbReadyState(db.readyState);
-    const dbLine = `${ICONS[dbStatus]} **Database**: ${db.readyState === 1 ? "connected" : "not connected"}${db.host ? ` (${db.host})` : ""}`;
+    const dbState = db.readyState === 1 ? "connected" : "not connected";
 
     const core = latestCoreSnapshot;
 
-    const botLines = BOT_DEFINITIONS.map((definition) => {
+    const botEntries = BOT_DEFINITIONS.map((definition) => {
         const entry = BOT_STATUSES.get(definition.name);
         const status = entry?.status ?? "OFFLINE";
         const message = entry?.message ?? "No recent status message";
         const updated = BOT_LAST_UPDATED.get(definition.name);
 
-        return `${ICONS[status]} **${definition.name}**: ${status} - ${message} (updated ${relativeTime(updated)})`;
+        return {
+            status,
+            line: `${ICONS[status]} **${definition.name}** - ${message} (${relativeTime(updated)})`,
+        };
     });
 
-    const serviceLines = Array.from(SERVICE_STATUSES.values()).map((service) => {
+    const serviceLines = Array.from(SERVICE_STATUSES.values())
+        .filter((service) => service.key !== "core-reachability-local")
+        .map((service) => {
         const details = service.details?.length ? ` | ${service.details.join(" | ")}` : "";
         return `${ICONS[service.status]} **${service.label}**: ${service.status} - ${service.message ?? "No details"}${details} (updated ${relativeTime(service.updatedAt)})`;
     });
+
+    const botTotals = {
+        healthy: botEntries.filter((entry) => entry.status === "HEALTHY").length,
+        degraded: botEntries.filter((entry) => entry.status === "DEGRADED").length,
+        starting: botEntries.filter((entry) => entry.status === "STARTING").length,
+        offline: botEntries.filter((entry) => entry.status === "OFFLINE").length,
+    };
 
     const systemUsage = os.totalmem() > 0 ? ((os.totalmem() - os.freemem()) / os.totalmem()) * 100 : 0;
     const processMemory = process.memoryUsage();
@@ -269,35 +207,46 @@ export async function buildSystemStatusEmbed(): Promise<EmbedBuilder> {
         .setTitle("Robtic System Status Panel")
         .setDescription(
             [
-                `${ICONS[overallStatus]} **Overall**: ${overallStatus}`,
-                `Environment: **${process.env.NODE_ENV || "development"}**`,
+                `Environment: **${process.env.NODE_ENV || "development"}** | Synced <t:${Math.floor(Date.now() / 1000)}:R>`,
                 `Updated: <t:${Math.floor(Date.now() / 1000)}:f>`,
             ].join("\n")
         )
         .addFields(
             {
-                name: "Bot Fleet",
-                value: botLines.join("\n") || "No bot status entries yet.",
-                inline: false,
-            },
-            {
-                name: "Infrastructure",
-                value: [core.line, `Last probe: ${relativeTime(core.checkedAt)}`, dbLine].join("\n"),
-                inline: false,
-            },
-            {
-                name: "Server Monitors",
-                value: serviceLines.join("\n") || "No monitor entries yet.",
-                inline: false,
-            },
-            {
-                name: "Runtime Details",
+                name: "Bots",
                 value: [
-                    `Process uptime: ${Math.floor(process.uptime())}s`,
-                    `System memory used: ${systemUsage.toFixed(1)}%`,
+                    `🟢 ${botTotals.healthy}`,
+                    `🟡 ${botTotals.degraded}`,
+                    `🟠 ${botTotals.starting}`,
+                    `🔴 ${botTotals.offline}`,
+                ].join(" | "),
+                inline: true,
+            },
+            {
+                name: "Database",
+                value: `${ICONS[dbStatus]} ${dbState}`,
+                inline: true,
+            },
+            {
+                name: "Process",
+                value: [
+                    `Uptime: ${Math.floor(process.uptime())}s`,
+                    `RAM: ${systemUsage.toFixed(1)}%`,
+                ].join("\n"),
+                inline: true,
+            },
+            {
+                name: "Bot Details",
+                value: botEntries.map((entry) => entry.line).join("\n") || "No bot status entries yet.",
+                inline: false,
+            },
+            {
+                name: "Runtime",
+                value: [
                     `Process RSS: ${formatMegabytes(processMemory.rss)}`,
                     `Process heap: ${formatMegabytes(processMemory.heapUsed)} / ${formatMegabytes(processMemory.heapTotal)}`,
                     `Load average (1m/5m/15m): ${os.loadavg().map((value) => value.toFixed(2)).join(" / ")}`,
+                    `Core server: core.robtic.org`,
                 ].join("\n"),
                 inline: false,
             }
