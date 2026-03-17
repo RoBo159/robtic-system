@@ -1,8 +1,14 @@
 import {
+  ButtonInteraction,
   ChannelType,
   MessageFlags,
+  type MessageEditOptions,
   PermissionFlagsBits,
   type StringSelectMenuInteraction,
+  ContainerBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder,
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 import { TicketRepository } from "@database/repositories";
@@ -13,21 +19,23 @@ import { TicketRepository } from "@database/repositories";
 export default {
   customId: /^ticket_open/,
 
-  async run(interaction: StringSelectMenuInteraction, client: BotClient) {
+  async run(interaction: ButtonInteraction, client: BotClient) {
     const parts = interaction.customId.split("_");
-    const category = parts[1];
+    const category = parts[2] ?? '';
 
     const existing = await TicketRepository.findOpenByUser(
       interaction.user.id,
-      interaction.guild!.id
+      interaction.guild!.id,
     );
     if (existing.length > 0) {
-      await interaction.reply({
+      await interaction.update({
         content: "You already have an open ticket.",
-        flags: MessageFlags.Ephemeral,
+        flags: ["IsComponentsV2"],
       });
       return;
     }
+
+    
     // await interaction.reply({content:"nigga", flags: MessageFlags.Ephemeral})
     // console.log(...); // i want to know where i find the selected string
 
@@ -75,9 +83,35 @@ export default {
     //   transcript: null,
     // });
 
-    await interaction.reply({
-      content: `Ticket created: <${category}>`,
-      flags: MessageFlags.Ephemeral,
+    const menu = new ContainerBuilder()
+          .setAccentColor(0x0099ff)
+          .addTextDisplayComponents((textDisplay) =>
+            textDisplay.setContent(
+              "## Nigga",
+            ),
+          )
+          .addSeparatorComponents((separator) => separator)
+          .addSectionComponents((section) =>
+            section
+              .addTextDisplayComponents(
+                (textDisplay) =>
+                  textDisplay.setContent(
+                    "This text is inside a Text Display component! You can use **any __markdown__** available inside this component too.",
+                  ),
+              )
+              .setButtonAccessory((button) =>
+                button
+                  .setCustomId("ticket_open")
+                  .setLabel("Button inside a Section")
+                  .setStyle(ButtonStyle.Success),
+              ),
+          );
+    await interaction.update({
+      // content: `Ticket created: <${category}>`,
+      components: [
+        menu
+      ],
+      flags: ["IsComponentsV2"]
     });
   },
 };
