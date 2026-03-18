@@ -125,7 +125,7 @@ export default {
     await TicketRepository.create({
       ticketId: ticketId,
       guildId: interaction.guild!.id,
-      channelId: interaction.channelId ?? "",
+      channelId: channel.id ?? "",
       userId: interaction.user.id,
       category: categoryId,
       subject: `Ticket: ${categoryId}`,

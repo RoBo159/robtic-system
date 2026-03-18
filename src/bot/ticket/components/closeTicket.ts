@@ -9,12 +9,8 @@ export default {
   async run(interaction: ButtonInteraction, client: BotClient) { 
     const [_0, _1, ticketId] = interaction.customId.split("_");
 
-    // TicketRepository.clearAll();
-    // return;
+    const ticket = await TicketRepository.close(ticketId, interaction.user.id);
 
-    const ticket = await TicketRepository.close(ticketId, "test");
-    Logger.debug(ticket?.channelId);
-    Logger.debug(interaction.id)
     if (interaction.channelId !== ticket?.channelId) {
       return;
     }
