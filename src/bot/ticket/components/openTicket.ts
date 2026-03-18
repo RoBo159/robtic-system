@@ -9,109 +9,146 @@ import {
   ButtonBuilder,
   ButtonStyle,
   StringSelectMenuBuilder,
+  ModalSubmitInteraction,
+  TextDisplayBuilder,
+  ActionRowBuilder,
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 import { TicketRepository } from "@database/repositories";
+import { Logger } from "@core/libs";
+import {
+  ACCENT_COLOR,
+  SUPPORT_ROLE_ID,
+  TICKET_TEXTCHAT_CATEGORY_ID,
+} from "../config/misc";
 
 // const TICKET_CATEGORY_ID = "PUT_DISCORD_CATEGORY_ID_HERE";
 // const SUPPORT_ROLE_ID = "PUT_SUPPORT_ROLE_ID_HERE";
 
+function makeIdFromInputs(a: string, b: string): string {
+  const input = `${a}|${b}`;
+  let hash = 2166136261; // FNV-1a seed
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  // Convert to base36, pad/truncate to 16 chars
+  return (hash >>> 0).toString(36).padStart(16, "0").slice(0, 16);
+}
+
 export default {
   customId: /^ticket_open/,
 
-  async run(interaction: ButtonInteraction, client: BotClient) {
-    const parts = interaction.customId.split("_");
-    const category = parts[2] ?? '';
+  async run(interaction: ModalSubmitInteraction, client: BotClient) {
+    if (!interaction.isModalSubmit()) return;
+
+    const categoryId =
+      interaction.fields.getStringSelectValues("ticket_category")[0];
 
     const existing = await TicketRepository.findOpenByUser(
       interaction.user.id,
       interaction.guild!.id,
     );
     if (existing.length > 0) {
-      await interaction.update({
-        content: "You already have an open ticket.",
-        flags: ["IsComponentsV2"],
+      await interaction.reply({
+        components: [
+          new ContainerBuilder()
+            .setAccentColor(ACCENT_COLOR)
+            .addTextDisplayComponents(
+              new TextDisplayBuilder().setContent(
+                "You already have an open ticket.",
+              ),
+            ),
+        ],
+        flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
       });
+      TicketRepository.close(existing[0].ticketId, "test2");
       return;
     }
 
-    
-    // await interaction.reply({content:"nigga", flags: MessageFlags.Ephemeral})
-    // console.log(...); // i want to know where i find the selected string
+    const channel = await interaction.guild!.channels.create({
+      name: `ticket-${interaction.user.username}`.toLowerCase(),
+      type: ChannelType.GuildText,
+      parent: TICKET_TEXTCHAT_CATEGORY_ID,
+      permissionOverwrites: [
+        {
+          id: interaction.guild!.roles.everyone.id,
+          deny: [PermissionFlagsBits.ViewChannel],
+        },
+        {
+          id: interaction.user.id,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+          ],
+        },
+        {
+          id: SUPPORT_ROLE_ID,
+          allow: [
+            PermissionFlagsBits.ViewChannel,
+            PermissionFlagsBits.SendMessages,
+            PermissionFlagsBits.ReadMessageHistory,
+          ],
+        },
+      ],
+    });
 
-    // const channel = await interaction.guild!.channels.create({
-    //   name: `ticket-${interaction.user.username}`.toLowerCase(),
-    //   type: ChannelType.GuildText,
-    //   parent: category,
-    //   permissionOverwrites: [
-    //     {
-    //       id: interaction.guild!.roles.everyone.id,
-    //       deny: [PermissionFlagsBits.ViewChannel],
-    //     },
-    //     {
-    //       id: interaction.user.id,
-    //       allow: [
-    //         PermissionFlagsBits.ViewChannel,
-    //         PermissionFlagsBits.SendMessages,
-    //         PermissionFlagsBits.ReadMessageHistory,
-    //       ],
-    //     },
-    //     {
-    //       id: SUPPORT_ROLE_ID,
-    //       allow: [
-    //         PermissionFlagsBits.ViewChannel,
-    //         PermissionFlagsBits.SendMessages,
-    //         PermissionFlagsBits.ReadMessageHistory,
-    //       ],
-    //     },
-    //   ],
-    // });
+    const ticketId = makeIdFromInputs(
+      interaction.guild!.id,
+      channel.id,
+    );
 
-    // await TicketRepository.create({
-    //   ticketId: channel.id,
-    //   guildId: interaction.guild!.id,
-    //   channelId: channel.id,
-    //   userId: interaction.user.id,
-    //   category: categoryId,
-    //   subject: `Ticket: ${categoryId}`,
-    //   status: "open",
-    //   priority: "medium",
-    //   messages: [],
-    //   assignedTo: null,
-    //   closedBy: null,
-    //   closedAt: null,
-    //   transcript: null,
-    // });
-
-    const menu = new ContainerBuilder()
-          .setAccentColor(0x0099ff)
-          .addTextDisplayComponents((textDisplay) =>
-            textDisplay.setContent(
-              "## Nigga",
+    channel.send({
+      components: [
+        new ContainerBuilder()
+          .setAccentColor(ACCENT_COLOR)
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `<@${interaction.user.id}> Staff members will be available soon!`,
             ),
           )
-          .addSeparatorComponents((separator) => separator)
-          .addSectionComponents((section) =>
-            section
-              .addTextDisplayComponents(
-                (textDisplay) =>
-                  textDisplay.setContent(
-                    "This text is inside a Text Display component! You can use **any __markdown__** available inside this component too.",
-                  ),
-              )
-              .setButtonAccessory((button) =>
-                button
-                  .setCustomId("ticket_open")
-                  .setLabel("Button inside a Section")
-                  .setStyle(ButtonStyle.Success),
-              ),
-          );
-    await interaction.update({
-      // content: `Ticket created: <${category}>`,
-      components: [
-        menu
+          .addActionRowComponents(
+            new ActionRowBuilder<ButtonBuilder>().addComponents(
+              new ButtonBuilder()
+                .setCustomId(`ticket_close_${ticketId}`)
+                .setLabel("Close")
+                .setStyle(ButtonStyle.Primary),
+            ),
+          ),
       ],
-      flags: ["IsComponentsV2"]
+      flags: MessageFlags.IsComponentsV2,
+    });
+
+    // TicketRepository.close()
+
+    await TicketRepository.create({
+      ticketId: ticketId,
+      guildId: interaction.guild!.id,
+      channelId: interaction.channelId ?? "",
+      userId: interaction.user.id,
+      category: categoryId,
+      subject: `Ticket: ${categoryId}`,
+      status: "open",
+      priority: "medium",
+      messages: [],
+      assignedTo: null,
+      closedBy: null,
+      closedAt: null,
+      transcript: null,
+    });
+
+    interaction.reply({
+      components: [
+        new ContainerBuilder()
+          .setAccentColor(ACCENT_COLOR)
+          .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(
+              `## Ticket channel was created ! → <#${channel.id}>`,
+            ),
+          ),
+      ],
+      flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
     });
   },
 };

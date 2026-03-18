@@ -12,56 +12,17 @@ import {
   StringSelectMenuBuilder,
   StringSelectMenuComponent,
   StringSelectMenuOptionBuilder,
+  TextDisplayBuilder,
   UserSelectMenuBuilder,
   type SelectMenuComponentOptionData,
 } from "discord.js";
 import { ticketCategories } from "../config/categories";
 
-export function ticketPanel(category?: string): ContainerBuilder {
-  return new ContainerBuilder()
-    .setAccentColor(0x0099ff)
-    .addTextDisplayComponents((textDisplay) =>
-      textDisplay.setContent(
-        "This text is inside a Text Display component! You can use **any __markdown__** available inside this component too.",
-      ),
-    )
-    .addActionRowComponents((actionRow) =>
-      actionRow.setComponents(
-        new StringSelectMenuBuilder()
-          .setCustomId("ticket_category")
-          .setPlaceholder("Choose a ticket category")
-          .setOptions(
-            ticketCategories.map((c) =>
-              new StringSelectMenuOptionBuilder()
-                .setLabel(c.displayName)
-                .setValue(c.id)
-                .setDescription(c.description),
-            ),
-          )
-          .setRequired(true),
-      ),
-    )
-    .addSeparatorComponents((separator) => separator)
-    .addSectionComponents((section) =>
-      section
-        .addTextDisplayComponents((textDisplay) =>
-          textDisplay.setContent(
-            "This text is inside a Text Display component! You can use **any __markdown__** available inside this component too.",
-          ),
-        )
-        .setButtonAccessory((button) =>
-          button
-            .setCustomId("ticket_open")
-            .setLabel("Button inside a Section")
-            .setStyle(ButtonStyle.Primary),
-        ),
-    );
-}
 
-
-export function ticketModal(): ModalBuilder {
+export const ticketModal = (() => {
   const modalBuilder = new ModalBuilder()
-  .setCustomId("ticket_modal").setTitle("Request Support Ticket");
+    .setCustomId("ticket_open")
+    .setTitle("Support Ticket");
 
   const categorySelector = new StringSelectMenuBuilder()
     .setCustomId("ticket_category")
@@ -73,15 +34,21 @@ export function ticketModal(): ModalBuilder {
           .setValue(c.id)
           .setDescription(c.description),
       ),
-    )
-    .setRequired(true);
+    );
+  // .setRequired(true);
 
   const categorySelectorLabel = new LabelBuilder()
-    .setDescription("Nigga")
-    // .setStringSelectMenuComponent(categorySelector);
+    .setLabel("Choose type of support:")
+    .setStringSelectMenuComponent(categorySelector);
 
-  return modalBuilder.addLabelComponents(categorySelectorLabel);
-}
+  const footerText = new TextDisplayBuilder().setContent(
+    `Once you press 'Submit' a channel will be created -if you were applicable for a ticket- and staff members will be with you as soon as possible. `,
+  );
+
+  return modalBuilder
+    .addLabelComponents(categorySelectorLabel)
+    .addTextDisplayComponents(footerText);
+})();
 
 export default {
   data: new SlashCommandBuilder()
@@ -111,9 +78,9 @@ export default {
 
     // await interaction.deferReply();
     console.log("About to show modal");
-    await interaction.showModal(ticketModal());
+    await interaction.showModal(ticketModal);
     console.log("Should be shown");
-    
+
     // const menu = ticketPanel();
 
     // await interaction.reply({
