@@ -12,18 +12,34 @@ import {
   ModalSubmitInteraction,
   TextDisplayBuilder,
   ActionRowBuilder,
+  TextChannel,
+  SeparatorBuilder,
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 import { TicketRepository } from "@database/repositories";
 import { Logger } from "@core/libs";
 import {
   ACCENT_COLOR,
+  ROBO_MANAGER_EMOJI,
+  SUPPORT_REPORT_CHANNEL_ID,
+  SUPPORT_ROLE,
   SUPPORT_ROLE_ID,
+  TICKET_CREATED_COLOR,
   TICKET_TEXTCHAT_CATEGORY_ID,
 } from "../config/misc";
+import { ticketCategories } from "../config/categories";
 
 // const TICKET_CATEGORY_ID = "PUT_DISCORD_CATEGORY_ID_HERE";
 // const SUPPORT_ROLE_ID = "PUT_SUPPORT_ROLE_ID_HERE";
+
+export function ticketCard(user?:string, categoryId?:string, subject?:string/*, openedAt?:Date*/) {
+// const timeOpened = openedAt? Math.floor(openedAt?.getTime() / 1000): null;
+  return `
+## Ticket card
+Invoker :   <@${user}>
+Subject :   ${subject}
+Category :  **${ticketCategories.find((ctg) => ctg.id === categoryId)?.displayName ?? "??"}**`.trim();
+}
 
 function makeIdFromInputs(a: string, b: string): string {
   const input = `${a}|${b}`;
@@ -44,6 +60,7 @@ export default {
 
     const categoryId =
       interaction.fields.getStringSelectValues("ticket_category")[0];
+    const subject = interaction.fields.getTextInputValue("ticket_description");
 
     const existing = await TicketRepository.findOpenByUser(
       interaction.user.id,
@@ -94,18 +111,39 @@ export default {
       ],
     });
 
-    const ticketId = makeIdFromInputs(
-      interaction.guild!.id,
-      channel.id,
-    );
+    const ticketId = makeIdFromInputs(interaction.guild!.id, channel.id);
 
-    channel.send({
+    // TicketRepository.close()
+
+    const ticket = await TicketRepository.create({
+      ticketId: ticketId,
+      guildId: interaction.guild!.id,
+      channelId: channel.id ?? "",
+      userId: interaction.user.id,
+      category: categoryId,
+      subject: subject,
+      status: "open",
+      priority: "medium",
+      messages: [],
+      assignedTo: null,
+      closedBy: null,
+      closedAt: null,
+      transcript: null,
+    });
+
+    const ticketCardString = ticketCard(interaction.user.id,categoryId, subject)
+
+    await channel.send({
       components: [
         new ContainerBuilder()
           .setAccentColor(ACCENT_COLOR)
           .addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(ticketCardString),
+          )
+          .addSeparatorComponents(new SeparatorBuilder())
+          .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `<@${interaction.user.id}> Staff members will be available soon!`,
+              `###  Once you are settled you can close this Ticket`,
             ),
           )
           .addActionRowComponents(
@@ -120,35 +158,42 @@ export default {
       flags: MessageFlags.IsComponentsV2,
     });
 
-    // TicketRepository.close()
-
-    await TicketRepository.create({
-      ticketId: ticketId,
-      guildId: interaction.guild!.id,
-      channelId: channel.id ?? "",
-      userId: interaction.user.id,
-      category: categoryId,
-      subject: `Ticket: ${categoryId}`,
-      status: "open",
-      priority: "medium",
-      messages: [],
-      assignedTo: null,
-      closedBy: null,
-      closedAt: null,
-      transcript: null,
-    });
-
     interaction.reply({
       components: [
         new ContainerBuilder()
           .setAccentColor(ACCENT_COLOR)
           .addTextDisplayComponents(
             new TextDisplayBuilder().setContent(
-              `## Ticket channel was created ! → <#${channel.id}>`,
+              `
+## Ticket channel was created ! → <#${channel.id}>
+### ${ROBO_MANAGER_EMOJI} Staff will be available ASAP!
+`,
             ),
           ),
       ],
       flags: [MessageFlags.Ephemeral, MessageFlags.IsComponentsV2],
+    });
+
+    const report = new ContainerBuilder()
+      .setAccentColor(TICKET_CREATED_COLOR)
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(
+          `### ${SUPPORT_ROLE} - New support request`,
+        ),
+      )
+      .addSeparatorComponents(new SeparatorBuilder())
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(ticketCardString),
+      )
+      .addTextDisplayComponents(
+        new TextDisplayBuilder().setContent(`Channel : <#${channel.id}>`),
+      );
+    const reportChannel = (await interaction.guild!.channels.fetch(
+      SUPPORT_REPORT_CHANNEL_ID,
+    )) as TextChannel;
+    reportChannel.send({
+      components: [report],
+      flags: [MessageFlags.IsComponentsV2],
     });
   },
 };

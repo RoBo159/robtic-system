@@ -28,10 +28,6 @@ export class TicketRepository {
     if (status) query.status = status;
     return Ticket.find(query).sort({ createdAt: -1 });
   }
-
-  static async clearAll(): Promise<{ deletedCount?: number }> {
-    return Ticket.deleteMany({});
-  }
   
   static async close(
     ticketId: string,
