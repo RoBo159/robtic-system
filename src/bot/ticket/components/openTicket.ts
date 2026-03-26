@@ -82,37 +82,51 @@ export default {
       return;
     }
 
-    const channel = await interaction.guild!.channels.create({
-      name: `ticket-${interaction.user.username}`.toLowerCase(),
-      type: ChannelType.GuildText,
-      parent: TICKET_TEXTCHAT_CATEGORY_ID,
-      permissionOverwrites: [
-        {
-          id: interaction.guild!.roles.everyone.id,
-          deny: [PermissionFlagsBits.ViewChannel],
-        },
-        {
-          id: interaction.user.id,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-            PermissionFlagsBits.ReadMessageHistory,
-          ],
-        },
-        {
-          id: SUPPORT_ROLE_ID,
-          allow: [
-            PermissionFlagsBits.ViewChannel,
-            PermissionFlagsBits.SendMessages,
-            PermissionFlagsBits.ReadMessageHistory,
-          ],
-        },
-      ],
-    });
+    async function createChannel(name:string) {
+      return await interaction.guild!.channels.create({
+        name: `ticket-${interaction.user.username}`.toLowerCase(),
+        type: ChannelType.GuildText,
+        parent: TICKET_TEXTCHAT_CATEGORY_ID,
+        permissionOverwrites: [
+          {
+            id: interaction.guild!.roles.everyone.id,
+            deny: [PermissionFlagsBits.ViewChannel],
+          },
+          {
+            id: interaction.user.id,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory,
+            ],
+          },
+          {
+            id: SUPPORT_ROLE_ID,
+            allow: [
+              PermissionFlagsBits.ViewChannel,
+              PermissionFlagsBits.SendMessages,
+              PermissionFlagsBits.ReadMessageHistory,
+            ],
+          },
+        ],
+      });
+    }
+    // this try-catch nesting should hopefully help in making
+    // sure channel is named with acceptable characters
+    let channel : TextChannel;
+    try {
+      channel = await createChannel(interaction.user.username);
+    } catch {
+      
+      try { 
+        channel = await createChannel("unnamed");
+      } catch {
+        Logger.error("There was an issue when creating a ticket channel!");
+        return;
+      }
+    }
 
     const ticketId = makeIdFromInputs(interaction.guild!.id, channel.id);
-
-    // TicketRepository.close()
 
     const ticket = await TicketRepository.create({
       ticketId: ticketId,
