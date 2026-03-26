@@ -8,6 +8,10 @@ jobs:
   deploy:
     runs-on: self-hosted
 
+    environment:
+      name: Robtic Server
+      url: https://core.robtic.org
+
     steps:
       - name: Notify Deployment Start
         run: |
