@@ -6,7 +6,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Notify Deployment Start
@@ -41,22 +41,18 @@ jobs:
               \"timestamp\": \"$TIMESTAMP\"
             }]
           }" \
-          ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
+          "${{ secrets.DISCORD_WEBHOOK_DEPLOY }}"
 
-      - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: core.robtic.org
-          username: root
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            flock -n /tmp/robtic-deploy.lock bash -c "
-              cd /root/robtic/robtic-system
-              git fetch origin
-              git reset --hard origin/main
-              git pull origin main
-              ./scripts/deploy.sh
-            "
+      - name: Deploy locally on self-hosted runner
+        run: |
+          flock -n /tmp/robtic-deploy.lock bash -c '
+            cd /home/robtic/robtic-system
+            git fetch origin
+            git reset --hard origin/main
+            git pull origin main
+            chmod +x ./scripts/deploy.sh
+            ./scripts/deploy.sh
+          '
 
       - name: Notify Deployment Success
         if: success()
@@ -76,7 +72,7 @@ jobs:
               \"timestamp\": \"$TIMESTAMP\"
             }]
           }" \
-          ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
+          "${{ secrets.DISCORD_WEBHOOK_DEPLOY }}"
 
       - name: Notify Deployment Failure
         if: failure()
@@ -96,4 +92,4 @@ jobs:
               \"timestamp\": \"$TIMESTAMP\"
             }]
           }" \
-          ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
+          "${{ secrets.DISCORD_WEBHOOK_DEPLOY }}"
