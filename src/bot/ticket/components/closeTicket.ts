@@ -1,32 +1,16 @@
 import type { BotClient } from "@core/BotClient";
-import { Logger } from "@core/libs";
 import { TicketRepository } from "@database/repositories";
 import {
-  ActionRowBuilder,
-  BaseInteraction,
-  ButtonBuilder,
-  ChannelSelectMenuInteraction,
-  ChatInputCommandInteraction,
   ContainerBuilder,
-  MessageComponentInteraction,
   MessageFlags,
-  Options,
   SeparatorBuilder,
   TextDisplayBuilder,
   type ButtonInteraction,
-  type CacheFactory,
-  type CacheType,
-  type Interaction,
-  type InteractionReplyOptions,
-  type MessageReplyOptions,
   type TextChannel,
 } from "discord.js";
-import { ticketCategories } from "../config/categories";
 import {
   SUPPORT_REPORT_CHANNEL_ID,
-  SUPPORT_ROLE,
   TICKET_CLOSED_COLOR,
-  TICKET_CREATED_COLOR,
 } from "../config/misc";
 import { ticketCard } from "./openTicket";
 
@@ -35,20 +19,38 @@ export async function runCloseTicket(
   interaction: ButtonInteraction,
 ) {
   const ticket = await TicketRepository.close(ticketId, interaction.user.id);
+  // First, fetch the ticket without mutating it
+  const existingTicket = await TicketRepository.findById(ticketId);
 
-  if (interaction.channelId !== ticket?.channelId) {
+  if (!existingTicket) {
+    await interaction.reply({
+      content: `This ticket no longer exists.`,
+      flags: [MessageFlags.Ephemeral],
+    });
     return;
   }
 
-  await interaction.reply({
-    content: `Your Ticket was closed !`,
-    flags: [MessageFlags.Ephemeral]
-  });
-  try {
-    await interaction.channel?.delete();
-  } catch {
-    Logger.error("Ticket channel hasn't been deleted")
+  // Validate that the interaction was used in the correct channel
+  if (interaction.channelId !== existingTicket.channelId) {
+    await interaction.reply({
+      content: `You can only close this ticket from its own channel.`,
+      flags: [MessageFlags.Ephemeral],
+    });
+    return;
   }
+
+  // Acknowledge the interaction before mutating any state
+  if (interaction.deferUpdate) {
+    await interaction.deferUpdate();
+  } else {
+    await interaction.reply({
+      content: `Your Ticket was closed !`,
+      flags: [MessageFlags.Ephemeral],
+    });
+  }
+
+  // Now safely perform the close operation and subsequent side effects
+  const ticket = await TicketRepository.close(ticketId, interaction.user.id);
   
   const closedAtStr = ticket.closedAt
     ? `${Math.floor(ticket.closedAt?.getTime() / 1000) ?? ""}`

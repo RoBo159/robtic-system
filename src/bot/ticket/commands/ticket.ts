@@ -1,26 +1,16 @@
 import type { BotClient } from "@core/BotClient";
 import {
-  ActionRowBuilder,
-  ButtonStyle,
-  CategoryChannel,
   ChatInputCommandInteraction,
-  ContainerBuilder,
   LabelBuilder,
-  MessageFlags,
   ModalBuilder,
   SlashCommandBuilder,
   StringSelectMenuBuilder,
-  StringSelectMenuComponent,
   StringSelectMenuOptionBuilder,
   TextDisplayBuilder,
   TextInputBuilder,
   TextInputStyle,
-  UserSelectMenuBuilder,
-  type SelectMenuComponentOptionData,
 } from "discord.js";
 import { ticketCategories } from "../config/categories";
-import { TicketRepository } from "@database/repositories";
-import { runCloseTicket } from "../components/closeTicket";
 
 
 export const ticketModal = (() => {

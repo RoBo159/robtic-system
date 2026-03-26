@@ -201,12 +201,37 @@ export default {
       .addTextDisplayComponents(
         new TextDisplayBuilder().setContent(`Channel : <#${channel.id}>`),
       );
-    const reportChannel = (await interaction.guild!.channels.fetch(
-      SUPPORT_REPORT_CHANNEL_ID,
-    )) as TextChannel;
-    reportChannel.send({
-      components: [report],
-      flags: [MessageFlags.IsComponentsV2],
-    });
+    let reportChannel;
+    try {
+      reportChannel = await interaction.guild!.channels.fetch(
+        SUPPORT_REPORT_CHANNEL_ID,
+      );
+    } catch (error) {
+      Logger.error("Failed to fetch support report channel", { error });
+      return;
+    }
+
+    if (!reportChannel) {
+      Logger.error(
+        `Support report channel not found (ID: ${SUPPORT_REPORT_CHANNEL_ID})`,
+      );
+      return;
+    }
+
+    if (typeof reportChannel.isTextBased !== "function" || !reportChannel.isTextBased()) {
+      Logger.error(
+        `Support report channel is not text-based (ID: ${SUPPORT_REPORT_CHANNEL_ID}, type: ${reportChannel.type})`,
+      );
+      return;
+    }
+
+    try {
+      await reportChannel.send({
+        components: [report],
+        flags: [MessageFlags.IsComponentsV2],
+      });
+    } catch (error) {
+      Logger.error("Failed to send support report message", { error });
+    }
   },
 };
