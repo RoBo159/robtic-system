@@ -43,4 +43,3 @@ All bot tokens and system configuration are defined in the `.env` file.
 ## Purpose
 
 Robtic System aims to provide a reliable automation backbone for developer-focused communities and services.
-
