@@ -12,12 +12,17 @@ export const ticketCategories : {
   {
     id: "technical",
     displayName: "Technical Support",
-    description: "Help in technical difficulities.",
+    description: "Help in technical difficulties.",
+  },
+  {
+    id: "feature",
+    displayName: "Feature Request",
+    description: "Ask for a feature or improvement.",
   },
   {
     id: "bug",
     displayName: "Bug Report",
-    description: "Report Bugs or Mistakes",
+    description: "Report bugs or mistakes.",
   },
 ]
 
