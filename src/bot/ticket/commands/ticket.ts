@@ -19,6 +19,8 @@ import {
   type SelectMenuComponentOptionData,
 } from "discord.js";
 import { ticketCategories } from "../config/categories";
+import { TicketRepository } from "@database/repositories";
+import { runCloseTicket } from "../components/closeTicket";
 
 
 export const ticketModal = (() => {
@@ -68,12 +70,15 @@ export default {
   data: new SlashCommandBuilder()
     .setName("ticket")
     .setDescription("Description")
-    .addSubcommand((sub) => sub.setName("panel").setDescription("Panel Test")),
+    .addSubcommand((sub) => sub.setName("create").setDescription("Create a new support ticket.")),
+    // .addSubcommand((sub) => sub.setName("close").setDescription("Close your current ticket.")),
 
   async run(interaction: ChatInputCommandInteraction, client: BotClient) {
     if (!interaction.isChatInputCommand()) return;
 
-    await interaction.showModal(ticketModal);
-
+    const sub = interaction.options.getSubcommand();
+    if (sub === "create"){
+      await interaction.showModal(ticketModal);
+    }
   },
 };
