@@ -79,7 +79,6 @@ export default {
         ],
         flags: MessageFlags.IsComponentsV2 | MessageFlags.Ephemeral,
       });
-      TicketRepository.close(existing[0].ticketId, "test2");
       return;
     }
 

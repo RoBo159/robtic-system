@@ -40,16 +40,16 @@ export async function runCloseTicket(
     return;
   }
 
-  if (interaction.deferUpdate) {
-    await interaction.deferUpdate();
-  } else {
-    await interaction.reply({
-      content: `Your Ticket was closed !`,
-      flags: [MessageFlags.Ephemeral]
-    });
+  await interaction.reply({
+    content: `Your Ticket was closed !`,
+    flags: [MessageFlags.Ephemeral]
+  });
+  try {
+    await interaction.channel?.delete();
+  } catch {
+    Logger.error("Ticket channel hasn't been deleted")
   }
-  await interaction.channel?.delete();
-
+  
   const closedAtStr = ticket.closedAt
     ? `${Math.floor(ticket.closedAt?.getTime() / 1000) ?? ""}`
     : null;
