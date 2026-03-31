@@ -17,6 +17,7 @@ import { errorEmbed } from "@core/utils";
 import { getMemberLevel } from "@shared/utils/access";
 import { getUserLang, t } from "@shared/utils/lang";
 import data from "@shared/data.json";
+import { recordSecurityEvent } from "../utils/security";
 
 export async function executeBan(
     client: BotClient,
@@ -112,6 +113,18 @@ export async function executeBan(
     const noticeChannel = guild?.channels.cache.get(data.punishments_notice_channel_id) as TextChannel | undefined;
     if (noticeChannel) {
         await noticeChannel.send({ embeds: [logEmbed] }).catch(() => null);
+    }
+
+    if (guild) {
+        await recordSecurityEvent({
+            client,
+            guild,
+            event: "ban",
+            executorId: moderatorId,
+            targetId,
+            source: "command:/ban",
+            details: reason,
+        });
     }
 
     return { embed: logEmbed, caseId, newLevel, levelInfo };
