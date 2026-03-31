@@ -4,16 +4,16 @@ import {
     EmbedBuilder,
     ActionRowBuilder,
     StringSelectMenuBuilder,
-    StringSelectMenuInteraction,
     MessageFlags,
     type GuildMember,
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
-import { Colors, MembersPunishments } from "@core/config";
+import { Colors } from "@core/config";
 import { PunishmentRepository, NoteRepository, ActivityRepository } from "@database/repositories";
 import { getMemberLevel, isStaff } from "@shared/utils/access";
 import { calculateLevel, xpForLevel } from "../../community/services/xp-service";
 import { getStaffActivity, getSupportStats } from "@shared/utils/staff-activity";
+import emoji from "@shared/emojis.json";
 
 export default {
     data: new SlashCommandBuilder()
@@ -56,19 +56,18 @@ export default {
         const xpBar = buildXPBar(progress, needed);
         const rank = await ActivityRepository.getRank(target.id, guildId);
 
+
+
         const embed = new EmbedBuilder()
-            .setTitle(`👤 Profile — ${target.username}`)
+            .setTitle(`${emoji.user} Profile — ${target.username}`)
             .setThumbnail(target.displayAvatarURL({ size: 256 }))
             .setColor(punishmentLevel >= 60 ? Colors.moderation : punishmentLevel >= 20 ? Colors.warning : Colors.info)
             .addFields(
                 { name: "User", value: `<@${target.id}>`, inline: true },
-                { name: "ID", value: `\`${target.id}\``, inline: true },
                 { name: "Account Created", value: `<t:${Math.floor(target.createdTimestamp / 1000)}:R>`, inline: true },
                 ...(member ? [{ name: "Joined Server", value: member.joinedAt ? `<t:${Math.floor(member.joinedAt.getTime() / 1000)}:R>` : "Unknown", inline: true }] : []),
                 ...(staffLevel && staffLevel.level !== "Member" ? [{ name: "Staff Level", value: `${staffLevel.level} (${staffLevel.score})`, inline: true }] : []),
-                { name: "Roles", value: roles.length > 200 ? roles.slice(0, 200) + "..." : roles },
-                { name: "XP Level", value: `Level **${xpLevel}** — Rank #${rank}\n${xpBar} \`${progress}/${needed}\` XP`, inline: false },
-                { name: "Messages", value: `${xpRecord.messageCount}`, inline: true },
+                { name: "XP Level", value: `Level **${xpLevel}** — Rank #${rank}\n${xpBar} \`${progress}/${needed}\` XP`, inline: true },
                 { name: "Total XP", value: `${xpRecord.totalXP}`, inline: true },
             );
 
@@ -78,19 +77,15 @@ export default {
             const avgResponse = supportStats.avgResponseMs > 0 ? `${Math.round(supportStats.avgResponseMs / 1000)}s` : "N/A";
 
             embed.addFields(
-                { name: "\u200b", value: "**── Staff Activity ──**" },
+                { name: "\u200b", value: `**${emoji.gear} Staff Activity**` },
                 { name: "Support Points", value: `${staffData.supportPoints}`, inline: true },
-                { name: "Public Chat Points", value: `${staffData.publicChatPoints}`, inline: true },
-                { name: "Staff Chat Points", value: `${staffData.staffChatPoints}`, inline: true },
                 { name: "Penalties", value: `${staffData.penalties}`, inline: true },
-                { name: "Total Staff Points", value: `**${staffData.totalStaffPoints}**`, inline: true },
-                { name: "Avg Response Time", value: avgResponse, inline: true },
                 { name: "Sessions Resolved", value: `${supportStats.totalResolved}/${supportStats.totalClaimed}`, inline: true },
             );
         }
 
         embed.addFields(
-            { name: "\u200b", value: "**── Moderation ──**" },
+            { name: "\u200b", value: `**${emoji.scan} Punishment Status**` },
             { name: "Punishment Level", value: `${levelBar}\n\`${punishmentLevel}/100\` — **${levelInfo.name}**` },
             { name: "Active Punishments", value: `${activePunishments.length}`, inline: true },
             { name: "Total Records", value: `${allPunishments.length}`, inline: true },
@@ -98,10 +93,11 @@ export default {
         ).setTimestamp();
 
         const menuOptions = [
-            { label: "Activity", description: "View XP activity and recent logs", value: "activity", emoji: "📊" },
-            ...(memberIsStaff ? [{ label: "Staff Activity", description: "View detailed staff points breakdown", value: "staff_activity", emoji: "🏆" }] : []),
-            { label: "Notes", description: "View all notes for this user", value: "notes", emoji: "📝" },
-            { label: "Punishment History", description: "View full punishment history", value: "history", emoji: "📋" },
+            { label: "Activity", description: "View XP activity and recent logs", value: "activity", emoji: emoji.status },
+            ...(memberIsStaff ? [{ label: "Staff Activity", description: "View detailed staff points breakdown", value: "staff_activity", emoji: emoji.trophy }] : []),
+            { label: "Projects", description: "View this user's published projects", value: "projects", emoji: emoji.computer },
+            { label: "Notes", description: "View all notes for this user", value: "notes", emoji: emoji.info },
+            { label: "Punishment History", description: "View full punishment history", value: "history", emoji: emoji.note },
         ];
 
         const selectMenu = new StringSelectMenuBuilder()

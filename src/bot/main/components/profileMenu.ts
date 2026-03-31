@@ -5,12 +5,13 @@ import {
 } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 import { Colors } from "@core/config";
-import { PunishmentRepository, NoteRepository, ActivityRepository } from "@database/repositories";
+import { PunishmentRepository, NoteRepository, ActivityRepository, ProjectsRepository } from "@database/repositories";
 import type { ComponentHandler } from "@core/config";
 import { calculateLevel, xpForLevel } from "../../community/services/xp-service";
 import { getStaffActivity, getSupportStats, getActivityLogs } from "@shared/utils/staff-activity";
 import { isStaff } from "@shared/utils/access";
 import type { GuildMember } from "discord.js";
+import emoji from "@shared/emojis.json";
 
 export const profileMenuHandler: ComponentHandler<StringSelectMenuInteraction> = {
     customId: /^profile_menu_\d+$/,
@@ -19,6 +20,9 @@ export const profileMenuHandler: ComponentHandler<StringSelectMenuInteraction> =
         const targetId = interaction.customId.split("_")[2];
         const selected = interaction.values[0];
         const guildId = interaction.guildId!;
+
+        const user = await client.users.fetch(targetId).catch(() => null);
+        const putUser = interaction.user.id === targetId && "— " + user?.username || "";
 
         if (selected === "activity") {
             const record = await ActivityRepository.findOrCreate(targetId, guildId, "unknown");
@@ -37,7 +41,7 @@ export const profileMenuHandler: ComponentHandler<StringSelectMenuInteraction> =
                 : "Disabled";
 
             const embed = new EmbedBuilder()
-                .setTitle(`📊 Activity — <@${targetId}>`)
+                .setTitle(`${emoji.status} Activity ${putUser}`)
                 .addFields(
                     { name: "Level", value: `${level}`, inline: true },
                     { name: "Total XP", value: `${record.totalXP}`, inline: true },
@@ -47,7 +51,7 @@ export const profileMenuHandler: ComponentHandler<StringSelectMenuInteraction> =
                     { name: "Decay", value: decayStatus, inline: false },
                     { name: "Recent Activity", value: recentLines.slice(0, 1024) },
                 )
-                .setColor(Colors.activity)
+                .setColor(Colors.default)
                 .setTimestamp();
 
             await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -66,7 +70,7 @@ export const profileMenuHandler: ComponentHandler<StringSelectMenuInteraction> =
             const avgResponse = supportStats.avgResponseMs > 0 ? `${Math.round(supportStats.avgResponseMs / 1000)}s` : "N/A";
 
             const embed = new EmbedBuilder()
-                .setTitle(`🏆 Staff Activity — <@${targetId}>`)
+                .setTitle(`${emoji.trophy} Staff Activity ${putUser}`)
                 .addFields(
                     { name: "Support Points", value: `${staffData.supportPoints}`, inline: true },
                     { name: "Public Chat Points", value: `${staffData.publicChatPoints}`, inline: true },
@@ -80,7 +84,7 @@ export const profileMenuHandler: ComponentHandler<StringSelectMenuInteraction> =
                     { name: "Avg Response Time", value: avgResponse, inline: true },
                     { name: "Support Points Earned", value: `${supportStats.totalPoints}`, inline: true },
                 )
-                .setColor(Colors.activity)
+                .setColor(Colors.default)
                 .setTimestamp();
 
             await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
@@ -100,13 +104,41 @@ export const profileMenuHandler: ComponentHandler<StringSelectMenuInteraction> =
             );
 
             const embed = new EmbedBuilder()
-                .setTitle(`📝 Notes for <@${targetId}>`)
+                .setTitle(`${emoji.info} Notes for ${putUser}`)
                 .setDescription(lines.join("\n\n"))
                 .setColor(Colors.info)
                 .setFooter({ text: `Total: ${notes.length} note(s)` })
                 .setTimestamp();
 
             await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            return;
+        }
+
+        if (selected === "projects") {
+            const projects = await ProjectsRepository.findByUserId(targetId);
+
+            if (!projects.length) {
+                await interaction.reply({
+                    embeds: [new EmbedBuilder().setDescription(`No projects found for <@${targetId}>.`).setColor(Colors.info)],
+                    flags: MessageFlags.Ephemeral
+                });
+                return;
+            }
+
+            const lines = projects.slice(0, 10).map((project, index) => {
+                const createdAt = Math.floor(project.createdAt.getTime() / 1000);
+                return `**${index + 1}.** ${project.projectTitle} (\`${project.projectId}\`)\n> Type: ${project.projectType} | 👍 ${project.likes.length} | 👎 ${project.dislikes.length} | ${emoji.eyes} ${project.views} | <t:${createdAt}:R>`;
+            });
+
+            const embed = new EmbedBuilder()
+                .setTitle(`${emoji.gear} Projects ${putUser}`)
+                .setDescription(lines.join("\n\n"))
+                .setColor(Colors.info)
+                .setFooter({ text: `Showing ${Math.min(projects.length, 10)} of ${projects.length} project(s)` })
+                .setTimestamp();
+
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+            return;
         }
 
         if (selected === "history") {
@@ -125,7 +157,7 @@ export const profileMenuHandler: ComponentHandler<StringSelectMenuInteraction> =
             });
 
             const embed = new EmbedBuilder()
-                .setTitle(`📋 Punishment History`)
+                .setTitle(`${emoji.note} Punishment History ${putUser}`)
                 .setDescription(lines.join("\n\n"))
                 .setColor(Colors.moderation)
                 .setFooter({ text: `Punishment Level: ${level}/100 | Total: ${all.length} record(s)` })

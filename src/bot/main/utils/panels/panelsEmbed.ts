@@ -7,9 +7,9 @@ import {
     type GuildMember,
     type TextChannel,
     EmbedBuilder,
+    StringSelectMenuBuilder,
     ButtonBuilder,
     ActionRowBuilder,
-    type ColorResolvable,
 } from "discord.js";
 import { Colors } from "@core/config";
 import { PANELS, getPanel, getPanelKeys, registerPanel } from "./panelsData";
@@ -197,8 +197,6 @@ function arabicRules(): ContainerBuilder {
         );
 }
 
-// ─── Panel Registration ───────────────────────────────────────────────────────
-
 registerPanel({
     key: "rules",
     name: "📜 Terms of Service & Server Rules",
@@ -222,8 +220,6 @@ ${emoji.dots}By remaining in this server, you confirm your acceptance of these t
         return lang === "ar" ? arabicRules() : englishRules();
     }
 });
-
-// ─── Command Handlers ─────────────────────────────────────────────────────────
 
 export async function panelList(interaction: ChatInputCommandInteraction) {
     if (!PANELS.length) {
@@ -262,6 +258,26 @@ export async function panelSend(interaction: ChatInputCommandInteraction) {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const channel = interaction.channel as TextChannel;
+
+    if (panel.key === "dev_projects") {
+        const container = panel.getContent("en", panel.name);
+        const msg = await channel.send({
+            components: [container],
+            flags: MessageFlags.IsComponentsV2,
+        });
+
+        await ServerConfigRepository.addSentPanel(interaction.guildId!, {
+            panelKey: panel.key,
+            channelId: channel.id,
+            messageId: msg.id,
+            sentBy: interaction.user.id,
+        });
+
+        await interaction.editReply({
+            content: `✅ Panel **${panel.name}** sent to <#${channel.id}>.`,
+        });
+        return;
+    }
 
     const embed = new EmbedBuilder()
         .setColor(panel.accentColor)
@@ -366,3 +382,55 @@ export async function sentPanelAutocomplete(guildId: string, query: string) {
     const lower = query.toLowerCase();
     return choices.filter(c => c.name.toLowerCase().includes(lower)).slice(0, 25);
 }
+
+
+function devProjectsContent(name : string): ContainerBuilder {
+    return new ContainerBuilder()
+        .setAccentColor(0x2b2d31)
+        .addTextDisplayComponents(
+            td => td.setContent(`**## ${name}**`),
+            td => td.setContent("Explore all projects created within the Robtic ecosystem — from community contributions to official releases.")
+        )
+        .addSeparatorComponents(sep => sep)
+        .addTextDisplayComponents(
+            td => td.setContent(`**${emoji.user} Member Projects**`),
+            td => td.setContent(`\n Projects submitted by community members. \n Use \`/project share\` to submit your project — it will be reviewed and approved by the Dev Staff before being published.`)
+        )
+        .addSeparatorComponents(sep => sep.setDivider(false))
+        .addTextDisplayComponents(
+            td => td.setContent(`**${emoji.gear} Staff Projects**`),
+            td => td.setContent(`\n Projects created by our Dev Staff. \n These projects showcase official tools, bots, and resources developed to support the community and enhance the Robtic experience.`)
+        )
+        .addSeparatorComponents(sep => sep.setDivider(false))
+        .addTextDisplayComponents(
+            td => td.setContent(`**${emoji["robtic-reading"]} Robtic Projects**`),
+            td => td.setContent(`\n Official system projects developed by the core team. \n Featured on the Robtic YouTube channel and represent our core systems and innovations.`)
+        )
+        .addMediaGalleryComponents(mg =>
+            mg.addItems(
+                item => item.setURL("https://raw.githubusercontent.com/RoBo159/assets/refs/heads/main/utils/discord/Projects.png")
+            )
+        )
+        .addActionRowComponents(row => row.setComponents(
+            new StringSelectMenuBuilder()
+                .setCustomId("dev_projects_menu")
+                .setPlaceholder("Select a Project Category")
+                .addOptions([
+                    { label: "Member Projects", value: "member", description: "Projects submitted by regular server members", emoji: emoji.user },
+                    { label: "Staff Projects", value: "developer", description: "Projects submitted by the Dev Staff", emoji: emoji.gear },
+                    { label: "Robtic Projects", value: "system", description: "Official system projects", emoji: emoji["robtic-reading"] },
+                ])
+        ));
+}
+
+registerPanel({
+    key: "dev_projects",
+    name: "📂 Development Projects Hub",
+    description: "Browse Member, Staff, and Robtic projects.",
+    buttonLabel: "View Projects",
+    accentColor: 0x2b2d31,
+    roles: [],
+    getContent(lang: Lang, name) {
+        return devProjectsContent(name || "");
+    }
+});
