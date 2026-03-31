@@ -37,6 +37,7 @@ export const BOT_DEFINITIONS: BotDefinition<GatewayIntentBits, Partials>[] = [
       GatewayIntentBits.GuildModeration,
       GatewayIntentBits.MessageContent,
     ],
+    partials: [Partials.Channel, Partials.Message],
   },
   {
     name: "hr",
@@ -87,4 +88,16 @@ export const BOT_DEFINITIONS: BotDefinition<GatewayIntentBits, Partials>[] = [
       GatewayIntentBits.MessageContent,
     ],
   },
+  {
+    name: "dev",
+    tokenKey: "DevBotToken",
+    description: "Development and testing bot",
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.DirectMessages,
+      GatewayIntentBits.MessageContent,
+    ],
+  }
 ];

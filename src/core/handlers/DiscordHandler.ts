@@ -15,6 +15,12 @@ export class DiscordErrorHandler {
         });
 
         this.client.on(Events.Error, (err) => {
+            const isMissingPermissions = (err as { code?: number }).code === 50013;
+            if (isMissingPermissions) {
+                Logger.warn(`[DiscordClientWarning] ${err}`, this.client.botName);
+                return;
+            }
+
             Logger.error(`[DiscordClientError] ${err}`, this.client.botName);
         });
 

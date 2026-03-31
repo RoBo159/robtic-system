@@ -44,7 +44,7 @@ export class BotClient extends Client {
         const rest = new REST({ version: "10" }).setToken(this.token_);
 
         try {
-            Logger.info(`Registering ${commands.length} slash commands...`, this.botName);
+            Logger.info(`Registering ${commands.length} application commands...`, this.botName);
 
             if (!this.user) {
                 Logger.warn("Client not ready, deferring command registration", this.botName);
@@ -55,7 +55,7 @@ export class BotClient extends Client {
                 body: commands,
             });
 
-            Logger.success(`Registered ${commands.length} slash commands`, this.botName);
+            Logger.success(`Registered ${commands.length} application commands`, this.botName);
         } catch (err) {
             Logger.error(`Failed to register commands: ${err}`, this.botName);
         }

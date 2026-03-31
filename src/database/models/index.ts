@@ -16,4 +16,6 @@ export { LevelReward, type ILevelReward } from "./LevelReward";
 export { XPSettings, type IXPSettings } from "./XPSettings";
 export { SupportSession, type ISupportSession } from "./SupportSession";
 export { ActivityLog, type IActivityLog, type ActivityLogType } from "./ActivityLog";
+export { AuditLog, type IAuditLog } from "./AuditLog";
 export { ServerConfig, type IServerConfig, type ISentPanel } from "./ServerConfig";
+export { Project, type IProject } from "./ProjectShare";

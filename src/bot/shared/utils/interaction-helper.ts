@@ -1,12 +1,12 @@
 import type { CommandConfig } from "@core/config";
 import { FULL_POWER_ROLE_ID } from "@core/config";
 import { isOnCooldown, getRemainingCooldown, errorEmbed } from "@core/utils";
-import { ChatInputCommandInteraction, MessageFlags, type GuildMember, type Interaction } from "discord.js";
+import { ChatInputCommandInteraction, MessageFlags, type GuildMember, type Interaction, type InteractionReplyOptions } from "discord.js";
 import type { BotClient } from "@core/BotClient";
 import { BotError, handleError } from "@core/handlers";
 import { getMemberLevel, isInDepartment } from "@shared/utils/access";
 
-export const HandlingComponent = async (interaction: Interaction, client: BotClient) => {
+export const HandlingComponent = async (interaction: Interaction, client: BotClient): Promise<boolean> => {
     if (
         interaction.isButton() ||
         interaction.isStringSelectMenu() ||
@@ -39,11 +39,23 @@ export const HandlingComponent = async (interaction: Interaction, client: BotCli
                         // Interaction already acknowledged or expired — suppress to avoid client error noise
                     }
                 }
-                return;
+                return true;
             }
         }
-        return;
+        if (!interaction.replied && !interaction.deferred) {
+            try {
+                await interaction.reply({
+                    embeds: [errorEmbed("This action is no longer available. Please try again.")],
+                    flags: MessageFlags.Ephemeral,
+                });
+            } catch {
+                // Ignore interaction lifecycle race conditions.
+            }
+        }
+        return true;
     }
+
+    return false;
 }
 
 export const checkPermissions = async (intract: Interaction, command: CommandConfig): Promise<boolean> => {
@@ -99,9 +111,9 @@ export const commandError = async (error: unknown, intract: Interaction, client:
         `${client.botName}/InteractionCreate`
     );
 
-    const reply = {
+    const reply: InteractionReplyOptions = {
         embeds: [errorEmbed("Something went wrong while executing this command.")],
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
     };
 
     try {

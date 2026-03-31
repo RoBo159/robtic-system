@@ -9,7 +9,8 @@ import { checkPermissions, commandError, cooldowns, HandlingComponent } from "..
 export default {
     name: Events.InteractionCreate,
     async execute(interaction: Interaction, client: BotClient) {
-        await HandlingComponent(interaction, client);
+        const handledComponent = await HandlingComponent(interaction, client);
+        if (handledComponent) return;
 
         if (interaction.isAutocomplete()) {
             const command = client.commands.get(interaction.commandName);
@@ -23,7 +24,7 @@ export default {
             return;
         }
 
-        if (!interaction.isChatInputCommand()) return;
+        if (!interaction.isCommand()) return;
 
         const command = client.commands.get(interaction.commandName);
         

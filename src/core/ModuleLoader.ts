@@ -17,7 +17,7 @@ export class ModuleLoader {
 
             if (command?.data && command?.run!) {
                 this.client.commands.set(command.data.name, command);
-                Logger.debug(`Loaded command: ${command.data.name}`, this.client.botName);
+                Logger.debug(`Loaded command/context-menu: ${command.data.name}`, this.client.botName);
             } else {
                 Logger.warn(`Invalid command at ${filePath}`, this.client.botName);
             }

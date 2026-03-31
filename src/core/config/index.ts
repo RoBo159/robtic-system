@@ -13,11 +13,12 @@ interface CommandConfig {
     data:
         | SlashCommandBuilder
         | SlashCommandSubcommandsOnlyBuilder
-        | Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">;
+        | Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">
+        | import("discord.js").ContextMenuCommandBuilder;
     requiredPermission?: number;
     department?: Department;
     cooldown?: number;
-    run: (interaction: ChatInputCommandInteraction, client: BotClient) => Promise<void>;
+    run: (interaction: any, client: BotClient) => Promise<void>;
     autocomplete?: (interaction: AutocompleteInteraction, client: BotClient) => Promise<void>;
 }
 

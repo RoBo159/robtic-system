@@ -207,7 +207,7 @@ export default {
         SUPPORT_REPORT_CHANNEL_ID,
       );
     } catch (error) {
-      Logger.error("Failed to fetch support report channel", { error });
+      Logger.error(`Failed to fetch support report channel: ${error}`);
       return;
     }
 
@@ -231,7 +231,7 @@ export default {
         flags: [MessageFlags.IsComponentsV2],
       });
     } catch (error) {
-      Logger.error("Failed to send support report message", { error });
+      Logger.error(`Failed to send support report message: ${error}`);
     }
   },
 };

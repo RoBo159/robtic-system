@@ -18,7 +18,6 @@ export async function runCloseTicket(
   ticketId: string,
   interaction: ButtonInteraction,
 ) {
-  const ticket = await TicketRepository.close(ticketId, interaction.user.id);
   // First, fetch the ticket without mutating it
   const existingTicket = await TicketRepository.findById(ticketId);
 
@@ -50,22 +49,31 @@ export async function runCloseTicket(
   }
 
   // Now safely perform the close operation and subsequent side effects
-  const ticket = await TicketRepository.close(ticketId, interaction.user.id);
-  
-  const closedAtStr = ticket.closedAt
-    ? `${Math.floor(ticket.closedAt?.getTime() / 1000) ?? ""}`
+  const closedTicket = await TicketRepository.close(ticketId, interaction.user.id);
+
+  if (!closedTicket) {
+    // If for some reason the ticket could not be closed, notify the user
+    await interaction.followUp?.({
+      content: `There was a problem closing the ticket.`,
+      flags: [MessageFlags.Ephemeral],
+    });
+    return;
+  }
+
+  const closedAtStr = closedTicket.closedAt
+    ? `${Math.floor(closedTicket.closedAt.getTime() / 1000)}`
     : null;
   const ticketCardString = ticketCard(
-    ticket.userId,
-    ticket.category,
-    ticket.subject,
+    closedTicket.userId,
+    closedTicket.category,
+    closedTicket.subject,
   );
-  const ticketClosedString = `${
-    ticket.closedAt
+  const ticketClosedString = `$${
+    closedTicket.closedAt
       ? `Closed at: <t:${closedAtStr}> (<t:${closedAtStr}:R>)`
       : ``
   }
-Closed by: <@${ticket.closedBy}>`;
+Closed by: <@${closedTicket.closedBy}>`;
 
   const reportChannel = (await interaction.guild!.channels.fetch(
     SUPPORT_REPORT_CHANNEL_ID,

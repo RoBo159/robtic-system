@@ -46,6 +46,4 @@ const serverConfigSchema = new Schema<IServerConfig>(
     { timestamps: true }
 );
 
-serverConfigSchema.index({ guildId: 1 });
-
 export const ServerConfig = model<IServerConfig>("ServerConfig", serverConfigSchema);
