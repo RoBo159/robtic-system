@@ -16,6 +16,14 @@ apps/
     activity/                    Discord Embedded Activity scaffold (React/Vite/SDK)
     dashboard/                   Web dashboard scaffold
     api/                         REST + WebSocket scaffold
+    minecraft-plugin/            Paper plugin (Java/Maven) — Minecraft client for the shared MongoDB
+        src/main/java/org/robtic/minecraft/
+            config/              Immutable config.yml snapshot
+            persistence/         MongoProvider, collection names, repositories
+            service/             Linking, prices, exchange, chat bridge, status, LuckPerms sync
+            gui/                 Exchange menus and their controller
+            listener/            Connection, chat, menu clicks, NPC interaction
+            command/             /link, /coins, /exchange, /robtic
 
 libs/
     core/

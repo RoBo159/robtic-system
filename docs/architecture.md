@@ -20,6 +20,7 @@ images/     Static image assets served/attached by the bot
 | `apps/activity` | Scaffold | Discord Embedded Activity (React + Vite + Discord Embedded App SDK) |
 | `apps/dashboard` | Scaffold | Web dashboard |
 | `apps/api` | Scaffold | REST + WebSocket backend exposing `libs/core` services |
+| `apps/minecraft-plugin` | **Live** | Paper plugin (Java/Maven) — a Minecraft client for the same MongoDB, see [bot/minecraft.md](bot/minecraft.md) |
 
 ## Libraries
 
@@ -69,3 +70,7 @@ apps/*  →  libs/core  →  libs/database
 ```
 
 Libraries never import from applications. `libs/database` never imports business logic.
+
+`apps/minecraft-plugin` sits outside the TypeScript graph entirely: it is a separate Maven build
+that shares only the MongoDB schema, and it talks to the bot through a queue collection rather than
+through code. Its collection names mirror the Mongoose model names in `libs/database`.

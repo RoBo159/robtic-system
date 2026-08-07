@@ -17,6 +17,7 @@ A central **Main Bot** controls and coordinates several functional bots, allowin
 * **ModMail Bot** – private communication between users and staff
 * **Community Bot** – XP, activity tracking, and progression roles
 * **Dev Bot** – development and testing
+* **Minecraft Plugin** – Paper plugin that makes a Minecraft server another client of the same economy
 
 ## Key Features
 
@@ -28,6 +29,7 @@ A central **Main Bot** controls and coordinates several functional bots, allowin
 * Advertisement ordering and management
 * Partner server tracking with automatic role re-grant on rejoin
 * Structured moderation logging
+* Minecraft integration — account linking, one shared coin balance, in-game ore exchange, chat bridge, server status, and Discord role → LuckPerms sync
 
 ## Technology
 
@@ -39,7 +41,7 @@ A central **Main Bot** controls and coordinates several functional bots, allowin
 ## Repository Layout
 
 ```
-apps/       Applications (bot is live; activity, dashboard, api are scaffolds)
+apps/       Applications (bot and minecraft-plugin are live; activity, dashboard, api are scaffolds)
 libs/       Shared libraries (core, database, types, sdk, ...)
 docs/       All documentation
 scripts/    Operational scripts (monitors)

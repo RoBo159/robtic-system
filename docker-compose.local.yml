@@ -1,0 +1,86 @@
+# Local test stack — MongoDB, the bot, and a Paper server with the Minecraft plugin baked in.
+#
+# This file is for a developer machine only. The production topology lives in docker-compose.yml
+# and is deployed by .github/workflows/deploy.yml; nothing here is used on the server.
+#
+#   docker compose -f docker-compose.local.yml up --build
+#
+# See docs/development.md for the walkthrough.
+
+name: robtic-local
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      # Exposed so you can point Compass or mongosh at the same data the stack uses.
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Overrides whatever .env says: inside the network the database is a service name, and
+      # development selects the TestBot token (see libs/config/src/bot-definitions.ts).
+      MONGODB_URI: mongodb://mongo:27017/robtic
+      NODE_ENV: development
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      # Logs are written relative to cwd, so this surfaces them on the host.
+      - ./logs:/app/logs
+
+  minecraft:
+    build:
+      context: ./apps/minecraft-plugin
+      target: server
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    ports:
+      - "25565:25565"
+    environment:
+      # Accepting Mojang's EULA is your call — set MINECRAFT_EULA=TRUE in .env to start the server.
+      EULA: ${MINECRAFT_EULA:-FALSE}
+      # Read by PluginSettings, so no config.yml editing is needed for a test run.
+      ROBTIC_MONGO_URI: mongodb://mongo:27017/robtic
+      ROBTIC_GUILD_ID: ${MINECRAFT_GUILD_ID:-}
+      ROBTIC_SERVER_KEY: ${MINECRAFT_SERVER_KEY:-local}
+      ROBTIC_SERVER_NAME: ${MINECRAFT_SERVER_NAME:-Local Test Server}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - minecraft-data:/data
+
+  # Opt-in database browser: docker compose -f docker-compose.local.yml --profile tools up -d
+  mongo-express:
+    image: mongo-express:1.0.2
+    profiles: [tools]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/
+      ME_CONFIG_BASICAUTH: "false"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo-data:
+  minecraft-data:

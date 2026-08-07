@@ -12,6 +12,10 @@ MongoDB via Mongoose 9, Bun runtime (a `preload.ts` shim stubs `v8.startupSnapsh
 
 - Pair-keyed documents store `userLowId < userHighId` (see `Combo`).
 - Guild-scoped collections index `guildId` first.
+- The `Minecraft*` collections are also read and written by the Paper plugin
+  (`apps/minecraft-plugin`), which hardcodes their Mongoose-pluralised names in
+  `MongoCollections.java` — renaming one of those models means updating that file too. See
+  [bot/minecraft.md](../bot/minecraft.md).
 - Config-style collections (`ServerConfig`, `LogConfig`, `BotConfig`) are being consolidated — see memory of ongoing migration in the codebase docs.
 
 Per-collection documentation will be added here as schemas stabilize.

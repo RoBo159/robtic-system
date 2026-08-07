@@ -39,3 +39,17 @@ export { HrConfig, type IHrConfig } from "./HrConfig";
 export { CommandAccess, type ICommandAccess } from "./CommandAccess";
 export { StreakReward, type IStreakReward } from "./StreakReward";
 export { StreakRewardClaim, type IStreakRewardClaim } from "./StreakRewardClaim";
+export { MinecraftLink, type IMinecraftLink } from "./MinecraftLink";
+export { MinecraftLinkCode, type IMinecraftLinkCode } from "./MinecraftLinkCode";
+export { MinecraftItemPrice, type IMinecraftItemPrice } from "./MinecraftItemPrice";
+export { MinecraftTransaction, type IMinecraftTransaction } from "./MinecraftTransaction";
+export { MinecraftServer, type IMinecraftServer } from "./MinecraftServer";
+export { MinecraftConfig, type IMinecraftConfig, type IMinecraftRoleMapping } from "./MinecraftConfig";
+export {
+    MinecraftBridgeEvent,
+    type IMinecraftBridgeEvent,
+    type MinecraftBridgeDirection,
+    type MinecraftBridgeEventType,
+    MINECRAFT_BRIDGE_DIRECTIONS,
+    MINECRAFT_BRIDGE_EVENT_TYPES,
+} from "./MinecraftBridgeEvent";
