@@ -44,6 +44,24 @@ services:
       # Logs are written relative to cwd, so this surfaces them on the host.
       - ./logs:/app/logs
 
+  # The platform API. Everything else that needs data goes through this, including the plugin.
+  robtic-api:
+    build:
+      context: .
+      dockerfile: apps/robtic-api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/robtic
+      ROBTIC_API_PORT: 3002
+      NODE_ENV: development
+    ports:
+      - "127.0.0.1:3002:3002"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
   minecraft:
     build:
       context: ./apps/minecraft-plugin
@@ -56,16 +74,14 @@ services:
     environment:
       # Accepting Mojang's EULA is your call — set MINECRAFT_EULA=TRUE in .env to start the server.
       EULA: ${MINECRAFT_EULA:-FALSE}
-      # Read by PluginSettings, so no config.yml editing is needed for a test run.
-      ROBTIC_MONGO_URI: mongodb://mongo:27017/robtic
-      ROBTIC_GUILD_ID: ${MINECRAFT_GUILD_ID:-}
-      ROBTIC_SERVER_KEY: ${MINECRAFT_SERVER_KEY:-local}
-      ROBTIC_SERVER_NAME: ${MINECRAFT_SERVER_NAME:-Local Test Server}
     depends_on:
-      mongo:
-        condition: service_healthy
+      - robtic-api
     volumes:
       - minecraft-data:/data
+      # The plugin is configured through plugins/RobticMinecraft/api.yml, not environment
+      # variables — it holds an API key rather than a database URI, and a key belongs in a file
+      # you can rotate rather than in a process environment you have to restart to change.
+      - ./apps/minecraft-plugin/local-config:/config-seed:ro
 
   # Opt-in database browser: docker compose -f docker-compose.local.yml --profile tools up -d
   mongo-express:

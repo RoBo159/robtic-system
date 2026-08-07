@@ -45,6 +45,12 @@
     "apps/dashboard": {
       "name": "@robtic/dashboard",
     },
+    "apps/robtic-api": {
+      "name": "@robtic/robtic-api",
+      "dependencies": {
+        "@robtic/sdk": "workspace:*",
+      },
+    },
     "libs/cache": {
       "name": "@robtic/cache",
     },
@@ -244,6 +250,8 @@
     "@robtic/events": ["@robtic/events@workspace:libs/events"],
 
     "@robtic/logger": ["@robtic/logger@workspace:libs/logger"],
+
+    "@robtic/robtic-api": ["@robtic/robtic-api@workspace:apps/robtic-api"],
 
     "@robtic/sdk": ["@robtic/sdk@workspace:libs/sdk"],
 

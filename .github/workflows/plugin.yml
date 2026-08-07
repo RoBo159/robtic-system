@@ -1,0 +1,54 @@
+name: Minecraft Plugin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/minecraft-plugin/**'
+      - '.github/workflows/plugin.yml'
+  pull_request:
+    paths:
+      - 'apps/minecraft-plugin/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build the plugin
+        working-directory: apps/minecraft-plugin
+        run: mvn -B clean package
+
+      # A jar carrying a database driver would mean the plugin had regained direct database
+      # access, which the architecture forbids. Failing the build is the enforcement.
+      - name: Verify the jar holds no database driver
+        working-directory: apps/minecraft-plugin
+        run: |
+          JAR=$(ls target/RobticMinecraft-*.jar)
+          echo "Checking $JAR"
+          if unzip -l "$JAR" | grep -qi "mongodb\|org/bson"; then
+            echo "::error::The plugin jar contains a MongoDB driver. The plugin must reach the Robtic API over HTTPS only."
+            exit 1
+          fi
+          if unzip -l "$JAR" | grep -q " com/google/gson"; then
+            echo "::error::Gson is not relocated; it will clash with another plugin shading it."
+            exit 1
+          fi
+          echo "Jar verified: no database driver, dependencies relocated."
+
+      - name: Upload the jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: RobticMinecraft
+          path: apps/minecraft-plugin/target/RobticMinecraft-*.jar
+          if-no-files-found: error

@@ -29,6 +29,23 @@ export class MinecraftTransactionRepository {
         return MinecraftTransaction.find({ guildId }).sort({ createdAt: -1 }).limit(limit);
     }
 
+    /** Paged listing, narrowed to one member when `discordId` is given. Backs the history route. */
+    static async list(
+        guildId: string,
+        discordId: string | undefined,
+        limit: number,
+        offset: number,
+    ): Promise<IMinecraftTransaction[]> {
+        return MinecraftTransaction.find(discordId ? { guildId, discordId } : { guildId })
+            .sort({ createdAt: -1 })
+            .skip(offset)
+            .limit(limit);
+    }
+
+    static async count(guildId: string, discordId?: string): Promise<number> {
+        return MinecraftTransaction.countDocuments(discordId ? { guildId, discordId } : { guildId });
+    }
+
     /** Lifetime sale totals, optionally narrowed to one member. */
     static async totals(guildId: string, discordId?: string): Promise<MinecraftSaleTotals> {
         const [result] = await MinecraftTransaction.aggregate<MinecraftSaleTotals>([

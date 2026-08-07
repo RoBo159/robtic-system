@@ -1,0 +1,9 @@
+{
+  "name": "@robtic/robtic-api",
+  "private": true,
+  "type": "module",
+  "description": "The Robtic platform API. The only service permitted to reach MongoDB: the Discord bot and the Minecraft plugin are both clients of it.",
+  "dependencies": {
+    "@robtic/sdk": "workspace:*"
+  }
+}

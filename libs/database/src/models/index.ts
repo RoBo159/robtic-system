@@ -44,7 +44,36 @@ export { MinecraftLinkCode, type IMinecraftLinkCode } from "./MinecraftLinkCode"
 export { MinecraftItemPrice, type IMinecraftItemPrice } from "./MinecraftItemPrice";
 export { MinecraftTransaction, type IMinecraftTransaction } from "./MinecraftTransaction";
 export { MinecraftServer, type IMinecraftServer } from "./MinecraftServer";
-export { MinecraftConfig, type IMinecraftConfig, type IMinecraftRoleMapping } from "./MinecraftConfig";
+export {
+    MinecraftConfig,
+    type IMinecraftConfig,
+    type IMinecraftRoleMapping,
+    type IMinecraftStaffRank,
+    type IMinecraftLobby,
+    type IMinecraftLogTarget,
+} from "./MinecraftConfig";
+export { MinecraftApiKey, type IMinecraftApiKey } from "./MinecraftApiKey";
+export { MinecraftRoleState, type IMinecraftRoleState } from "./MinecraftRoleState";
+export { StaffBackup, type IStaffBackup, type IWorldLocation } from "./StaffBackup";
+export {
+    StaffSession,
+    type IStaffSession,
+    type StaffSessionEndReason,
+    STAFF_SESSION_END_REASONS,
+} from "./StaffSession";
+export { StaffLog, type IStaffLog } from "./StaffLog";
+export { StaffStats, type IStaffStats } from "./StaffStats";
+export { MinecraftJail, type IMinecraftJail } from "./MinecraftJail";
+export { MinecraftFreeze, type IMinecraftFreeze } from "./MinecraftFreeze";
+export { MinecraftWarning, type IMinecraftWarning } from "./MinecraftWarning";
+export { MinecraftNote, type IMinecraftNote } from "./MinecraftNote";
+export {
+    MinecraftReport,
+    type IMinecraftReport,
+    type MinecraftReportStatus,
+    MINECRAFT_REPORT_STATUSES,
+} from "./MinecraftReport";
+export { ApiRequestLog, type IApiRequestLog } from "./ApiRequestLog";
 export {
     MinecraftBridgeEvent,
     type IMinecraftBridgeEvent,

@@ -9,7 +9,27 @@ permissions:
   packages: write
 
 jobs:
+  # Deployed first: the bot and every Minecraft server are clients of it, so it must be up before
+  # anything that depends on it restarts.
+  deploy-platform-api:
+    uses: robticorg/robtic-actions/.github/workflows/deploy.yml@main
+    with:
+      deploy-type: docker
+      runner-labels: '["self-hosted", "robtic-deploy"]'
+      environment-name: 'Robtic Server'
+      environment-url: 'https://robtic.org'
+      server-label: 'core.robtic.org'
+      dockerfile: 'apps/robtic-api/Dockerfile'
+      image-name: 'ghcr.io/robticorg/robtic-platform-api'
+      compose-project-name: 'robtic-system'
+      compose-env-file: '/home/robtic/robtic-system/.env'
+      compose-pull-command: 'docker compose -p robtic-system --env-file /home/robtic/robtic-system/.env pull robtic-platform-api'
+      compose-up-command: 'docker compose -p robtic-system --env-file /home/robtic/robtic-system/.env up -d robtic-platform-api'
+    secrets:
+      DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
+
   deploy-api:
+    needs: deploy-platform-api
     uses: robticorg/robtic-actions/.github/workflows/deploy.yml@main
     with:
       deploy-type: docker

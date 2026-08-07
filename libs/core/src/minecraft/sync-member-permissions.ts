@@ -1,5 +1,9 @@
 import type { GuildMember } from "discord.js";
-import { MinecraftConfigRepository, MinecraftLinkRepository } from "@database/repositories";
+import {
+    MinecraftConfigRepository,
+    MinecraftLinkRepository,
+    MinecraftRoleStateRepository,
+} from "@database/repositories";
 import { Logger } from "@logger";
 import { publishBridgeEvent } from "./publish-bridge-event";
 import { resolveLuckPermsGroups } from "./resolve-luckperms-groups";
@@ -16,7 +20,23 @@ export async function syncMemberPermissions(member: GuildMember, reason: string)
     const link = await MinecraftLinkRepository.getByDiscordId(member.guild.id, member.id);
     if (!link) return false;
 
-    const groups = await resolveLuckPermsGroups(member.guild.id, [...member.roles.cache.keys()]);
+    const roleIds = [...member.roles.cache.keys()];
+    const groups = await resolveLuckPermsGroups(member.guild.id, roleIds);
+
+    // Projected durably before the event is queued.
+    //
+    // A bridge event is transient — once consumed it cannot answer "is this player staff?" when
+    // they run /admin an hour later, and the plugin has no Discord API access of its own. This
+    // row is what the API reads to resolve staff rank on demand, so Discord stays the source of
+    // truth while the answer survives a restart.
+    await MinecraftRoleStateRepository.upsert({
+        guildId: member.guild.id,
+        discordId: member.id,
+        minecraftUuid: link.minecraftUuid,
+        roleIds,
+        groups: groups.grant,
+        reason,
+    }).catch(error => Logger.error(`Failed to project role state for ${member.id}: ${error}`, "Minecraft"));
 
     const published = await publishBridgeEvent({
         guildId: member.guild.id,

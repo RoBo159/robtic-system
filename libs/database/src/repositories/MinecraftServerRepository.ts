@@ -10,7 +10,12 @@ export class MinecraftServerRepository {
         return MinecraftServer.findOne({ guildId, serverKey });
     }
 
-    /** Upsert used by the plugin for both lifecycle transitions and periodic heartbeats. */
+    /**
+     * Upsert used by the plugin for both lifecycle transitions and periodic heartbeats.
+     *
+     * Optional telemetry fields are stripped when absent rather than written as undefined, so a
+     * heartbeat that omits CPU does not erase the last known value.
+     */
     static async report(snapshot: {
         guildId: string;
         serverKey: string;
@@ -20,12 +25,27 @@ export class MinecraftServerRepository {
         maxPlayers: number;
         version: string;
         startedAt?: Date;
+        serverType?: string;
+        address?: string;
+        port?: number;
+        supportedVersions?: string[];
+        software?: string;
+        javaVersion?: string;
+        tps?: number;
+        memoryUsedMb?: number;
+        memoryMaxMb?: number;
+        cpuPercent?: number;
+        uptimeMs?: number;
+        world?: string;
+        pluginVersion?: string;
     }): Promise<IMinecraftServer> {
         const { startedAt, ...rest } = snapshot;
+        const defined = Object.fromEntries(Object.entries(rest).filter(([, value]) => value !== undefined));
+
         return MinecraftServer.findOneAndUpdate(
             { guildId: snapshot.guildId, serverKey: snapshot.serverKey },
             {
-                $set: { ...rest, lastHeartbeatAt: new Date(), ...(startedAt ? { startedAt } : {}) },
+                $set: { ...defined, lastHeartbeatAt: new Date(), ...(startedAt ? { startedAt } : {}) },
             },
             { upsert: true, returnDocument: "after" }
         ) as Promise<IMinecraftServer>;

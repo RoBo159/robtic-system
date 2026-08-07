@@ -9,6 +9,18 @@ export class MinecraftLinkRepository {
         return MinecraftLink.findOne({ guildId, minecraftUuid: minecraftUuid.toLowerCase() });
     }
 
+    /**
+     * Resolves by username. Case-insensitive because Minecraft names are displayed with their
+     * original casing but compared without it, and a staff member typing a name into a command
+     * should not have to reproduce it exactly.
+     */
+    static async getByUsername(guildId: string, minecraftUsername: string): Promise<IMinecraftLink | null> {
+        return MinecraftLink.findOne({
+            guildId,
+            minecraftUsername: new RegExp(`^${minecraftUsername.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"),
+        });
+    }
+
     static async create(
         guildId: string,
         discordId: string,

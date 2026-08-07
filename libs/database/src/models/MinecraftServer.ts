@@ -21,6 +21,24 @@ export interface IMinecraftServer extends Document {
     lastHeartbeatAt: Date;
     /** Last transition into ONLINE, used for the uptime field. */
     startedAt?: Date;
+    /** Free-form category — survival, skyblock, prison, minigames. */
+    serverType?: string;
+    /** Public connect address shown by `!ip`, e.g. "mc.robtic.org". */
+    address?: string;
+    port?: number;
+    /** Client versions the proxy accepts, shown by `!version`. */
+    supportedVersions: string[];
+    /** Server software banner, e.g. "Paper 1.21.4" or "Purpur 1.21.4". */
+    software?: string;
+    javaVersion?: string;
+    /** Live telemetry from the last heartbeat, rendered by `!status`. */
+    tps?: number;
+    memoryUsedMb?: number;
+    memoryMaxMb?: number;
+    cpuPercent?: number;
+    uptimeMs?: number;
+    world?: string;
+    pluginVersion?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -36,6 +54,19 @@ const minecraftServerSchema = new Schema<IMinecraftServer>(
         version: { type: String, default: "unknown", trim: true },
         lastHeartbeatAt: { type: Date, default: Date.now },
         startedAt: { type: Date },
+        serverType: { type: String, trim: true },
+        address: { type: String, trim: true },
+        port: { type: Number, min: 1, max: 65535 },
+        supportedVersions: { type: [String], default: [] },
+        software: { type: String, trim: true },
+        javaVersion: { type: String, trim: true },
+        tps: { type: Number },
+        memoryUsedMb: { type: Number },
+        memoryMaxMb: { type: Number },
+        cpuPercent: { type: Number },
+        uptimeMs: { type: Number },
+        world: { type: String, trim: true },
+        pluginVersion: { type: String, trim: true },
     },
     { timestamps: true }
 );

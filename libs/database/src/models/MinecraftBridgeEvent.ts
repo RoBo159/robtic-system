@@ -15,6 +15,14 @@ export const MINECRAFT_BRIDGE_EVENT_TYPES = [
     "player_quit",
     "price_invalidate",
     "role_sync",
+    /** Staff-only chat, mirrored between the in-game channel and the Discord staff channel. */
+    "staff_chat",
+    /** Discord asked the plugin to release a jail early, e.g. from a moderator command. */
+    "jail_release",
+    /** Discord asked the plugin to thaw a frozen player. */
+    "freeze_release",
+    /** The guild's staff ranks, lobbies or logging targets changed; the plugin drops its cache. */
+    "config_invalidate",
 ] as const;
 export type MinecraftBridgeEventType = typeof MINECRAFT_BRIDGE_EVENT_TYPES[number];
 

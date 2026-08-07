@@ -5,6 +5,22 @@ services:
     restart: unless-stopped
     env_file:
       - /home/robtic/robtic-system/.env
+    depends_on:
+      - robtic-platform-api
+
+  # The only service permitted to reach MongoDB. The bot and the Minecraft plugin are both
+  # clients of it. Bound to loopback: the Minecraft servers reach it through the reverse proxy
+  # over TLS, never directly.
+  robtic-platform-api:
+    image: ghcr.io/robticorg/robtic-platform-api:latest
+    build:
+      context: .
+      dockerfile: apps/robtic-api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - /home/robtic/robtic-system/.env
+    ports:
+      - "127.0.0.1:3002:3002"
 
   robtic-api:
     image: ghcr.io/robticorg/robtic-api:latest

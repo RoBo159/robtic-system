@@ -32,7 +32,9 @@
       "@utils": ["libs/utils/src/index.ts"],
       "@utils/*": ["libs/utils/src/*"],
       "@logger": ["libs/logger/src/index.ts"],
-      "@logger/*": ["libs/logger/src/*"]
+      "@logger/*": ["libs/logger/src/*"],
+      "@sdk": ["libs/sdk/src/api.ts"],
+      "@sdk/*": ["libs/sdk/src/*"]
     }
   },
   "include": ["apps", "libs"],
