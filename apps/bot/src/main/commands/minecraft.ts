@@ -14,6 +14,8 @@ import {
     MINECRAFT_ROLE_MAPPINGS_MAX,
     MINECRAFT_SELLABLE_ITEMS,
 } from "@constants";
+import { STAFF_ACTIONS } from "@sdk";
+import { handleApiKeySubcommand } from "../utils/minecraft/api-key-admin";
 import {
     getItemPrices,
     getMinecraftProfile,
@@ -199,6 +201,89 @@ export default {
                             opt.setName("role").setDescription("Discord role").setRequired(true)
                         )
                 )
+                .addSubcommand(sub =>
+                    sub
+                        .setName("staff-channel")
+                        .setDescription("Set the channel bridged to in-game staff chat")
+                        .addChannelOption(opt =>
+                            opt.setName("channel").setDescription("Staff chat channel").addChannelTypes(ChannelType.GuildText).setRequired(true)
+                        )
+                )
+                .addSubcommand(sub =>
+                    sub
+                        .setName("log-channel")
+                        .setDescription("Set the default destination for moderation log embeds")
+                        .addChannelOption(opt =>
+                            opt.setName("channel").setDescription("Log channel").addChannelTypes(ChannelType.GuildText).setRequired(true)
+                        )
+                )
+                .addSubcommand(sub =>
+                    sub
+                        .setName("log-action")
+                        .setDescription("Send one specific action to its own channel")
+                        // Choices rather than autocomplete: there are 23 actions and Discord allows
+                        // 25, so the whole list fits and needs no extra interaction handler.
+                        .addStringOption(opt =>
+                            opt
+                                .setName("action")
+                                .setDescription("Which action")
+                                .setRequired(true)
+                                .addChoices(...STAFF_ACTIONS.map(action => ({ name: action, value: action })))
+                        )
+                        .addChannelOption(opt =>
+                            opt.setName("channel").setDescription("Destination channel").addChannelTypes(ChannelType.GuildText).setRequired(true)
+                        )
+                )
+                .addSubcommand(sub =>
+                    sub
+                        .setName("staff-rank")
+                        .setDescription("Map a Discord role to an in-game staff rank")
+                        .addRoleOption(opt =>
+                            opt.setName("role").setDescription("Discord staff role").setRequired(true)
+                        )
+                        .addStringOption(opt =>
+                            opt.setName("name").setDescription("Display name, e.g. Moderator").setRequired(true).setMaxLength(32)
+                        )
+                        .addStringOption(opt =>
+                            opt.setName("group").setDescription("LuckPerms group applied in staff mode").setRequired(true).setMaxLength(48)
+                        )
+                        .addIntegerOption(opt =>
+                            opt.setName("priority").setDescription("Lower wins when several are held").setRequired(true).setMinValue(0).setMaxValue(1000)
+                        )
+                )
+                .addSubcommand(sub =>
+                    sub
+                        .setName("jail-role")
+                        .setDescription("Role applied to a linked player while they are jailed")
+                        .addRoleOption(opt =>
+                            opt.setName("role").setDescription("Jailed role").setRequired(true)
+                        )
+                )
+        )
+        .addSubcommandGroup(group =>
+            group
+                .setName("apikey")
+                .setDescription("Manage the API keys your Minecraft servers authenticate with")
+                .addSubcommand(sub =>
+                    sub
+                        .setName("create")
+                        .setDescription("Issue a new API key for a Minecraft server")
+                        .addStringOption(opt =>
+                            opt.setName("label").setDescription("A name for this key, e.g. survival-01").setRequired(true).setMaxLength(48)
+                        )
+                        .addStringOption(opt =>
+                            opt.setName("server").setDescription("Server id this key may act for, e.g. survival").setRequired(true).setMaxLength(32)
+                        )
+                )
+                .addSubcommand(sub => sub.setName("list").setDescription("List the API keys issued for this guild"))
+                .addSubcommand(sub =>
+                    sub
+                        .setName("revoke")
+                        .setDescription("Revoke an API key immediately")
+                        .addStringOption(opt =>
+                            opt.setName("label").setDescription("The key's label").setRequired(true).setMaxLength(48)
+                        )
+                )
         ),
 
     async run(interaction: ChatInputCommandInteraction, client: BotClient) {
@@ -212,6 +297,12 @@ export default {
         const guildId = interaction.guildId;
         const group = interaction.options.getSubcommandGroup(false);
         const sub = interaction.options.getSubcommand();
+
+        if (group === "apikey") {
+            if (!(await requireAdmin(interaction))) return;
+            await handleApiKeySubcommand(interaction, guildId, sub);
+            return;
+        }
 
         if (group === "price") {
             if (sub === "list") {
@@ -328,6 +419,55 @@ export default {
             if (sub === "role-unmap") {
                 const role = interaction.options.getRole("role", true);
                 const config = await MinecraftConfigRepository.removeRoleMapping(guildId, role.id);
+                await interaction.editReply({ embeds: [buildConfigEmbed(interaction.guild.name, config)] });
+                return;
+            }
+
+            if (sub === "staff-channel") {
+                const channel = interaction.options.getChannel("channel", true);
+                const config = await MinecraftConfigRepository.setStaffChatChannel(guildId, channel.id);
+                await interaction.editReply({ embeds: [buildConfigEmbed(interaction.guild.name, config)] });
+                return;
+            }
+
+            if (sub === "log-channel") {
+                const channel = interaction.options.getChannel("channel", true);
+                const config = await MinecraftConfigRepository.setDefaultLogChannel(guildId, channel.id);
+                await interaction.editReply({ embeds: [buildConfigEmbed(interaction.guild.name, config)] });
+                return;
+            }
+
+            if (sub === "log-action") {
+                const action = interaction.options.getString("action", true);
+                const channel = interaction.options.getChannel("channel", true);
+
+                if (!(STAFF_ACTIONS as readonly string[]).includes(action)) {
+                    await interaction.editReply({
+                        embeds: [new EmbedBuilder().setDescription(`\`${action}\` is not a known staff action.`).setColor(COLORS.error)],
+                    });
+                    return;
+                }
+
+                const config = await MinecraftConfigRepository.setLogTarget(guildId, action, channel.id);
+                await interaction.editReply({ embeds: [buildConfigEmbed(interaction.guild.name, config)] });
+                return;
+            }
+
+            if (sub === "staff-rank") {
+                const role = interaction.options.getRole("role", true);
+                const config = await MinecraftConfigRepository.setStaffRank(guildId, {
+                    roleId: role.id,
+                    name: interaction.options.getString("name", true),
+                    group: interaction.options.getString("group", true).toLowerCase(),
+                    priority: interaction.options.getInteger("priority", true),
+                });
+                await interaction.editReply({ embeds: [buildConfigEmbed(interaction.guild.name, config)] });
+                return;
+            }
+
+            if (sub === "jail-role") {
+                const role = interaction.options.getRole("role", true);
+                const config = await MinecraftConfigRepository.setJailRole(guildId, role.id);
                 await interaction.editReply({ embeds: [buildConfigEmbed(interaction.guild.name, config)] });
                 return;
             }

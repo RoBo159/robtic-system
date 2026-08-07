@@ -15,6 +15,7 @@
 
 - [ads.md](./ads.md) — advertisement ordering system
 - [combo.md](./combo.md) — two-user conversation scoring
-- [minecraft.md](./minecraft.md) — Minecraft linking, shared economy, chat bridge, LuckPerms sync
+- [minecraft.md](./minecraft.md) — Minecraft architecture: linking, shared economy, chat bridge, LuckPerms sync
+- [minecraft-setup.md](./minecraft-setup.md) — Operator guide: API keys, chat wiring, logging channels, full command reference
 - [modal.md](./modal.md) — modal patterns
 - [streak.md](./streak.md) — daily streak system
