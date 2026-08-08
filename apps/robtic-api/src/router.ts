@@ -107,10 +107,20 @@ export class Router {
 
     private toResponse(error: unknown, request: Request, url: URL): Response {
         if (error instanceof ApiError) {
-            // A client error is the caller's problem and is not worth a server-log line; anything
-            // classed as retryable means something here is actually broken.
+            // Anything retryable means something here is actually broken.
             if (error.retryable) {
                 Logger.error(`${request.method} ${url.pathname} → ${error.code}: ${error.message}`, CTX);
+            } else if (error.code !== "NOT_LINKED") {
+                // A rejection is the caller's problem, but it is still the only record that the
+                // request happened at all — and the plugin turns every one of these into the same
+                // "temporarily unavailable" line in game. Logged so a misconfigured server is
+                // diagnosable from this side rather than only by rebuilding the plugin. NOT_LINKED
+                // is excluded because it is the ordinary answer for an unlinked player, not a fault.
+                Logger.warn(
+                    `${request.method} ${url.pathname} → ${error.code}: ${error.message}` +
+                    (Object.keys(error.details).length > 0 ? ` ${JSON.stringify(error.details)}` : ""),
+                    CTX,
+                );
             }
 
             const response = failure(error);
