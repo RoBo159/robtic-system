@@ -375,6 +375,7 @@ game actually spends coins — a debit against a cached balance cannot be valida
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| **`/minecraft` doesn't appear in Discord** | Commands registered **globally**; Discord caches those for up to an hour | Set `COMMAND_GUILD_ID` to your guild id and restart. See below. |
 | `api.yml is not configured — disabling` | `url`, `api-key` or `guild-id` blank | Fill them in, restart |
 | `The Robtic API rejected this server's key` | Wrong or revoked key | Re-issue, `/robtic reload` |
 | `/admin` → "you do not hold a configured Discord staff role" | No `staff-rank` mapping, or the player is unlinked | `/minecraft config staff-rank`, then `/link` |
@@ -382,3 +383,33 @@ game actually spends coins — a debit against a cached balance cannot be valida
 | Logs not appearing | No destination configured | `/minecraft config log-channel` |
 | Coins look stale | Serving from cache | `/robtic queue` shows connection state |
 | Jail does nothing | No jail location | Stand where you want it, `/jail-set` |
+
+### Slash commands not appearing
+
+Set this in `.env` and restart the bot:
+
+```
+COMMAND_GUILD_ID=1283878145463812188
+```
+
+Commands then publish to that guild and appear **immediately**.
+
+Without it they publish globally, and Discord caches global commands for up to an hour. During
+that window the command genuinely does not exist for clients — which is why **none** of these
+help, and why the problem is so easy to misread:
+
+- restarting the bot
+- recreating the container
+- kicking the bot and re-inviting it
+- clearing the Discord client cache
+
+Startup now logs which path it took:
+
+```
+Registering 31 commands to guild 1283878145463812188 (instant)...
+Registering 31 global commands (may take up to 1h to appear)...
+```
+
+If registration is rejected, the log now names the offending command and field rather than a bare
+`Invalid Form Body` — one bad command used to fail the entire batch silently, leaving every other
+command frozen at its previous definition.

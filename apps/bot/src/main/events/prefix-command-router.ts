@@ -1,6 +1,6 @@
 import { Events, type Message, type GuildMember } from "discord.js";
 import type { BotClient } from "@core/bot-client";
-import { DEFAULT_PREFIX, STREAK_CONFIG } from "@constants";
+import { DEFAULT_PREFIX, STREAK_CONFIG, isChannelRestricted } from "@constants";
 import { ServerConfigRepository } from "@database/repositories";
 import { parsePrefixCommand, runPrefixShortcut } from "@shared/utils/prefix";
 import { getUserLang, t } from "@shared/utils/lang";
@@ -18,9 +18,14 @@ export default {
         const command = client.commands.get(commandName);
         if (!command) return;
 
-        // Main-bot commands are only allowed in the configured commands channel, if one is set —
-        // anywhere else, the triggering message is removed instead of running the command.
-        const commandsChannelId = await ServerConfigRepository.getCommandsChannel(message.guild.id);
+        // Player-facing commands are confined to the configured commands channel; staff and
+        // operational ones are not. Confining an admin fixing a broken config, or a moderator
+        // checking server status mid-incident, only adds friction where it is least wanted.
+        // See UNRESTRICTED_COMMAND_CATEGORIES for which categories are exempt and why.
+        const commandsChannelId = isChannelRestricted(command.category)
+            ? await ServerConfigRepository.getCommandsChannel(message.guild.id)
+            : null;
+
         if (commandsChannelId && message.channel.id !== commandsChannelId) {
             await message.delete().catch(() => null);
 
