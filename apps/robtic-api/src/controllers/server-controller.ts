@@ -3,6 +3,7 @@ import { ok } from "../lib/respond";
 import { optionalQueryParam, requireGuildId, requireServerId } from "../lib/request-context";
 import { withIdempotency } from "../middleware/idempotency";
 import { publishBridgeEvent } from "@core/minecraft";
+import { ServerSettingsService } from "../services/server-settings-service";
 import { ServerService } from "../services/server-service";
 import { DiscordLogService } from "../services/discord-log-service";
 import type { Route } from "../router";
@@ -114,6 +115,49 @@ export const serverRoutes: Route[] = [
 
             await ServerService.report({ ...body, guildId, serverId });
             return ok({ acknowledged: true as const });
+        },
+    },
+    {
+        method: "POST",
+        path: API_ROUTES.server.settings,
+        scope: API_SCOPES.server,
+        summary: "Store the configuration a game server pushed from its own config files",
+        tag: "Server",
+        handler: async context => {
+            const body = validateBody(context.body, {
+                guildId: schema.snowflake(),
+                statusChannelId: v.string({ max: 32 }),
+                chatChannelId: v.string({ max: 32 }),
+                staffChatChannelId: v.string({ max: 32 }),
+                defaultLogChannelId: v.string({ max: 32 }),
+                chatBridgeEnabled: v.boolean(),
+                roleSyncEnabled: v.boolean(),
+                staffSystemEnabled: v.boolean(),
+                jailRoleId: v.string({ max: 32 }),
+                logTargets: v.arrayOf(
+                    v.object({ action: v.string({ max: 40 }), channelId: v.string({ max: 32 }) }),
+                    { max: 40 },
+                ),
+                roleMappings: v.arrayOf(
+                    v.object({ roleId: schema.snowflake(), group: v.string({ max: 48 }) }),
+                    { max: 100 },
+                ),
+                prices: v.arrayOf(
+                    v.object({
+                        itemKey: schema.itemKey(),
+                        price: v.number({ min: 1, max: 1_000_000, integer: true }),
+                        enabled: v.boolean(),
+                    }),
+                    { max: 200 },
+                ),
+                ...schema.serverIdentity(),
+            });
+
+            const guildId = requireGuildId(context, body.guildId);
+            requireServerId(context, body.serverId);
+
+            const applied = await ServerSettingsService.apply(guildId, body);
+            return ok({ acknowledged: true as const, ...applied });
         },
     },
     {

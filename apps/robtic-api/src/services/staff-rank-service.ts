@@ -1,12 +1,13 @@
 import { ApiError, normaliseUuid } from "@sdk";
 import { MinecraftLinkRepository, MinecraftRoleStateRepository } from "@database/repositories";
 import { Logger } from "@logger";
+import { mainBotToken } from "../lib/bot-token";
 
 const CTX = "robtic-api";
 const DISCORD_API = "https://discord.com/api/v10";
 
 function botToken(): string | null {
-    return process.env.MainBotToken ?? process.env.TestBot ?? null;
+    return mainBotToken();
 }
 
 /**

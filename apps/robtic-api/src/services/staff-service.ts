@@ -8,6 +8,7 @@ import {
     StaffStatsRepository,
 } from "@database/repositories";
 import { resolveStaffRank } from "./link-service";
+import { DiscordRoleService } from "./discord-role-service";
 
 /**
  * Staff-mode sessions and the inventory backup that makes them reversible.
@@ -41,8 +42,15 @@ export class StaffService {
         const link = await MinecraftLinkRepository.getByUuid(input.guildId, uuid);
         if (!link) throw ApiError.notLinked();
 
+        // Read from Discord, not from the projection. See DiscordRoleService for why: an unwritten
+        // projection row is indistinguishable from a member holding no roles, and that is exactly
+        // what told staff with a visible Discord role that they had no rank.
         const roleState = await MinecraftRoleStateRepository.getByDiscordId(input.guildId, link.discordId);
-        const held = roleState?.roleIds ?? [];
+        const held = await DiscordRoleService.rolesOrFallback(
+            input.guildId,
+            link.discordId,
+            roleState?.roleIds ?? [],
+        );
 
         /**
          * Ranks are defined by the game server, membership is proved by Discord.

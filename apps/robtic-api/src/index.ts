@@ -10,6 +10,7 @@ import { discordRoutes } from "./controllers/discord-controller";
 import { serverRoutes } from "./controllers/server-controller";
 import { buildOpenApiDocument, renderDocsPage } from "./lib/openapi";
 import { pruneRateLimitBuckets } from "./middleware/rate-limit";
+import { warnIfBotTokenMissing } from "./lib/bot-token";
 import { ModerationService } from "./services/moderation-service";
 
 const CTX = "robtic-api";
@@ -24,6 +25,9 @@ if (!process.env.MONGODB_URI) {
 }
 
 await connectDatabase(process.env.MONGODB_URI);
+
+// Said once, at startup. Three features depend on it and each fails differently without it.
+warnIfBotTokenMissing();
 
 const router = new Router().register(
     ...pluginRoutes,

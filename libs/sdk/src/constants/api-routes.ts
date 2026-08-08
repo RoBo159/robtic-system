@@ -72,5 +72,7 @@ export const API_ROUTES = {
         heartbeat: "/api/server/heartbeat",
         info: "/api/server/info",
         config: "/api/server/config",
+        /** The game server pushing its own configuration up; see ConfigPushService. */
+        settings: "/api/server/settings",
     },
 } as const;

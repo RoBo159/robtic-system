@@ -3,6 +3,7 @@ import { COLORS } from "@constants";
 import { MinecraftConfigRepository } from "@database/repositories";
 import { Logger } from "@logger";
 import { TtlCache } from "../lib/ttl-cache";
+import { mainBotToken } from "../lib/bot-token";
 
 const CTX = "robtic-api";
 const DISCORD_API = "https://discord.com/api/v10";
@@ -48,7 +49,7 @@ const configCache = new TtlCache<{ targets: Map<string, { channelId?: string; we
 );
 
 function botToken(): string | null {
-    return process.env.MainBotToken ?? process.env.TestBot ?? null;
+    return mainBotToken();
 }
 
 /**

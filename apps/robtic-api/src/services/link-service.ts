@@ -1,4 +1,5 @@
 import { ApiError, normaliseUuid, type MinecraftPlayerResponse, type StaffRankSummary } from "@sdk";
+import { DiscordRoleService } from "./discord-role-service";
 import {
     MinecraftConfigRepository,
     MinecraftFreezeRepository,
@@ -147,7 +148,12 @@ export class LinkService {
             MinecraftConfigRepository.get(guildId),
         ]);
 
-        const roleIds = roleState?.roleIds ?? [];
+        // Live from Discord, with the projection as an outage fallback. This is the read the plugin
+        // resolves a rank from, so an empty answer here is what makes /admin refuse — it must mean
+        // "Discord says none", never "nobody ever wrote the row".
+        const roleIds = link
+            ? await DiscordRoleService.rolesOrFallback(guildId, link.discordId, roleState?.roleIds ?? [])
+            : [];
 
         return {
             uuid,
