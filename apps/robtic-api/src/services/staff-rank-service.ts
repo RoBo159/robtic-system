@@ -1,136 +1,80 @@
 import { ApiError, normaliseUuid } from "@sdk";
-import {
-    MinecraftConfigRepository,
-    MinecraftLinkRepository,
-    MinecraftRoleStateRepository,
-} from "@database/repositories";
+import { MinecraftLinkRepository, MinecraftRoleStateRepository } from "@database/repositories";
 import { Logger } from "@logger";
 
 const CTX = "robtic-api";
 const DISCORD_API = "https://discord.com/api/v10";
-
-/** One rung of the configured ladder. */
-interface Rank {
-    roleId: string;
-    name: string;
-    group: string;
-    priority: number;
-}
 
 function botToken(): string | null {
     return process.env.MainBotToken ?? process.env.TestBot ?? null;
 }
 
 /**
- * Moving a linked player up and down the guild's staff ladder from in game.
+ * Applies a rank change decided by the game server.
  *
- * <h2>Direction</h2>
+ * <h2>Who decides what</h2>
  *
- * Discord roles are the source of truth for staff rank everywhere else in this system, so a
- * promotion is applied *there* and allowed to flow back: the role is added, the old one removed,
- * the projected role state updated, and a `role_sync` queued so the game server's LuckPerms groups
- * follow. Nothing writes a rank directly into the game, because a rank that existed only on one
- * server would disagree with Discord the moment anyone looked.
+ * The ladder lives in the game server's roles.yml, so the server is what knows that Moderator sits
+ * above Helper and which Discord role each one is. It walks its own ladder and sends the concrete
+ * outcome: grant this role, revoke that one. This service does not re-derive any of it — an API
+ * copy of the ladder is exactly the duplication this design removed.
  *
- * <h2>Ordering</h2>
- *
- * `priority` is ascending-is-senior, matching `resolveStaffRank` — the lowest number a member holds
- * is the rank they are. Promoting therefore moves *down* the priority list, which reads backwards
- * once and is worth the consistency with the resolution the rest of the API already does.
+ * What it does own is the Discord write, because the bot token lives here and the game server has
+ * no Discord credentials of its own. Discord remains the record of who holds a rank; roles.yml
+ * remains the record of what a rank is.
  */
 export class StaffRankService {
-    /**
-     * Promotes or demotes, one rung by default or straight to a named rank.
-     *
-     * @param target when given, the rank id or name to move to, instead of one step.
-     */
-    static async change(input: {
+    static async apply(input: {
         guildId: string;
         uuid: string;
         direction: "promote" | "demote";
-        target?: string;
+        /** Role to add, or null when demoting off the bottom rung. */
+        grantRoleId: string | null;
+        /** Role to remove, or null when promoting someone who held no rank. */
+        revokeRoleId: string | null;
+        /** Display names, for the audit line and the message shown in game. */
+        from: string | null;
+        to: string | null;
     }): Promise<{ username: string; discordId: string; from: string | null; to: string | null }> {
         const uuid = normaliseUuid(input.uuid);
 
         const link = await MinecraftLinkRepository.getByUuid(input.guildId, uuid);
         if (!link) throw ApiError.notLinked();
 
-        const config = await MinecraftConfigRepository.get(input.guildId);
-        const ladder: Rank[] = [...(config?.staffRanks ?? [])].sort((a, b) => a.priority - b.priority);
-
-        if (ladder.length === 0) {
-            throw ApiError.conflict("This guild has no staff ranks configured");
-        }
-
-        const state = await MinecraftRoleStateRepository.getByDiscordId(input.guildId, link.discordId);
-        const held = new Set(state?.roleIds ?? []);
-        const currentIndex = ladder.findIndex(rank => held.has(rank.roleId));
-        const current = currentIndex === -1 ? null : ladder[currentIndex]!;
-
-        const next = input.target
-            ? this.named(ladder, input.target)
-            : this.step(ladder, currentIndex, input.direction);
-
-        if (next === undefined) {
-            throw ApiError.conflict(
-                input.direction === "promote"
-                    ? `${link.minecraftUsername} already holds the highest configured rank`
-                    : `${link.minecraftUsername} holds no staff rank to remove`,
-            );
-        }
-
-        if (next !== null && current && next.roleId === current.roleId) {
-            throw ApiError.conflict(`${link.minecraftUsername} already holds ${next.name}`);
+        if (!input.grantRoleId && !input.revokeRoleId) {
+            throw ApiError.validation({ rank: "there is nothing to change" });
         }
 
         // Ordered add-then-remove. If the second call fails the member is left holding both roles,
         // which resolves to the more senior of the two — a visible over-grant an admin can correct,
-        // rather than a member briefly holding nothing and being kicked out of staff channels.
-        if (next) await this.applyRole("PUT", input.guildId, link.discordId, next.roleId);
-        if (current) await this.applyRole("DELETE", input.guildId, link.discordId, current.roleId);
+        // rather than a member briefly holding nothing and dropping out of staff channels.
+        if (input.grantRoleId) await this.applyRole("PUT", input.guildId, link.discordId, input.grantRoleId);
+        if (input.revokeRoleId) await this.applyRole("DELETE", input.guildId, link.discordId, input.revokeRoleId);
 
-        const roleIds = [...held].filter(id => id !== current?.roleId);
-        if (next) roleIds.push(next.roleId);
+        const state = await MinecraftRoleStateRepository.getByDiscordId(input.guildId, link.discordId);
+        const roleIds = (state?.roleIds ?? []).filter(id => id !== input.revokeRoleId);
+        if (input.grantRoleId && !roleIds.includes(input.grantRoleId)) {
+            roleIds.push(input.grantRoleId);
+        }
 
-        // Projected immediately rather than waiting for Discord's own member-update event, so
-        // /admin in game reflects the change without a round trip through the gateway.
+        // Projected immediately rather than waiting for Discord's own member-update event, so the
+        // next /admin sees the new rank without a round trip through the gateway. The event will
+        // arrive too and write the same thing.
         await MinecraftRoleStateRepository.upsert({
             guildId: input.guildId,
             discordId: link.discordId,
             minecraftUuid: uuid,
             roleIds,
-            groups: next ? [next.group] : [],
+            groups: state?.groups ?? [],
             reason: input.direction,
         }).catch(error => Logger.error(`Failed to project rank change: ${error}`, CTX));
 
         return {
             username: link.minecraftUsername,
             discordId: link.discordId,
-            from: current?.name ?? null,
-            to: next?.name ?? null,
+            from: input.from,
+            to: input.to,
         };
-    }
-
-    /** The next rung, or `undefined` when there is none in that direction. */
-    private static step(
-        ladder: Rank[],
-        currentIndex: number,
-        direction: "promote" | "demote",
-    ): Rank | null | undefined {
-        if (direction === "promote") {
-            // Unranked promotes onto the bottom rung; otherwise one step senior.
-            if (currentIndex === -1) return ladder[ladder.length - 1];
-            return currentIndex === 0 ? undefined : ladder[currentIndex - 1];
-        }
-
-        if (currentIndex === -1) return undefined;
-        // Demoting off the bottom rung removes staff status entirely, which `null` represents.
-        return currentIndex === ladder.length - 1 ? null : ladder[currentIndex + 1];
-    }
-
-    private static named(ladder: Rank[], target: string): Rank | undefined {
-        const wanted = target.toLowerCase();
-        return ladder.find(rank => rank.name.toLowerCase() === wanted || rank.roleId === target);
     }
 
     /** Adds or removes one Discord role. Failures are surfaced — a silent no-op would mislead. */

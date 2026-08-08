@@ -28,6 +28,8 @@ export class StaffService {
         username: string;
         serverId: string;
         snapshot: InventorySnapshot;
+        /** The rank the game server resolved from its own roles.yml, when it sent one. */
+        claimed?: { roleId: string; name: string; group: string; priority: number };
     }): Promise<StaffEnableResponse> {
         const uuid = normaliseUuid(input.uuid);
 
@@ -40,8 +42,38 @@ export class StaffService {
         if (!link) throw ApiError.notLinked();
 
         const roleState = await MinecraftRoleStateRepository.getByDiscordId(input.guildId, link.discordId);
-        const rank = resolveStaffRank(roleState?.roleIds ?? [], config?.staffRanks ?? []);
-        if (!rank) throw ApiError.forbidden("You do not hold a configured Discord staff role");
+        const held = roleState?.roleIds ?? [];
+
+        /**
+         * Ranks are defined by the game server, membership is proved by Discord.
+         *
+         * The server sends the rank it resolved from roles.yml, and the only thing checked here is
+         * that the Discord role behind it is genuinely one this member holds. That keeps the ladder
+         * in one file — the API used to hold a second copy in `staffRanks`, and an operator who
+         * filled in one and not the other got a local pass followed by a refusal here, with nothing
+         * to say which config was at fault.
+         *
+         * What is deliberately *not* dropped is the Discord check. Without it, editing roles.yml
+         * would be enough to make anyone staff, and the point of the design is that leaving the
+         * Discord role removes the rank everywhere at once.
+         *
+         * A server that sends no claim falls back to the API-side ladder, so an older plugin keeps
+         * working against a newer API.
+         */
+        const rank = input.claimed
+            ? held.includes(input.claimed.roleId)
+                ? input.claimed
+                : null
+            : resolveStaffRank(held, config?.staffRanks ?? []);
+
+        if (!rank) {
+            throw ApiError.forbidden(
+                input.claimed
+                    ? `You do not hold the Discord role for ${input.claimed.name}. ` +
+                      `The rank is configured in roles.yml, but the role must be granted in Discord.`
+                    : "You do not hold a configured Discord staff role",
+            );
+        }
 
         const existing = await StaffSessionRepository.findActive(input.guildId, uuid);
         if (existing) throw ApiError.conflict("A staff session is already open for this account");

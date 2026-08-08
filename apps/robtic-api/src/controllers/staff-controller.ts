@@ -48,6 +48,16 @@ export const staffRoutes: Route[] = [
                 uuid: schema.uuid(),
                 username: schema.username(),
                 snapshot: schema.inventorySnapshot(),
+                // The rank the server resolved from its own roles.yml. Optional so a plugin older
+                // than this route keeps working against the API-side ladder.
+                rank: v.optional(
+                    v.object({
+                        roleId: schema.snowflake(),
+                        name: v.string({ min: 1, max: 32 }),
+                        group: v.string({ min: 1, max: 48 }),
+                        priority: v.number({ integer: true }),
+                    }),
+                ),
                 requestId: schema.requestId(),
                 ...schema.serverIdentity(),
             });
@@ -62,6 +72,7 @@ export const staffRoutes: Route[] = [
                     username: body.username,
                     serverId,
                     snapshot: body.snapshot,
+                    claimed: body.rank,
                 }),
             );
 
@@ -289,7 +300,12 @@ export const staffRoutes: Route[] = [
                 guildId: schema.snowflake(),
                 targetUuid: schema.uuid(),
                 direction: v.oneOf(["promote", "demote"] as const),
-                rank: v.optional(v.string({ max: 32 })),
+                // The outcome the game server worked out from its own roles.yml. The ladder is not
+                // duplicated here, so the concrete roles have to arrive with the request.
+                grantRoleId: v.optional(schema.snowflake()),
+                revokeRoleId: v.optional(schema.snowflake()),
+                fromRank: v.optional(v.string({ max: 32 })),
+                toRank: v.optional(v.string({ max: 32 })),
                 moderatorUuid: v.optional(schema.uuid()),
                 moderatorUsername: v.optional(schema.username()),
                 requestId: schema.requestId(),
@@ -300,11 +316,14 @@ export const staffRoutes: Route[] = [
             const serverId = requireServerId(context, body.serverId);
 
             const { result, duplicate } = await withIdempotency(body.requestId, guildId, "staff.rank", async () => {
-                const changed = await StaffRankService.change({
+                const changed = await StaffRankService.apply({
                     guildId,
                     uuid: body.targetUuid,
                     direction: body.direction,
-                    target: body.rank,
+                    grantRoleId: body.grantRoleId ?? null,
+                    revokeRoleId: body.revokeRoleId ?? null,
+                    from: body.fromRank ?? null,
+                    to: body.toRank ?? null,
                 });
 
                 // The game server holds LuckPerms groups, not Discord roles, so the rank change is
