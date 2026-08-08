@@ -12,6 +12,18 @@ import { MINECRAFT_LINK_CODE } from "@constants";
 import { generateLinkCode } from "@core/minecraft";
 
 /**
+ * Attempts allowed when issuing a code. Three is generous: with a 32-character alphabet over six
+ * places a collision against the live (unexpired) codes is already vanishingly rare, so this is
+ * insurance against the birthday case rather than a routine path.
+ */
+const ISSUE_ATTEMPTS = 3;
+
+/** True for MongoDB's duplicate-key error, whichever shape the driver reports it in. */
+function isDuplicateKey(error: unknown): boolean {
+    return typeof error === "object" && error !== null && (error as { code?: unknown }).code === 11000;
+}
+
+/**
  * Account linking and the composite player read.
  *
  * `GET /api/minecraft/player` deliberately returns link, roles, staff rank, freeze, jail and
@@ -32,20 +44,34 @@ export class LinkService {
         if (existing) throw ApiError.conflict("That Minecraft account is already linked");
 
         const expiresAt = new Date(Date.now() + MINECRAFT_LINK_CODE.ttlMs);
-        const code = await MinecraftLinkCodeRepository.issue(
-            input.guildId,
-            generateLinkCode(),
-            uuid,
-            input.username,
-            input.serverId,
-            expiresAt,
-        );
 
-        return {
-            code: code.code,
-            expiresAt: code.expiresAt,
-            minutesValid: Math.round(MINECRAFT_LINK_CODE.ttlMs / 60_000),
-        };
+        // `generateLinkCode` documents that uniqueness is the index's job and that callers retry on
+        // a duplicate — but nothing did, so a collision escaped as an unhandled driver error, became
+        // a 500, and reached the player as "the economy is temporarily unavailable" with no way to
+        // tell it from an outage. Retried here, which is what that contract always meant.
+        for (let attempt = 0; attempt < ISSUE_ATTEMPTS; attempt++) {
+            try {
+                const code = await MinecraftLinkCodeRepository.issue(
+                    input.guildId,
+                    generateLinkCode(),
+                    uuid,
+                    input.username,
+                    input.serverId,
+                    expiresAt,
+                );
+
+                return {
+                    code: code.code,
+                    expiresAt: code.expiresAt,
+                    minutesValid: Math.round(MINECRAFT_LINK_CODE.ttlMs / 60_000),
+                };
+            } catch (error) {
+                if (!isDuplicateKey(error) || attempt === ISSUE_ATTEMPTS - 1) throw error;
+            }
+        }
+
+        // Unreachable: the loop either returns or throws. Present so the type is honest.
+        throw ApiError.internal("Could not issue a link code");
     }
 
     /**

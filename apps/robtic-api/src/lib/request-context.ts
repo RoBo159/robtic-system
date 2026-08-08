@@ -42,14 +42,32 @@ export function requireGuildId(context: RequestContext, fromBody?: unknown): str
  * A key bound to a specific server may not claim to be a different one.
  */
 export function requireServerId(context: RequestContext, fromBody?: unknown): string {
-    const candidate = (typeof fromBody === "string" && fromBody) || context.serverId;
+    const raw = (typeof fromBody === "string" && fromBody) || context.serverId;
 
-    if (!candidate) {
+    if (!raw) {
         throw ApiError.validation({ serverId: "is required, in the body or the x-robtic-server-id header" });
     }
 
-    if (context.identity.serverId && context.identity.serverId !== candidate) {
-        throw ApiError.forbidden("This API key is bound to a different server");
+    // Compared case-insensitively, and after trimming.
+    //
+    // A server id is lowercase by definition — SERVER_ID_PATTERN enforces it and the Discord
+    // command lowercases what the operator types before binding a key to it. The plugin, though,
+    // sends `server.id` from config.yml exactly as written, so an operator who typed `Survival`
+    // there produced a key bound to `survival` and a header reading `Survival`, and a strict
+    // comparison rejected every request as belonging to another server. Nothing about that is a
+    // real authorisation boundary: the id names which server this is, and its casing is not part
+    // of the name.
+    const candidate = raw.trim();
+    const bound = context.identity.serverId;
+
+    if (bound && bound.toLowerCase() !== candidate.toLowerCase()) {
+        // Both values are named. They are not secrets, and withholding them turned the single most
+        // common setup mistake into an unanswerable 403 — the operator cannot see the bound id
+        // from the game server, and the key's own id is exactly what they need to compare against.
+        throw ApiError.forbidden(
+            `This API key is bound to server "${bound}", but the request came from "${candidate}". ` +
+            `Set server.id in config.yml to "${bound}", or issue a key for "${candidate}".`,
+        );
     }
 
     return candidate;

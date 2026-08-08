@@ -133,6 +133,55 @@ export class EconomyService {
         };
     }
 
+    /**
+     * The coin leaderboard, resolved to Minecraft names.
+     *
+     * Balances are keyed by Discord id, but the callers that want a ranking — TAB, a holographic
+     * scoreboard, the in-game placeholders — can only display a Minecraft name, so the links are
+     * resolved here in one query rather than leaving each caller to make N of them. An entry whose
+     * holder has never linked keeps its Discord username, because dropping it would silently
+     * renumber everyone below it.
+     */
+    static async leaderboard(
+        guildId: string,
+        limit: number,
+        uuid?: string,
+    ): Promise<{
+        entries: Array<{ position: number; discordId: string; username: string; uuid: string | null; coins: number }>;
+        player: { position: number; coins: number } | null;
+    }> {
+        const top = await CoinsRepository.getTop(guildId, limit);
+
+        const links = await MinecraftLinkRepository.listByDiscordIds(
+            guildId,
+            top.map(row => row.discordId),
+        );
+        const byDiscordId = new Map(links.map(link => [link.discordId, link]));
+
+        const entries = top.map((row, index) => {
+            const link = byDiscordId.get(row.discordId);
+            return {
+                position: index + 1,
+                discordId: row.discordId,
+                username: link?.minecraftUsername ?? row.username,
+                uuid: link?.minecraftUuid ?? null,
+                coins: row.coins,
+            };
+        });
+
+        if (!uuid) return { entries, player: null };
+
+        const link = await MinecraftLinkRepository.getByUuid(guildId, normaliseUuid(uuid));
+        if (!link) return { entries, player: null };
+
+        const [position, record] = await Promise.all([
+            CoinsRepository.getRank(guildId, link.discordId),
+            CoinsRepository.get(guildId, link.discordId),
+        ]);
+
+        return { entries, player: { position, coins: record?.coins ?? 0 } };
+    }
+
     static async history(input: {
         guildId: string;
         uuid?: string;

@@ -10,6 +10,15 @@ export class MinecraftLinkRepository {
     }
 
     /**
+     * Resolves many links at once, for a caller holding a page of Discord ids — a leaderboard,
+     * chiefly. One query rather than one per row, so ranking N players costs a single round trip.
+     */
+    static async listByDiscordIds(guildId: string, discordIds: string[]): Promise<IMinecraftLink[]> {
+        if (discordIds.length === 0) return [];
+        return MinecraftLink.find({ guildId, discordId: { $in: discordIds } });
+    }
+
+    /**
      * Resolves by username. Case-insensitive because Minecraft names are displayed with their
      * original casing but compared without it, and a staff member typing a name into a command
      * should not have to reproduce it exactly.

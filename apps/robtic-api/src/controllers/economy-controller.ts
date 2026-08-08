@@ -25,6 +25,18 @@ export const economyRoutes: Route[] = [
         },
     },
     {
+        method: "GET",
+        path: API_ROUTES.economy.leaderboard,
+        scope: API_SCOPES.economy,
+        summary: "Read the coin leaderboard, and optionally one player's position in it",
+        tag: "Economy",
+        handler: async context => {
+            const guildId = requireGuildId(context);
+            const limit = intQueryParam(context, "limit", 10, MAX_PAGE);
+            return ok(await EconomyService.leaderboard(guildId, limit, optionalQueryParam(context, "uuid")));
+        },
+    },
+    {
         method: "POST",
         path: API_ROUTES.economy.add,
         scope: API_SCOPES.economy,

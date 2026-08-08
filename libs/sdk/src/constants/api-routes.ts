@@ -29,6 +29,7 @@ export const API_ROUTES = {
         sell: "/api/economy/sell",
         prices: "/api/economy/prices",
         history: "/api/economy/history",
+        leaderboard: "/api/economy/leaderboard",
     },
 
     staff: {
@@ -48,6 +49,7 @@ export const API_ROUTES = {
         dashboard: "/api/staff/dashboard",
         stats: "/api/staff/stats",
         leaderboard: "/api/staff/leaderboard",
+        rank: "/api/staff/rank",
         backup: "/api/staff/backup",
         /** Called once the plugin has actually restored a snapshot, so the backup can be dropped. */
         confirmRestore: "/api/staff/confirm-restore",

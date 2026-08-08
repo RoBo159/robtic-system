@@ -4,6 +4,8 @@ import { ok } from "../lib/respond";
 import { intQueryParam, optionalQueryParam, queryParam, requireGuildId, requireServerId } from "../lib/request-context";
 import { withIdempotency } from "../middleware/idempotency";
 import { StaffService } from "../services/staff-service";
+import { StaffRankService } from "../services/staff-rank-service";
+import { publishBridgeEvent } from "@core/minecraft";
 import { ModerationService } from "../services/moderation-service";
 import { AnalyticsService } from "../services/analytics-service";
 import { DiscordLogService } from "../services/discord-log-service";
@@ -274,6 +276,71 @@ export const staffRoutes: Route[] = [
 
             await recordAction(guildId, serverId, body, "release", body.reason);
             return ok(result);
+        },
+    },
+    {
+        method: "POST",
+        path: API_ROUTES.staff.rank,
+        scope: API_SCOPES.staff,
+        summary: "Promote or demote a linked player along the guild's staff ladder",
+        tag: "Staff",
+        handler: async context => {
+            const body = validateBody(context.body, {
+                guildId: schema.snowflake(),
+                targetUuid: schema.uuid(),
+                direction: v.oneOf(["promote", "demote"] as const),
+                rank: v.optional(v.string({ max: 32 })),
+                moderatorUuid: v.optional(schema.uuid()),
+                moderatorUsername: v.optional(schema.username()),
+                requestId: schema.requestId(),
+                ...schema.serverIdentity(),
+            });
+
+            const guildId = requireGuildId(context, body.guildId);
+            const serverId = requireServerId(context, body.serverId);
+
+            const { result, duplicate } = await withIdempotency(body.requestId, guildId, "staff.rank", async () => {
+                const changed = await StaffRankService.change({
+                    guildId,
+                    uuid: body.targetUuid,
+                    direction: body.direction,
+                    target: body.rank,
+                });
+
+                // The game server holds LuckPerms groups, not Discord roles, so the rank change is
+                // only half-applied until this reaches it.
+                await publishBridgeEvent({
+                    guildId,
+                    type: "role_sync",
+                    serverKey: null,
+                    payload: {
+                        discordId: changed.discordId,
+                        minecraftUuid: body.targetUuid,
+                        reason: body.direction,
+                        grant: [],
+                        revoke: [],
+                    },
+                });
+
+                await DiscordLogService.publish({
+                    guildId,
+                    serverId,
+                    serverName: context.serverName ?? serverId,
+                    action: "role_sync",
+                    moderatorUuid: body.moderatorUuid,
+                    moderatorUsername: body.moderatorUsername,
+                    targetUuid: body.targetUuid,
+                    targetUsername: changed.username,
+                    targetDiscordId: changed.discordId,
+                    reason: `${body.direction}: ${changed.from ?? "none"} → ${changed.to ?? "none"}`,
+                    occurredAt: new Date().toISOString(),
+                    requestId: body.requestId,
+                });
+
+                return changed;
+            });
+
+            return ok({ ...result, duplicate });
         },
     },
     {
