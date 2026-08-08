@@ -2,6 +2,7 @@ import { API_ROUTES, API_SCOPES, schema, v, validateBody } from "@sdk";
 import { ok } from "../lib/respond";
 import { optionalQueryParam, requireGuildId, requireServerId } from "../lib/request-context";
 import { withIdempotency } from "../middleware/idempotency";
+import { publishBridgeEvent } from "@core/minecraft";
 import { ServerService } from "../services/server-service";
 import { DiscordLogService } from "../services/discord-log-service";
 import type { Route } from "../router";
@@ -128,14 +129,38 @@ export const serverRoutes: Route[] = [
 
             // Not idempotency-wrapped: this is a read-shaped call whose response the join handler
             // needs every time, including on a reconnect that reuses a request id.
-            return ok(
-                await ServerService.playerJoin({
-                    guildId,
-                    serverId,
-                    uuid: body.uuid,
+            const state = await ServerService.playerJoin({
+                guildId,
+                serverId,
+                uuid: body.uuid,
+                username: body.username,
+            });
+
+            // Announced to Discord, which is also what re-projects the player's roles.
+            //
+            // The bot's drain has handled `player_join` since this system was written, and nothing
+            // has ever published one — so the join announcement never fired, and neither did the
+            // role sync hanging off it. That sync is the only thing that repairs a member whose
+            // roles were never projected: linking projects them once, and if the guild's role
+            // mappings were configured *after* that, the projection is empty for good. The player
+            // then holds their Discord staff role, has it written in roles.yml, and is still told
+            // "no permission" by /admin, because the API is serving an empty role list.
+            //
+            // Published on every join so that state repairs itself the next time they log in.
+            await publishBridgeEvent({
+                guildId,
+                direction: "to_discord",
+                type: "player_join",
+                serverKey: null,
+                payload: {
+                    minecraftUuid: body.uuid,
                     username: body.username,
-                }),
-            );
+                    serverKey: serverId,
+                    serverName: context.serverName ?? serverId,
+                },
+            });
+
+            return ok(state);
         },
     },
     {
@@ -150,6 +175,22 @@ export const serverRoutes: Route[] = [
 
             const { duplicate } = await withIdempotency(body.requestId, guildId, "server.playerLeave", async () => {
                 await ServerService.playerLeave({ guildId, uuid: body.uuid });
+
+                // The other half of the pair above: the bot has always known how to announce a
+                // quit and has never been sent one.
+                await publishBridgeEvent({
+                    guildId,
+                    direction: "to_discord",
+                    type: "player_quit",
+                    serverKey: null,
+                    payload: {
+                        minecraftUuid: body.uuid,
+                        username: body.username,
+                        serverKey: context.serverId ?? "",
+                        serverName: context.serverName ?? "",
+                    },
+                });
+
                 return { acknowledged: true };
             });
 
