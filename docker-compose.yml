@@ -9,8 +9,14 @@ services:
       - robtic-platform-api
 
   # The only service permitted to reach MongoDB. The bot and the Minecraft plugin are both
-  # clients of it. Bound to loopback: the Minecraft servers reach it through the reverse proxy
-  # over TLS, never directly.
+  # clients of it.
+  #
+  # Published to 127.0.0.1 deliberately. Public traffic enters through Cloudflare → Nginx on the
+  # host, and Nginx reaches this over host loopback, so nothing needs it on the LAN.
+  #
+  # Do not remove the 127.0.0.1 prefix to "make it work". A refused connection from another
+  # machine is this binding behaving correctly; the fault in that case is upstream, in the Nginx
+  # vhost or DNS. See docs/deployment-nginx.md.
   robtic-platform-api:
     image: ghcr.io/robticorg/robtic-platform-api:latest
     build:
@@ -21,6 +27,14 @@ services:
       - /home/robtic/robtic-system/.env
     ports:
       - "127.0.0.1:3002:3002"
+    healthcheck:
+      # Uses the one route that needs no API key, so a healthy container is provably serving
+      # rather than merely running.
+      test: ["CMD", "bun", "-e", "await fetch('http://127.0.0.1:3002/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   robtic-api:
     image: ghcr.io/robticorg/robtic-api:latest

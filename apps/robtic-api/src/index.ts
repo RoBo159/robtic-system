@@ -60,8 +60,22 @@ function unauthenticatedRoute(url: URL): Response | null {
     return null;
 }
 
-Bun.serve({
+/**
+ * Bound to every interface, explicitly.
+ *
+ * Inside a container "localhost" means the container itself, so a server bound to loopback is
+ * unreachable from the Docker port mapping and every request is refused at the TCP level — with
+ * no log line here to explain it, because the connection never arrives. Binding 0.0.0.0 is what
+ * makes the container's published port work at all.
+ *
+ * Restricting *who may reach it* is the port mapping's job (see docker-compose.yml) and the API
+ * key's job, not this bind address's.
+ */
+const hostname = process.env.ROBTIC_API_HOST ?? "0.0.0.0";
+
+const server = Bun.serve({
     port,
+    hostname,
     fetch: request => router.handle(request, unauthenticatedRoute),
 });
 
@@ -83,4 +97,19 @@ setInterval(() => {
     pruneRateLimitBuckets();
 }, SWEEP_INTERVAL_MS);
 
-Logger.success(`Listening on http://localhost:${port} — ${router.all().length} routes, docs at ${API_ROUTES.docs}`, CTX);
+// The bound address is logged rather than a hardcoded "localhost", because the single most
+// common deployment failure is a reachability problem the process itself cannot observe: the
+// connection is refused before it ever arrives here. Printing what was actually bound turns a
+// silent ERR_CONNECTION_REFUSED into something answerable from the logs.
+Logger.success(
+    `Listening on ${server.hostname}:${server.port} — ${router.all().length} routes, docs at ${API_ROUTES.docs}`,
+    CTX,
+);
+
+if (hostname !== "0.0.0.0") {
+    Logger.warn(
+        `Bound to ${hostname} rather than 0.0.0.0. Inside a container this is unreachable from the ` +
+        `published port and every external request will be refused.`,
+        CTX,
+    );
+}

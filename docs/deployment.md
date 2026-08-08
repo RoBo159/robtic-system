@@ -23,12 +23,23 @@ The api and activity jobs pull/up **only their own service** (full-command overr
 ## Compose Topology (server)
 
 ```
-robtic-system      (no ports — outbound Discord gateway only)
-robtic-api         127.0.0.1:3001 -> 3001
-robtic-activity    127.0.0.1:8080 -> 80   (depends_on robtic-api)
+robtic-system         (no ports — outbound Discord gateway only)
+robtic-platform-api   127.0.0.1:3002 -> 3002   (owns MongoDB; bot + Minecraft servers are clients)
+robtic-api            127.0.0.1:3001 -> 3001
+robtic-activity       127.0.0.1:8080 -> 80     (depends_on robtic-api)
 ```
 
-Both new services bind to localhost; the host reverse proxy must publish the activity origin (e.g. `activity.robtic.org` → `127.0.0.1:8080`) with TLS. `/api` does not need its own public origin — nginx inside `robtic-activity` forwards it. In the Discord Developer Portal, set the Activity URL mapping `/` → that origin.
+Every service binds to host loopback; Nginx runs **on the host** and is the only public entry
+point. It must publish the activity origin (e.g. `activity.robtic.org` → `127.0.0.1:8080`) and the
+platform API origin (`minecraft.api.robtic.org` → `127.0.0.1:3002`) with TLS. In the Discord
+Developer Portal, set the Activity URL mapping `/` → the activity origin.
+
+The `127.0.0.1:` prefixes are deliberate and should not be removed. A connection refused from
+another machine on the LAN is that binding working correctly — if a public URL fails, the fault is
+in the Nginx vhost or DNS, not the port mapping.
+
+→ **[deployment-nginx.md](./deployment-nginx.md)** — vhost configuration, the full diagnostic
+ladder, and how to localise a failure to the container, Nginx or DNS.
 
 ## Required Configuration
 
