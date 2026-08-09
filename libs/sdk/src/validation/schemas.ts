@@ -8,7 +8,22 @@ export const UUID_PATTERN = /^[0-9a-fA-F]{8}-?[0-9a-fA-F]{4}-?[0-9a-fA-F]{4}-?[0
 export const SNOWFLAKE_PATTERN = /^\d{15,25}$/;
 
 /** Minecraft usernames, per Mojang's own rule. */
-export const USERNAME_PATTERN = /^[a-zA-Z0-9_]{3,16}$/;
+/**
+ * A player name, Java or Bedrock.
+ *
+ * Java names are the familiar 3–16 of `[a-zA-Z0-9_]`. Bedrock names reaching a Java server through
+ * Geyser are not: Floodgate prefixes them (`.` by default, and operators change it), and a Bedrock
+ * gamertag may contain spaces. Restricting this to the Java alphabet did not keep those players
+ * out — it let them join and then rejected every request that carried their name, so their chat
+ * never reached Discord, their disconnect failed validation, and `/link` answered with a
+ * non-retryable error the plugin reports as "this server's connection is misconfigured". One
+ * pattern, three unrelated-looking faults.
+ *
+ * Widened to the union, bounded at 32 so it is still a name rather than a payload. Every consumer
+ * escapes it before display — `escapeMarkdown` on the Discord side, the webhook username sanitiser
+ * on the relay — so the extra characters change what is accepted, not how it is rendered.
+ */
+export const USERNAME_PATTERN = /^[a-zA-Z0-9_.\- ]{1,32}$/;
 
 /** Bukkit material names, which is what an item key is. */
 export const ITEM_KEY_PATTERN = /^[A-Z0-9_]{1,64}$/;
