@@ -20,7 +20,6 @@
     "baseUrl": ".",
     "paths": {
       "@bot/*": ["apps/bot/src/*"],
-      "@shared/*": ["apps/bot/src/shared/*"],
       "@database/*": ["libs/database/src/*"],
       "@core/*": ["libs/core/src/*"],
       "@types/*": ["libs/types/src/*"],

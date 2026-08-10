@@ -3,5 +3,5 @@
   "private": true,
   "type": "module",
   "module": "src/index.ts",
-  "description": "Robtic Discord bot application (main, moderation, hr, modmail, community, dev)"
+  "description": "Robtic Discord bot — one client running the admin, moderation, HR, modmail, community and dev systems"
 }

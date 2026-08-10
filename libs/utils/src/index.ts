@@ -1,6 +1,5 @@
-export * from "./cooldown/is-on-cooldown";
+export * from "./cooldown/start-cooldown";
 export * from "./cooldown/clear-cooldown";
-export * from "./cooldown/get-remaining-cooldown";
 export * from "./error-embed";
 export * from "./format-duration";
 export * from "./is-acceptable-message";

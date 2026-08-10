@@ -1,80 +1,24 @@
 import { GatewayIntentBits, Partials } from "discord.js";
 
-/** Every bot process this system runs, with its token env key and gateway intents. */
-export const BOT_DEFINITIONS: BotDefinition<GatewayIntentBits, Partials>[] = [
-    {
-        name: "main",
-        tokenKey:
-            process.env.NODE_ENV === "production" ? "MainBotToken" : "TestBot",
-        description: "System controller and admin bot",
-        intents: [
-            GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages,
-            GatewayIntentBits.GuildMembers,
-            GatewayIntentBits.DirectMessages,
-            GatewayIntentBits.MessageContent,
-        ],
-    },
-    {
-        name: "moderation",
-        tokenKey: "ModerationBotToken",
-        description: "Moderation, punishment, and ticket system",
-        intents: [
-            GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages,
-            GatewayIntentBits.GuildMembers,
-            GatewayIntentBits.GuildModeration,
-            GatewayIntentBits.MessageContent,
-        ],
-        partials: [Partials.Channel, Partials.Message],
-    },
-    {
-        name: "hr",
-        tokenKey: "HRBotToken",
-        description: "Staff management and HR automation",
-        intents: [
-            GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages,
-            GatewayIntentBits.GuildMembers,
-            GatewayIntentBits.DirectMessages,
-            GatewayIntentBits.MessageContent,
-        ],
-    },
-    {
-        name: "modmail",
-        tokenKey: "ModeMailBotToken",
-        description: "Private user-staff communication",
-        intents: [
-            GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages,
-            GatewayIntentBits.GuildMembers,
-            GatewayIntentBits.DirectMessages,
-            GatewayIntentBits.MessageContent,
-        ],
-        partials: [Partials.Channel, Partials.Message],
-    },
-    {
-        name: "community",
-        tokenKey: "CommunityBotToken",
-        description: "XP and activity tracking",
-        intents: [
-            GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages,
-            GatewayIntentBits.GuildMembers,
-            GatewayIntentBits.DirectMessages,
-            GatewayIntentBits.MessageContent,
-        ],
-    },
-    {
-        name: "dev",
-        tokenKey: "DevBotToken",
-        description: "Development and testing bot",
-        intents: [
-            GatewayIntentBits.Guilds,
-            GatewayIntentBits.GuildMessages,
-            GatewayIntentBits.GuildMembers,
-            GatewayIntentBits.DirectMessages,
-            GatewayIntentBits.MessageContent,
-        ],
-    },
-];
+/**
+ * The bot this system runs.
+ *
+ * There used to be six — main, moderation, hr, modmail, community and dev — each with its own
+ * token, its own gateway connection and its own copy of the shared plumbing. They are now one
+ * client running every module, so the intents and partials below are the union of what all six
+ * used to ask for: dropping any of them silently disables the system that needed it.
+ */
+export const BOT_DEFINITION: BotDefinition<GatewayIntentBits, Partials> = {
+    name: "main",
+    tokenKey: process.env.NODE_ENV === "production" ? "MainBotToken" : "TestBot",
+    description: "Robtic system bot — moderation, HR, modmail, community, dev and admin",
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.GuildMembers,
+        GatewayIntentBits.GuildModeration,
+        GatewayIntentBits.DirectMessages,
+        GatewayIntentBits.MessageContent,
+    ],
+    partials: [Partials.Channel, Partials.Message],
+};

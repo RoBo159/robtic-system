@@ -41,9 +41,7 @@ function commandCharacterCount(node: unknown): number {
 export class BotClient extends Client {
     public commands = new Collection<string, CommandConfig>();
     public components = new Collection<string, ComponentHandler>();
-    public cooldowns = new Collection<string, Collection<string, number>>();
     public botName: BotName;
-    public loadedModules: string[] = [];
     private token_: string;
 
     constructor(name: BotName, token: string, intents: GatewayIntentBits[], partials?: Partials[]) {

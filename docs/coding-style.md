@@ -17,7 +17,7 @@
 - **No hardcoded values** in new code — static values belong in `libs/constants` (interim: `libs/core/src/config`). Branch-specific IDs belong in `BRANCH_CONFIG`.
 - **No duplicate logic** — search before writing; extract shared helpers into the appropriate lib.
 - **Comments** are reserved for interface/type/constant documentation (JSDoc) and constraints the code cannot express. No TODOs, no commented-out code, no narration.
-- **Imports** — use path aliases (`@core/*`, `@database/*`, `@bot/*`, `@shared/*`, `@types/*`); never deep-relative imports across package boundaries. Remove unused imports.
+- **Imports** — use path aliases (`@core/*`, `@database/*`, `@bot/*`, `@types/*`); never deep-relative imports across package boundaries. Remove unused imports.
 - **Dependency direction** — `apps → libs`; `libs/database` holds no business logic; libs never import apps.
 
 ## Discord Patterns

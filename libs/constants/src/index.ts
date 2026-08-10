@@ -1,6 +1,7 @@
 export * from "./activity-log";
 export * from "./admin-config";
 export * from "./ai-thresholds";
+export * from "./allowed-guilds";
 export * from "./colors";
 export * from "./coins";
 export * from "./command-categories";

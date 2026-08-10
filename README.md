@@ -1,28 +1,26 @@
 # Robtic System
 
 Robtic System is a modular Discord automation platform designed for developer communities.
-It provides a scalable bot ecosystem where multiple specialized bots operate under a single main controller.
+One bot runs every system, with each system kept as a separate module in the codebase.
 
 ## Overview
 
 The system is built to manage community operations, staff workflows, moderation, and service access in a structured and automated way.
 
-A central **Main Bot** controls and coordinates several functional bots, allowing administrators to enable or disable modules as needed.
-
 ## Core Components
 
-* **Main Bot** – system controller, configuration manager, advertisement system, and partner server management
-* **Moderation Bot** – moderation tools, punishment logging, and the ticket system
-* **HR Bot** – staff management, recruitment, and promotions
-* **ModMail Bot** – private communication between users and staff
-* **Community Bot** – XP, activity tracking, and progression roles
-* **Dev Bot** – development and testing
+* **Admin** – system controller, configuration manager, advertisement system, and partner server management
+* **Moderation** – moderation tools, punishment logging, and the ticket system
+* **HR** – staff management, recruitment, and promotions
+* **ModMail** – private communication between users and staff
+* **Community** – XP, activity tracking, and progression roles
+* **Dev** – project sharing and review
 * **Minecraft Plugin** – Paper plugin that makes a Minecraft server another client of the same economy
 
 ## Key Features
 
-* Modular bot architecture
-* Centralized system control
+* Modular architecture — one client, one login, one command tree
+* Database-managed server whitelist (`!addserver <serverid>`)
 * Ticket and modmail systems
 * Staff management automation
 * Activity and role progression system
@@ -51,7 +49,9 @@ See [docs/architecture.md](docs/architecture.md) and [docs/development.md](docs/
 
 ## Configuration
 
-All bot tokens and system configuration are defined in the `.env` file.
+The bot token and infrastructure settings live in `.env` (see `.env.example`). Everything
+operational — prefixes, log channels, the server whitelist, XP and streak settings — is stored in
+MongoDB and configured from Discord.
 
 ## Purpose
 

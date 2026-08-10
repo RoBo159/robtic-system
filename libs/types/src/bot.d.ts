@@ -1,14 +1,8 @@
-type BotName = "main" | "moderation" | "hr" | "modmail" | "community" | "dev";
+/** One bot runs every module. Kept as a named type so log/status call sites still read as scoped. */
+type BotName = "main";
 type StatusType = "STARTING" | "HEALTHY" | "DEGRADED" | "OFFLINE"
 
-type BotTokenKey =
-    | "MainBotToken"
-    | "ModerationBotToken"
-    | "HRBotToken"
-    | "ModeMailBotToken"
-    | "CommunityBotToken"
-    | "DevBotToken"
-    | "TestBot"
+type BotTokenKey = "MainBotToken" | "TestBot"
 
 
 interface BotDefinition<Gateway, Partials> {
@@ -27,17 +21,8 @@ interface BotStatus {
     uptime?: number | null;
     guilds?: number;
     ping?: number;
-    modulesLoaded?: string[];
-}
-
-interface ModuleDefinition {
-    name: string;
-    description: string;
-    commandsDir: string;
-    eventsDir?: string;
-    componentsDir?: string;
-    onLoad?: () => Promise<void>;
-    onUnload?: () => Promise<void>;
+    /** Number of slash commands currently loaded. */
+    commands?: number;
 }
 
 /**

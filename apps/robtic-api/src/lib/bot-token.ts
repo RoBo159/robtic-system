@@ -7,7 +7,7 @@ const CTX = "robtic-api";
  *
  * <h2>Why this is not just `process.env.MainBotToken`</h2>
  *
- * `BOT_DEFINITIONS` in libs/config picks `MainBotToken` in production and `TestBot` otherwise, so
+ * `BOT_DEFINITION` in libs/config picks `MainBotToken` in production and `TestBot` otherwise, so
  * the bot running against a test guild authenticates as the test bot. The API previously read
  * `MainBotToken ?? TestBot` regardless of environment, which meant a deployment with both set would
  * have the API acting as one bot while the bot itself acted as another — the API's role lookups and

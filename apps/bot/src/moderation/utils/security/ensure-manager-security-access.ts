@@ -1,8 +1,0 @@
-import type { GuildMember } from "discord.js";
-import { hasFullPower } from "@shared/utils/access";
-
-/** Full power (owner roles and whitelisted super users) clears this ahead of the raw Discord permissions. */
-export async function ensureManagerSecurityAccess(member: GuildMember): Promise<boolean> {
-    if (hasFullPower(member)) return true;
-    return member.permissions.has("ManageGuild") || member.permissions.has("Administrator");
-}

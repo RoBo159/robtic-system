@@ -87,24 +87,20 @@ export const BRANCH_CONFIG = {
         membersPanelButton: "1480426683570983014",
     },
 
-    presence: {
-        main: [
-            "Developer support system 🔥",
-            "Debugging code with devs ⚙️",
-            "Learning resources hub 📚",
-            "Helping with dev projects 🚀",
-        ],
-        moderation: ["Moderation Automation Active 🛡️", "Robtic Mod at your service! 🤖"],
-        community: [
-            "Tracking community activity 📊",
-            "Leveling up members ⬆️",
-            "Monitoring staff performance 🏆",
-            "XP system online 🎮",
-        ],
-        hr: ["HR Automation Engine 🤖", "Processing Staff Applications ⚙️"],
-        modmail: ["DM for moderation help 🛡️", "Moderation engine active 🟢"],
-        dev: ["Development Bot 🛠️", "Code Review and Sharing 🧪"],
-    },
+    /** Rotated by setPresence on the single bot client — one list covering every system it now runs. */
+    presence: [
+        "Developer support system 🔥",
+        "Debugging code with devs ⚙️",
+        "Learning resources hub 📚",
+        "Helping with dev projects 🚀",
+        "Tracking community activity 📊",
+        "Leveling up members ⬆️",
+        "Monitoring staff performance 🏆",
+        "Moderation automation active 🛡️",
+        "DM for moderation help 📨",
+        "Processing staff applications ⚙️",
+        "Code review and sharing 🧪",
+    ],
 
     partnership: {
         /** Standard partner role name, granted in every branch — same across all branches. */

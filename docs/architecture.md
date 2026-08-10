@@ -1,6 +1,6 @@
 # Architecture
 
-Robtic System is a Bun-workspaces monorepo that today runs a multi-bot Discord application and is structured to grow into the backend foundation of the Robtic Platform (bot, embedded activity, dashboard, REST API, websocket, and future desktop/mobile/CLI clients).
+Robtic System is a Bun-workspaces monorepo that today runs a Discord bot and is structured to grow into the backend foundation of the Robtic Platform (bot, embedded activity, dashboard, REST API, websocket, and future desktop/mobile/CLI clients).
 
 ## Layout
 
@@ -16,7 +16,7 @@ images/     Static image assets served/attached by the bot
 
 | App | Status | Purpose |
 |---|---|---|
-| `apps/bot` | **Live** | Six Discord bots (main, moderation, hr, modmail, community, dev) run by a shared `ClientManager` |
+| `apps/bot` | **Live** | The Discord bot — one client running every system (admin, moderation, HR, modmail, community, dev) |
 | `apps/activity` | Scaffold | Discord Embedded Activity (React + Vite + Discord Embedded App SDK) |
 | `apps/dashboard` | Scaffold | Web dashboard |
 | `apps/api` | Scaffold | REST + WebSocket backend exposing `libs/core` services |
@@ -42,9 +42,9 @@ images/     Static image assets served/attached by the bot
 
 ### Bot startup
 
-1. `apps/bot/src/index.ts` connects the database (`libs/database`), preloads the super-user cache, and points `ClientManager` at its module root (`setBotModulesRoot`).
-2. `ClientManager` groups bot definitions by token (bots sharing a token merge into one Discord client) and uses `ModuleLoader` to dynamically import each bot's `commands/`, `events/`, and `components/` folders.
-3. Shared listeners in `apps/bot/src/shared/events` are attached once per client.
+1. `apps/bot/src/index.ts` connects the database (`libs/database`), preloads the super-user and allowed-guild caches, and points `ClientManager` at its module root (`setBotModulesRoot`).
+2. `ClientManager` creates the single `BotClient` from `BOT_DEFINITION` and uses `ModuleLoader` to dynamically import `commands/`, `components/` and `events/`. Each is scanned recursively, so a system's namespaced subfolder is picked up with no registration step.
+3. On `clientReady` the bot sets its presence, enforces the server whitelist (`guards/`), and starts every scheduler.
 
 ### Module resolution
 
@@ -52,7 +52,6 @@ Path aliases are defined once in the root `tsconfig.json` and respected by both 
 
 ```
 @bot/*       apps/bot/src/*
-@shared/*    apps/bot/src/shared/*
 @core/*      libs/core/src/*
 @database/*  libs/database/src/*
 @types/*     libs/types/src/*

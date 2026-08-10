@@ -82,3 +82,4 @@ export {
     MINECRAFT_BRIDGE_DIRECTIONS,
     MINECRAFT_BRIDGE_EVENT_TYPES,
 } from "./MinecraftBridgeEvent";
+export { AllowedGuild, type IAllowedGuild } from "./AllowedGuild";

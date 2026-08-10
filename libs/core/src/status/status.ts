@@ -1,4 +1,4 @@
-import { BOT_DEFINITIONS, BRANCH_CONFIG } from "@config";
+import { BOT_DEFINITION, BRANCH_CONFIG } from "@config";
 import { Logger } from "@logger";
 import { ServerConfigRepository } from "@database/repositories";
 import { EmbedBuilder, type Channel, type Client, type Message } from "discord.js";
@@ -166,17 +166,9 @@ export async function buildSystemStatusEmbed(): Promise<EmbedBuilder> {
 
     const core = latestCoreSnapshot;
 
-    const botEntries = BOT_DEFINITIONS.map((definition) => {
-        const entry = BOT_STATUSES.get(definition.name);
-        const status = entry?.status ?? "OFFLINE";
-        const message = entry?.message ?? "No recent status message";
-        const updated = BOT_LAST_UPDATED.get(definition.name);
-
-        return {
-            status,
-            line: `${ICONS[status]} **${definition.name}** - ${message} (${relativeTime(updated)})`,
-        };
-    });
+    const botEntry = BOT_STATUSES.get(BOT_DEFINITION.name);
+    const botStatus: StatusType = botEntry?.status ?? "OFFLINE";
+    const botLine = `${ICONS[botStatus]} **${BOT_DEFINITION.name}** - ${botEntry?.message ?? "No recent status message"} (${relativeTime(BOT_LAST_UPDATED.get(BOT_DEFINITION.name))})`;
 
     const serviceLines = Array.from(SERVICE_STATUSES.values())
         .filter((service) => service.key !== "core-reachability-local")
@@ -185,18 +177,11 @@ export async function buildSystemStatusEmbed(): Promise<EmbedBuilder> {
         return `${ICONS[service.status]} **${service.label}**: ${service.status} - ${service.message ?? "No details"}${details} (updated ${relativeTime(service.updatedAt)})`;
     });
 
-    const botTotals = {
-        healthy: botEntries.filter((entry) => entry.status === "HEALTHY").length,
-        degraded: botEntries.filter((entry) => entry.status === "DEGRADED").length,
-        starting: botEntries.filter((entry) => entry.status === "STARTING").length,
-        offline: botEntries.filter((entry) => entry.status === "OFFLINE").length,
-    };
-
     const systemUsage = os.totalmem() > 0 ? ((os.totalmem() - os.freemem()) / os.totalmem()) * 100 : 0;
     const processMemory = process.memoryUsage();
 
     const overallStatus = pickOverallStatus([
-        ...BOT_DEFINITIONS.map((definition) => BOT_STATUSES.get(definition.name)?.status ?? "OFFLINE"),
+        botStatus,
         dbStatus,
         core.status,
         ...Array.from(SERVICE_STATUSES.values()).map((service) => service.status),
@@ -213,13 +198,8 @@ export async function buildSystemStatusEmbed(): Promise<EmbedBuilder> {
         )
         .addFields(
             {
-                name: "Bots",
-                value: [
-                    `🟢 ${botTotals.healthy}`,
-                    `🟡 ${botTotals.degraded}`,
-                    `🟠 ${botTotals.starting}`,
-                    `🔴 ${botTotals.offline}`,
-                ].join(" | "),
+                name: "Bot",
+                value: `${ICONS[botStatus]} ${botStatus}`,
                 inline: true,
             },
             {
@@ -237,7 +217,7 @@ export async function buildSystemStatusEmbed(): Promise<EmbedBuilder> {
             },
             {
                 name: "Bot Details",
-                value: botEntries.map((entry) => entry.line).join("\n") || "No bot status entries yet.",
+                value: botLine,
                 inline: false,
             },
             {

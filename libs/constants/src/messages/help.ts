@@ -1,4 +1,4 @@
-/** Labels and copy for the dynamic per-bot `!help` command (overview + category dropdown). */
+/** Labels and copy for the `!help` command (overview + category dropdown). */
 export const HELP = {
     /** Category bucket for commands that declare no `category`. Always sorted first. */
     generalCategory: "General",
@@ -34,6 +34,8 @@ export const HELP_CATEGORY_EMOJI: Record<string, string> = {
     Threads: "📨",
     Staff: "👔",
     Partnership: "🤝",
+    Projects: "🚀",
+    Minecraft: "⛏️",
     Configuration: "⚙️",
     Admin: "🔑",
     Utility: "🧰",
@@ -145,7 +147,7 @@ export const MODERATION_HELP = {
                 "`/escalate` — Grant the category's admin role access (staff only, in-ticket)",
                 "`/close [reason]` — Close the current ticket and award category points (staff only, in-ticket)",
                 "",
-                "Categories, roles, and staff points are configured in `apps/bot/src/moderation/config/ticket.ts`.",
+                "Categories, roles, and staff points are configured in `apps/bot/src/config/moderation/ticket.ts`.",
             ].join("\n"),
         },
         {

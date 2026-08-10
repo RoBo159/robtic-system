@@ -16,14 +16,20 @@ export const COMMAND_CATEGORIES = [
     "Profile",
     "Economy",
     "Leaderboard",
+    "Leveling",
     "Streak",
     "Activity",
+    "Projects",
     "Utility",
     "Partnership",
     "Minecraft",
     "Configuration",
     "Admin",
     "Moderation",
+    "Tickets",
+    "Staff",
+    "Threads",
+    "Tags",
 ] as const;
 
 export type CommandCategory = typeof COMMAND_CATEGORIES[number];
@@ -40,6 +46,10 @@ export const UNRESTRICTED_COMMAND_CATEGORIES: readonly string[] = [
     "Admin",
     "Moderation",
     "Utility",
+    "Tickets",
+    "Staff",
+    "Threads",
+    "Tags",
 ];
 
 /**

@@ -3,16 +3,19 @@
 ```
 apps/
     bot/
-        src/
+        src/                     One bot, one client. Each top-level folder is a kind; the
+                                 absorbed systems keep a namespaced subfolder inside it.
             index.ts             Entrypoint: DB connect + ClientManager bootstrap
-            preload.ts           Bun preload shim (BSON/v8 startupSnapshot stub)
-            community/           XP, levels, decay, staff activity, support analysis
-            dev/                 Project tracking and review flows
-            hr/                  Staff management, interviews, promotions, warns
-            main/                System controller: combo, streak, ads, partners, profiles, panels
-            moderation/          Punishments, tickets, audit logging, security rules
-            modmail/             User-staff DM threads, appeals, reports, tags
-            shared/              Cross-bot events, guards, helpers, emoji/message JSON
+            commands/            Slash + prefix commands (community/ dev/ hr/ moderation/ modmail/)
+            components/          Button/select/modal handlers (dev/ hr/ moderation/ modmail/)
+            events/              Gateway listeners (community/ moderation/ modmail/)
+            services/            Background work and schedulers (community/)
+            utils/               Helpers, plus the shared pipeline: access/, interaction/,
+                                 prefix/, help/, lang/, server-log/, staff-activity/
+            guards/              Server whitelist enforcement
+            handlers/            Modmail in-thread command handlers
+            sessions/            Modmail pending-session state
+            config/              Static ticket configuration
     activity/                    Discord Embedded Activity scaffold (React/Vite/SDK)
     dashboard/                   Web dashboard scaffold
     api/                         REST + WebSocket scaffold
@@ -28,11 +31,11 @@ apps/
 libs/
     core/
         src/
-            BotClient.ts         Discord.js client wrapper
-            ClientManager.ts     Multi-bot lifecycle, token merging
-            ModuleLoader.ts      Dynamic command/event/component loading
+            bot-client.ts        Discord.js client wrapper
+            client-manager.ts    Client lifecycle: initialize, start, reload
+            module-loader.ts     Dynamic command/event/component loading
             ai/                  Groq-backed analyzers and prompts
-            config/              BOT_DEFINITIONS, BRANCH_CONFIG, constants (extraction pending)
+            config/              BOT_DEFINITION, BRANCH_CONFIG, constants (extraction pending)
             handlers/            Error handling
             libs/                Logger, health, permissions (extraction pending)
             utils/               Core utilities (extraction pending)
@@ -69,5 +72,6 @@ images/                          Bot-attached assets (cwd-relative at runtime)
 ## Conventions
 
 - Folders: lowercase. Files: kebab-case. Functions: camelCase. Types/interfaces/enums: PascalCase. Constants: UPPER_SNAKE_CASE.
-- Feature-based organization inside each bot: `commands/`, `events/`, `components/`, `services/`, `utils/`.
+- Organized by kind first (`commands/`, `events/`, `components/`, `services/`, `utils/`), then by
+  system for the five that were merged in from separate bots.
 - `index.ts` barrels only where they genuinely shorten imports (`@core/config`, `@core/libs`, `@database/repositories`, `@database/models`).

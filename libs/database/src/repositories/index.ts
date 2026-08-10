@@ -61,3 +61,5 @@ export * from "./MinecraftJailRepository";
 export * from "./MinecraftFreezeRepository";
 export * from "./MinecraftModerationRepository";
 export * from "./ApiRequestLogRepository";
+
+export * from "./AllowedGuildRepository";

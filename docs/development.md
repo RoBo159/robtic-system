@@ -4,16 +4,20 @@
 
 - [Bun](https://bun.sh) >= 1.1.0
 - MongoDB (local instance or connection string)
-- Discord bot tokens for the bots you want to run
+- A Discord bot token
 
 ## Setup
 
 ```bash
 bun install
-cp .env.example .env   # fill in MONGODB_URI and bot tokens
+cp .env.example .env   # fill in MONGODB_URI and the bot token
 ```
 
-Non-production runs resolve the `main` bot token from `TestBot` instead of `MainBotToken` (see `libs/core/src/config/clients.ts`).
+Non-production runs read the token from `TestBot` instead of `MainBotToken` (see `libs/config/src/bot-definitions.ts`).
+
+The bot leaves any server that is not on the whitelist. A fresh database is seeded with the
+permanent Robtic servers (`libs/constants/src/allowed-guilds.ts`); add your test server with
+`!addserver <serverid>` from one that is already allowed, before inviting the bot to it.
 
 ## Commands
 
@@ -32,7 +36,10 @@ The repo uses Bun workspaces (`apps/*`, `libs/*`). Dependencies are currently ho
 
 ## Adding a Command / Event / Component
 
-Drop a file into the bot's `commands/`, `events/`, or `components/` folder under `apps/bot/src/<bot>/` — `ModuleLoader` picks it up by convention, no registration list to edit. Slash commands re-register on client ready.
+Drop a file into `apps/bot/src/commands/`, `events/` or `components/` — in the subfolder of the
+system it belongs to, or at the root for admin-level features. `ModuleLoader` scans each tree
+recursively and picks it up by convention, with no registration list to edit. Slash commands
+re-register on client ready, and `/system reload` re-reads them without a restart.
 
 ## Monitors
 
