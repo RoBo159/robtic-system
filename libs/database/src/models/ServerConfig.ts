@@ -11,6 +11,12 @@ export interface ISentPanel {
 export interface IShortcut {
     command: string;
     trigger: string;
+    /**
+     * What to clean up after the shortcut runs. Optional: shortcuts created before this field
+     * existed fall back to the per-command default (see resolveShortcutDeleteMode), which is what
+     * they already did.
+     */
+    deleteMode?: "both" | "output" | "none";
 }
 
 export interface IServerRoles {
@@ -53,6 +59,7 @@ const sentPanelSchema = new Schema<ISentPanel>(
 const shortcutSchema = new Schema<IShortcut>({
     command: { type: String, required: true },
     trigger: { type: String, required: true },
+    deleteMode: { type: String, enum: ["both", "output", "none"] },
 }, { _id: false });
 
 const serverConfigSchema = new Schema<IServerConfig>(

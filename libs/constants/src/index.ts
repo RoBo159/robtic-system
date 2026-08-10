@@ -16,6 +16,7 @@ export * from "./minecraft";
 export * from "./moderation";
 export * from "./moderation-security";
 export * from "./security";
+export * from "./shortcuts";
 export * from "./permissions";
 export * from "./prefix";
 export * from "./presence";

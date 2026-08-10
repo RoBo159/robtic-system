@@ -17,7 +17,7 @@ import { needsProof } from "../../utils/moderation/punish-flow";
 export default {
     category: "Moderation",
     data: new ContextMenuCommandBuilder()
-        .setName("Ban User")
+        .setName("Jail User")
         .setType(ApplicationCommandType.User),
 
     requiredPermission: 20,
@@ -25,20 +25,20 @@ export default {
 
     async run(interaction: UserContextMenuCommandInteraction, client: BotClient) {
         if (interaction.user.id === interaction.targetId) {
-            await interaction.reply({ content: "You cannot ban yourself.", flags: MessageFlags.Ephemeral });
+            await interaction.reply({ content: "You cannot jail yourself.", flags: MessageFlags.Ephemeral });
             return;
         }
 
         const modal = new ModalBuilder()
             .setCustomId(`punish_modal_ban_${interaction.targetId}`)
-            .setTitle(`Ban ${interaction.targetUser.username}`);
+            .setTitle(`Jail ${interaction.targetUser.username}`);
 
         const requireProof = await needsProof(interaction.member as GuildMember);
 
         if (requireProof) {
             // Below Manager+ — fully Label-based rather than mixing with the legacy ActionRow style.
             const reasonLabel = new LabelBuilder()
-                .setLabel("Reason for Ban")
+                .setLabel("Reason for Jail")
                 .setDescription("Enter the reason or reason key")
                 .setTextInputComponent(
                     new TextInputBuilder().setCustomId("reason").setStyle(TextInputStyle.Paragraph).setRequired(true).setMaxLength(500)
@@ -62,7 +62,7 @@ export default {
         } else {
             const reasonInput = new TextInputBuilder()
                 .setCustomId("reason")
-                .setLabel("Reason for Ban")
+                .setLabel("Reason for Jail")
                 .setPlaceholder("Enter the reason or reason key...")
                 .setStyle(TextInputStyle.Paragraph)
                 .setRequired(true)

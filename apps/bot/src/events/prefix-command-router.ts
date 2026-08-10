@@ -14,8 +14,13 @@ import { getUserLang, t } from "../utils/lang";
  * as the branches below.
  */
 
-/** Carry an extra proof-of-evidence flow, so prefix use is gated by PunishConfig.shortcutRoleIds rather than the normal permission check. */
-const PUNISH_SHORTCUT_COMMANDS = new Set(["ban", "mute", "warn"]);
+/**
+ * Carry an extra proof-of-evidence flow, so prefix use is gated by PunishConfig.shortcutRoleIds
+ * rather than the normal permission check. `jail` is the punishment-system command formerly called
+ * `ban`; the `/ban` that took its name is a plain Discord ban with no proof flow, and is gated
+ * normally.
+ */
+const PUNISH_SHORTCUT_COMMANDS = new Set(["jail", "mute", "warn"]);
 
 /** Gated by its own HrConfig.staffWarnShortcutRoleIds, separately from the punishment three. */
 const STAFF_WARN_COMMAND = "staff-warn";
@@ -98,6 +103,6 @@ export default {
             return;
         }
 
-        await runPrefixShortcut(message, client, command, commandName, argString, prefix);
+        await runPrefixShortcut({ message, client, command, commandName, argString, prefix });
     },
 };

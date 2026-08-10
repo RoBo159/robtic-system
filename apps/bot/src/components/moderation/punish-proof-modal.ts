@@ -10,7 +10,7 @@ import { ReasonRepository } from "@database/repositories";
 import { getMemberLevel } from "@bot/utils/access";
 import { executeWarn } from "../../commands/moderation/warn";
 import { executeMute } from "../../commands/moderation/mute";
-import { executeBan } from "../../commands/moderation/ban";
+import { executeBan } from "../../commands/moderation/jail";
 import { parseProofCustomId, postProof, requestApproval, getOptionalUploadedFileUrl, getOptionalText } from "../../utils/moderation/punish-flow";
 
 // Handles the standalone proof modal — reached from ban/mute/warn's run() directly, or via the DM button flow (punishShortcutDM.ts).

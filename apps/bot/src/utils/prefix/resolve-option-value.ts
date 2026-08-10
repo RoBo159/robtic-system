@@ -39,10 +39,22 @@ export async function resolveOptionValue(message: Message, opt: OptionJSON, toke
         case ApplicationCommandOptionType.Role: {
             const match = token.match(ROLE_MENTION_REGEX);
             const id = match ? match[1] : token;
-            if (!SNOWFLAKE_REGEX.test(id)) return undefined;
-            const role: Role | null | undefined =
-                message.guild?.roles.cache.get(id) ?? (await message.guild?.roles.fetch(id).catch(() => null));
-            return role ?? undefined;
+
+            if (SNOWFLAKE_REGEX.test(id)) {
+                const role: Role | null | undefined =
+                    message.guild?.roles.cache.get(id) ?? (await message.guild?.roles.fetch(id).catch(() => null));
+                return role ?? undefined;
+            }
+
+            // A slash user picks the role from a menu; someone typing `!role give @user Moderator`
+            // has no menu, so an unambiguous name is accepted too. Ambiguous names are rejected
+            // rather than guessed — silently picking one of two same-named roles is worse than
+            // asking for the id.
+            if (match) return undefined;
+
+            const named = message.guild?.roles.cache.filter(r => r.name.toLowerCase() === token.toLowerCase());
+            if (!named || named.size !== 1) return undefined;
+            return named.first();
         }
 
         case ApplicationCommandOptionType.Channel: {

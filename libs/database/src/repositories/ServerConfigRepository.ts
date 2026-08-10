@@ -119,15 +119,17 @@ export class ServerConfigRepository {
         return [...config.lineChannelIds, ...legacy];
     }
 
-    static async addShortcut(guildId: string, command: string, trigger: string): Promise<IServerConfig> {
+    static async addShortcut(guildId: string, command: string, trigger: string, deleteMode?: IShortcut["deleteMode"]): Promise<IServerConfig> {
         const config = await this.findOrCreate(guildId);
         // Avoid duplicates for same trigger
         const exists = config.shortcuts.find(s => s.trigger === trigger);
         if (exists) {
             exists.command = command; // Update existing
+            exists.deleteMode = deleteMode;
         } else {
-            config.shortcuts.push({ command, trigger });
+            config.shortcuts.push({ command, trigger, deleteMode });
         }
+        config.markModified("shortcuts");
         return config.save();
     }
 

@@ -10,5 +10,10 @@ export async function findShortcutMatch(guildId: string, content: string): Promi
     const match = sorted.find(s => content === s.trigger || content.startsWith(s.trigger + " "));
     if (!match) return null;
 
-    return { command: match.command, trigger: match.trigger, args: content.slice(match.trigger.length).trim() };
+    return {
+        command: match.command,
+        trigger: match.trigger,
+        args: content.slice(match.trigger.length).trim(),
+        deleteMode: match.deleteMode,
+    };
 }

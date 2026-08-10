@@ -10,7 +10,7 @@ import { ReasonRepository } from "@database/repositories";
 import { getMemberLevel, isInDepartment } from "@bot/utils/access";
 import { executeWarn } from "../../commands/moderation/warn";
 import { executeMute } from "../../commands/moderation/mute";
-import { executeBan } from "../../commands/moderation/ban";
+import { executeBan } from "../../commands/moderation/jail";
 
 export default {
     customId: /^punish_(approve|deny)_(warn|mute|ban)_/,

@@ -3,4 +3,5 @@ export { runPrefixShortcut } from "./run-prefix-shortcut";
 export { buildPrefixInteraction } from "./build-prefix-interaction";
 export { findShortcutMatch } from "./find-shortcut-match";
 export { runCustomCommandShortcut } from "./run-custom-command-shortcut";
+export { resolveShortcutDeleteMode, scheduleShortcutCleanup } from "./shortcut-cleanup";
 export type { ShortcutMatch } from "@typings/prefix";

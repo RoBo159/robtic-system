@@ -1,9 +1,8 @@
 import { Events, type Message, type GuildTextBasedChannel, PermissionFlagsBits } from "discord.js";
 import type { BotClient } from "@core/bot-client";
 import { Logger } from "@logger";
-import { SHORTCUT_REPLY_LIFETIME_MS } from "@constants";
 import { ChatUtils } from "../utils/moderation/chat";
-import { findShortcutMatch, runCustomCommandShortcut } from "../utils/prefix";
+import { findShortcutMatch, runCustomCommandShortcut, resolveShortcutDeleteMode, scheduleShortcutCleanup } from "../utils/prefix";
 import { hasFullPower } from "../utils/access";
 
 const CHAT_UTIL_COMMANDS = new Set(Object.keys(ChatUtils));
@@ -44,7 +43,7 @@ export default {
                 ? await channel.send({ content: `${result}` })
                 : await message.reply({ content: `${result}` });
 
-            setTimeout(() => notice.delete().catch(() => null), SHORTCUT_REPLY_LIFETIME_MS);
+            scheduleShortcutCleanup(message, notice, resolveShortcutDeleteMode(match.command, match.deleteMode));
         } catch (error) {
             Logger.error(`Error executing shortcut "${match.trigger}": ${error}`, client.botName);
         }

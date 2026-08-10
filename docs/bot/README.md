@@ -24,4 +24,5 @@ Command names are unique across the whole tree — two systems cannot both regis
 - [minecraft.md](./minecraft.md) — Minecraft architecture: linking, shared economy, chat bridge, LuckPerms sync
 - [minecraft-setup.md](./minecraft-setup.md) — Operator guide: API keys, chat wiring, logging channels, full command reference
 - [modal.md](./modal.md) — modal patterns
+- [shortcuts.md](./shortcuts.md) — `/shortcut` triggers and their cleanup modes
 - [streak.md](./streak.md) — daily streak system

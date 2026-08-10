@@ -120,12 +120,30 @@ export const MODERATION_HELP = {
             ].join("\n"),
         },
         {
-            name: "Bans",
+            name: "Jail (punishment system)",
             value: [
-                "`/ban add @user <reason> [permanent] [duration]` — Ban a user",
-                "`/ban remove @user <case>` — Unban (keeps level)",
-                "`/ban appeal @user <case>` — Appeal (removes level points)",
-                "`/ban list @user` — List all bans",
+                "`/jail add @user <reason> [permanent] [duration]` — Jail a user (case + level + timeout)",
+                "`/jail remove @user <case>` — Release (keeps level)",
+                "`/jail appeal @user <case>` — Appeal (removes level points)",
+                "`/jail list @user` — List all jail cases",
+            ].join("\n"),
+        },
+        {
+            name: "Server Actions",
+            value: [
+                "`/ban @user [reason]` — Ban from the server (Discord ban list, no case record)",
+                "`/unban <user id> [reason]` — Lift a server ban",
+                "`/kick @user [reason]` — Kick from the server",
+            ].join("\n"),
+        },
+        {
+            name: "Roles",
+            value: [
+                "`/roles` — List every role on the server",
+                "`/role give @user <role>` — Give a role",
+                "`/role remove @user <role>` — Take a role away",
+                "`/role multirole @user <role1> <role2> [role3] [role4] [role5]` — Give several at once",
+                "Roles at or above your own highest role can't be handed out.",
             ].join("\n"),
         },
         {
