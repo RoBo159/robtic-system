@@ -49,8 +49,13 @@ export interface ComponentHandler<T extends ComponentInteraction = ComponentInte
     customId: string | RegExp;
     /** Key of the feature that owns this handler, so a disabled feature's buttons say so rather than acting. */
     feature?: string;
+    /**
+     * The return value is ignored by the router. Typed `unknown` rather than `void` because many
+     * handlers end on `return interaction.reply(...)`, and `Promise<Message>` is not assignable to
+     * `Promise<void>` the way a plain `Message` would be to `void`.
+     */
     run: (
         interaction: T,
         client: BotClient
-    ) => Promise<void>;
+    ) => Promise<unknown>;
 }
