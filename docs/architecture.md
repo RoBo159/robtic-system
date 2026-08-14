@@ -48,9 +48,8 @@ images/     Static image assets served/attached by the bot
 
 ### Module loading
 
-One filesystem walk, classified by `classify-module-file.ts`. A file is registered if it either
-carries a reserved suffix — **anywhere** in the tree — or sits directly in one of the legacy
-directories:
+One filesystem walk, classified by `classify-module-file.ts`. Registration is decided by filename,
+never by position — the sole exception being a feature's manifest:
 
 | Rule | Registered as |
 |---|---|
@@ -59,18 +58,17 @@ directories:
 | `*.component.ts` | Button, select menu or modal handler |
 | `*.message.ts` | Prefix-only handler, run in front of the normal prefix pipeline |
 | `features/<key>/<key>.ts` | Feature manifest |
-| unsuffixed under `commands/`, `events/`, `components/` | Legacy, pending the move to suffixes |
 
 The four suffixes are **reserved**: renaming a helper to `*.event.ts` anywhere under `apps/bot/src`
-attaches a real gateway listener. Everything else inside a feature folder — `commands/`,
-`functions/`, `utils/`, `lib/`, `components/` — is a plain import from its own feature and invisible
-to the loader.
+attaches a real gateway listener. The upside is that a helper can sit beside the command that uses
+it without being mistaken for one — everything inside a feature folder (`commands/`, `functions/`,
+`utils/`, `lib/`, `components/`) is a plain import from its own feature and invisible to the loader.
 
-Files are imported at most once and in a deterministic order (manifests, then suffixed, then
-legacy; alphabetical within each). Two commands sharing a name is therefore a rule rather than a
-race: the first registration wins and the collision is logged naming both files. That is what makes
-migrating a feature safe — add `features/coins/`, verify it beats the old `commands/coins.ts`, then
-delete the old file.
+Files are imported at most once and in a deterministic order: manifests first, so the feature
+registry is complete before anything else registers, then everything else alphabetically. Two
+commands sharing a name is therefore a rule rather than a race — the first registration wins and
+the collision is logged naming both files. That is what makes migrating a feature safe: add
+`features/coins/`, verify it beats the old `commands/coins.ts`, then delete the old file.
 
 ### Features
 
@@ -105,6 +103,14 @@ rather than a fallback to `COMMAND_GUILD_ID`.
 
 `access` values `general` and `games` gate nothing; only `admin` does, adding server Administrators
 and `ServerConfig.botAdminRoles` as a way in and refusing everyone else.
+
+**A command declares one access mechanism, not several.** `access: "admin"` and
+`requiredPermission` both restrict, but they answer to different populations — Discord
+administrators versus a guild's StaffTier ladder — and the chain applies them in sequence, so a
+command carrying both demands *both*. A moderator on tier score 60 would pass `requiredPermission:
+60` and then be refused for not being an Administrator. Most staff commands therefore sit in
+`guild/admin/` with only their existing `requiredPermission`, `setDefaultMemberPermissions` or
+inline guard; the folder records who a command is *for*, the metadata records how that is enforced.
 
 ### Module resolution
 

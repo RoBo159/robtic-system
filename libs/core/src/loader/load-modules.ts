@@ -15,12 +15,7 @@ export interface LoadOptions {
 }
 
 /**
- * Imports and registers every module under `root` in one pass.
- *
- * Files are discovered by filename suffix anywhere in the tree, plus — until Phase C finishes —
- * unsuffixed files sitting in the legacy `commands/`, `events/` and `components/` directories.
- * A path is imported at most once, so a moved-and-renamed file that satisfies both rules is not
- * registered twice.
+ * Imports and registers every module under `root` in one pass, discovered by filename suffix.
  */
 export async function loadModules(client: BotClient, root: string, options: LoadOptions = {}): Promise<LoadReport> {
     const report = createLoadReport();
@@ -31,7 +26,7 @@ export async function loadModules(client: BotClient, root: string, options: Load
         if (imported.has(file.path)) continue;
         imported.add(file.path);
 
-        if (options.skipEvents && (file.kind === "event" || file.kind === "legacy-event")) continue;
+        if (options.skipEvents && file.kind === "event") continue;
 
         let mod: Record<string, unknown>;
         try {
@@ -47,15 +42,12 @@ export async function loadModules(client: BotClient, root: string, options: Load
                 registerManifestModule(mod, file.path, report);
                 break;
             case "command":
-            case "legacy-command":
                 registerCommandModule(client, mod.default, file.path, report);
                 break;
             case "event":
-            case "legacy-event":
                 registerEventModule(client, mod.default, file.path, report);
                 break;
             case "component":
-            case "legacy-component":
                 registerComponentModule(client, mod, file.path, report);
                 break;
             case "message":

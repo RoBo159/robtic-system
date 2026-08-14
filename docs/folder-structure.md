@@ -9,12 +9,13 @@ apps/
             features/            One folder per big system — see the layout below
             commands/            Commands too small to be a feature, in the scope tree:
                                    global/          data shared across all servers
-                                   guild/admin/     server admins or assigned roles
+                                   guild/admin/     staff-restricted (moderation/ and tickets/
+                                                    nested inside)
                                    guild/general/   any member
                                    guild/games/     any member, game-related
                                    admin/           super users only, admin-guild only
-            components/          Button/select/modal handlers outside any feature
-            events/              Gateway listeners outside any feature
+            components/          *.component.ts outside any feature
+            events/              *.event.ts outside any feature
             services/            Background work and schedulers not yet owned by a feature
             utils/               Helpers, plus the shared pipeline: access/, interaction/,
                                  prefix/, help/, lang/, server-log/, staff-activity/

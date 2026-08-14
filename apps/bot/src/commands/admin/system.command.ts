@@ -1,7 +1,7 @@
 import { ChannelType, ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { ClientManager } from "@core/client-manager";
-import { systemStatus } from "../../utils/system";
-import { systemReload } from "../../utils/system";
+import { systemStatus } from "@bot/utils/system";
+import { systemReload } from "@bot/utils/system";
 
 /**
  * `enable` and `disable` used to take a bot name — there were six processes to bring up and take

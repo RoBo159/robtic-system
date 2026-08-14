@@ -12,8 +12,8 @@ const tsGlob = new Bun.Glob("**/*.ts");
  * One filesystem walk over the whole bot source tree, classified and sorted.
  *
  * Sorted because `Bun.Glob.scan` gives no order guarantee, and load order decides which of two
- * commands sharing a name wins. Deterministic order turns that from a coin flip into a rule:
- * manifests first, then suffixed files, then legacy ones, alphabetically within each group.
+ * commands sharing a name wins. Deterministic order turns that from a coin flip into a rule.
+ * Manifests come first so the activation registry is complete before the first command registers.
  */
 const KIND_ORDER: Record<ModuleKind, number> = {
     manifest: 0,
@@ -21,9 +21,6 @@ const KIND_ORDER: Record<ModuleKind, number> = {
     event: 1,
     component: 1,
     message: 1,
-    "legacy-command": 2,
-    "legacy-event": 2,
-    "legacy-component": 2,
 };
 
 export async function scanModuleFiles(root: string): Promise<ModuleFile[]> {

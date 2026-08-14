@@ -10,11 +10,16 @@ become a feature.
 
 | System | Location | Purpose |
 |---|---|---|
-| moderation | `commands/moderation/` | Punishments, tickets, audit logging, security rules |
-| community | `commands/community/` | XP, levels, decay, staff activity, support analysis |
-| dev | `commands/dev/` | Project tracking and review flows |
-| minecraft | `commands/minecraft.ts` | Linking, shared economy, chat bridge, LuckPerms sync |
-| economy / activity | root of `commands/` | Combo, streak, coins, top, ads, partners, profiles, panels |
+| coins | `features/coins/` | Coin economy — on by default |
+| streak | `features/streak/` | Daily message streaks — opt-in per guild |
+| top | `features/top/` | Cross-category leaderboard panel — on by default |
+| moderation | `commands/guild/admin/moderation/` | Punishments, audit logging, security rules |
+| tickets | `commands/guild/admin/tickets/` | Ticket lifecycle |
+| configuration | `commands/guild/admin/` | Prefix, roles, channels, panels, XP, ads, shortcuts |
+| minecraft | `commands/guild/games/` | Linking, shared economy, chat bridge, LuckPerms sync |
+| member-facing | `commands/guild/general/` | Profile, combo, level, help, notes |
+| cross-server | `commands/global/` | Partners, project sharing, version |
+| bot operator | `commands/admin/` | Server allowlist, super users, reload, admin guild |
 
 Command names are unique across the whole tree — two systems cannot both register `/mod`, and the
 loader reports a collision rather than letting one silently overwrite the other.
