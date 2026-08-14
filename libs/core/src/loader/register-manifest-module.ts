@@ -20,8 +20,11 @@ function isManifest(value: unknown): value is FeatureManifest {
  * rejected rather than quietly producing a feature nothing can enable — `/feature enable <key>`
  * writes the declared key, while the folder name is what a person reads.
  */
-export function registerManifestModule(exported: unknown, path: string, report: LoadReport): void {
-    const candidate = (exported as { default?: unknown })?.default ?? exported;
+export function registerManifestModule(mod: Record<string, unknown>, path: string, report: LoadReport): void {
+    // Default or named, because the manifest is imported by the feature's own command and message
+    // files — `import { topFeature } from "./top"` reads better there than a default import, and
+    // requiring one shape over the other would buy nothing.
+    const candidate = isManifest(mod.default) ? mod.default : Object.values(mod).find(isManifest);
 
     if (!isManifest(candidate)) {
         report.invalid.push({ path, reason: "feature manifest needs `key`, `description`, `activation` and `commands`" });

@@ -13,7 +13,7 @@ import { PunishmentRepository, NoteRepository, ActivityRepository, ComboUserStat
 import { getMemberLevel, isStaff } from "@bot/utils/access";
 import { calculateLevel, xpForLevel } from "../services/community/xp";
 import { getStaffActivity, getSupportStats } from "@bot/utils/staff-activity";
-import { getStreakSummary } from "../services/streak-service";
+import { getStreakSummary } from "@core/streak";
 import { getUserHighestCombo } from "../services/combo";
 import { getCoinSummary } from "@core/coins";
 import { getProfileBadges } from "@core/profile";

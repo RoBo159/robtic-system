@@ -104,9 +104,22 @@ export type FeatureSubcommandHandler = (
     client: BotClient,
 ) => Promise<void>;
 
+/**
+ * A handler for *some* component interaction type.
+ *
+ * `never` rather than the full union because `run` is contravariant in its parameter: a handler
+ * written against `StringSelectMenuInteraction` is not assignable to one taking the whole union,
+ * but is assignable to one taking `never`. The router narrows by customId before calling, which is
+ * the invariant this type stands in for.
+ */
+export type AnyComponentHandler = ComponentHandler<never>;
+
 /** What a feature's `<key>.component.ts` default-exports. */
 export interface FeatureComponentIndex {
-    /** Shared customId prefix for every handler below, e.g. "coins" for `coins:adjust:…`. */
+    /**
+     * Shared customId prefix for every handler below, e.g. "coins" for `coins:adjust:…`.
+     * Also the feature key the loader stamps on each handler for the activation gate.
+     */
     namespace: string;
-    handlers: readonly ComponentHandler[];
+    handlers: readonly AnyComponentHandler[];
 }

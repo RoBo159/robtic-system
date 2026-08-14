@@ -4,11 +4,7 @@ import {
     RoleSelectMenuBuilder,
     ButtonBuilder,
     ButtonStyle,
-    MessageFlags,
     type GuildMember,
-    type StringSelectMenuInteraction,
-    type RoleSelectMenuInteraction,
-    type ButtonInteraction,
 } from "discord.js";
 import { COMBO_LEADERBOARD_PERIODS, SUPER_ADMIN_ID, type ComboLeaderboardPeriod, type ComboLeaderboardType } from "@constants";
 import { SuperUserRepository } from "@database/repositories";
@@ -39,14 +35,7 @@ export async function isComboAdmin(userId: string, member: GuildMember | null): 
 }
 
 /** Only the invoking user may operate their own /combo message's components. */
-export async function verifyInvoker(
-    interaction: StringSelectMenuInteraction | RoleSelectMenuInteraction | ButtonInteraction,
-    invokerId: string,
-): Promise<boolean> {
-    if (interaction.user.id === invokerId) return true;
-    await interaction.reply({ content: "هذه ليست قائمة الكومبو الخاصة بك.", flags: MessageFlags.Ephemeral }).catch(() => null);
-    return false;
-}
+export { verifyInvoker } from "@bot/utils/interaction/verify-invoker";
 
 export function buildComboNavRow(invokerId: string, isAdmin: boolean): ActionRowBuilder<StringSelectMenuBuilder> {
     const options: { label: string; description: string; value: ComboPage; emoji: string }[] = [

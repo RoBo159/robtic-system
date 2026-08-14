@@ -42,9 +42,10 @@ function add(client: BotClient, handler: ComponentHandler, path: string, report:
  */
 export function registerComponentModule(client: BotClient, mod: Record<string, unknown>, path: string, report: LoadReport): void {
     if (isComponentIndex(mod.default)) {
-        for (const handler of mod.default.handlers) {
-            if (isHandler(handler)) add(client, handler, path, report, handler.feature);
-            else report.invalid.push({ path, reason: `component index "${(mod.default as FeatureComponentIndex).namespace}" contains a non-handler entry` });
+        const { namespace, handlers } = mod.default;
+        for (const handler of handlers) {
+            if (isHandler(handler)) add(client, handler, path, report, handler.feature ?? namespace);
+            else report.invalid.push({ path, reason: `component index "${namespace}" contains a non-handler entry` });
         }
         return;
     }

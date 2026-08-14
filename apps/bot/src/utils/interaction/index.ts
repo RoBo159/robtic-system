@@ -1,6 +1,7 @@
 export { HandlingComponent } from "./handle-component-interaction";
 export { checkPermissions } from "./check-permissions";
 export { checkFeatureEnabled } from "./check-feature-enabled";
+export { verifyInvoker } from "./verify-invoker";
 export { cooldowns } from "./check-cooldowns";
 export { releaseCooldown } from "./release-cooldown";
 export { commandError } from "./command-error";

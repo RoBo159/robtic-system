@@ -1,5 +1,8 @@
 {
     "en": {
+        "common": {
+            "not_your_panel": "This panel belongs to someone else. Run the command yourself to get your own."
+        },
         "moderation": {
             "warn_title": "⚠️ You received a warning",
             "warn_desc": "You have been warned by the **Moderation Team**.\n\n**Reason:**\n{reason}\n\nIf you believe this was a mistake or would like more information, please contact the server staff.",
@@ -147,6 +150,9 @@
         }
     },
     "ar": {
+        "common": {
+            "not_your_panel": "هذه اللوحة تخص شخصًا آخر. استخدم الأمر بنفسك للحصول على لوحتك."
+        },
         "moderation": {
             "warn_title": "⚠️ لقد تلقيت تحذيرًا",
             "warn_desc": "تم تحذيرك من قِبل **فريق الإشراف**.\n\n**السبب:**\n{reason}\n\nإذا كنت تعتقد أن هذا خطأ أو ترغب في الحصول على مزيد من المعلومات، يرجى التواصل مع فريق السيرفر.",

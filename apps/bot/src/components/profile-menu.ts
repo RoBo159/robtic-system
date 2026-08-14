@@ -9,7 +9,7 @@ import { PunishmentRepository, NoteRepository, ActivityRepository, ProjectsRepos
 import type { ComponentHandler } from "@typings/command";
 import { calculateLevel, xpForLevel } from "../services/community/xp";
 import { getStaffActivity, getSupportStats, getActivityLogs } from "@bot/utils/staff-activity";
-import { getStreakSummary } from "../services/streak-service";
+import { getStreakSummary } from "@core/streak";
 import { buildStatusEmbed } from "../utils/combo-embeds";
 import { buildProfileSettingsRow, buildSettingsEmbed } from "./profile-settings-buttons";
 import { formatDuration } from "@utils";

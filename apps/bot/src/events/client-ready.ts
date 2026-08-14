@@ -4,18 +4,20 @@ import { Logger } from "@logger";
 import { BRANCH_CONFIG } from "@config";
 import { setPresence } from "../utils/set-presence";
 import { setupGuildGuard } from "../guards/setup-guild-guard";
-import { startStreakScheduler } from "../services/streak-scheduler";
 import { startComboScheduler } from "../services/combo-scheduler";
 import { startMinecraftScheduler } from "../services/minecraft";
 import { startDecayScheduler } from "../services/community/decay";
 import { startSessionCleanupScheduler } from "../services/community/support";
 
 /**
- * The one ready handler for the whole bot.
+ * Bot-wide startup: presence, the guild guard, and the schedulers for systems that are not yet
+ * features.
  *
- * Every system used to bring its own — six listeners on what was, in practice, a single merged
- * client — so the guild guard registered its `guildCreate` listener five times over and each
- * system overwrote the previous one's presence a moment after setting it.
+ * Six near-identical copies of this used to exist, one per merged bot, so the guild guard attached
+ * its `guildCreate` listener five times over and each copy overwrote the previous one's presence.
+ * Hence one handler for anything bot-wide — but a *feature* brings its own ready listener for its
+ * own scheduler, because a file here importing into `features/` would break the rule that a
+ * feature folder can be deleted on its own.
  */
 export default {
     name: Events.ClientReady,
@@ -28,7 +30,6 @@ export default {
         setPresence(client, "dnd", "Playing", [...BRANCH_CONFIG.presence]);
         await setupGuildGuard(client);
 
-        startStreakScheduler(client);
         startComboScheduler(client);
         startMinecraftScheduler(client);
         startDecayScheduler(client);
