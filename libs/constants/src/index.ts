@@ -22,6 +22,7 @@ export * from "./prefix";
 export * from "./presence";
 export * from "./punishments";
 export * from "./regex";
+export * from "./rejoin-roles";
 export * from "./server-log-channels";
 export * from "./staff-points";
 export * from "./staff-tiers";
