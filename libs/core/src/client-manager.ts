@@ -1,6 +1,7 @@
 import { BotClient } from "@core/bot-client";
 import { loadModules } from "@core/loader/load-modules";
 import { clearFeatureRegistry } from "@core/features/feature-registry";
+import { clearProfileTabs } from "@core/profile/profile-tabs";
 import { DiscordErrorHandler } from "@core/handlers";
 import { Logger } from "@logger";
 import { BOT_DEFINITION } from "@config";
@@ -95,6 +96,7 @@ export class ClientManager {
         this.client.components.clear();
         this.client.messageCommands.clear();
         clearFeatureRegistry();
+        clearProfileTabs();
 
         await this.initialize();
         await this.client.registerSlashCommands();

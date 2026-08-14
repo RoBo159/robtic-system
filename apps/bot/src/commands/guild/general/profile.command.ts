@@ -14,7 +14,7 @@ import { getMemberLevel, isStaff } from "@bot/utils/access";
 import { calculateLevel, xpForLevel } from "@bot/services/community/xp";
 import { getStaffActivity, getSupportStats } from "@bot/utils/staff-activity";
 import { getStreakSummary } from "@core/streak";
-import { getUserHighestCombo } from "@bot/services/combo";
+import { getUserHighestCombo } from "@core/combo";
 import { getCoinSummary } from "@core/coins";
 import { getProfileBadges } from "@core/profile";
 import { getUserLang, t } from "@bot/utils/lang";

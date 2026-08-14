@@ -5,7 +5,6 @@ import { BRANCH_CONFIG } from "@config";
 import { setPresence } from "../utils/set-presence";
 import { setupGuildGuard } from "../guards/setup-guild-guard";
 import { reportOrphanShortcuts } from "../guards/report-orphan-shortcuts";
-import { startComboScheduler } from "../services/combo-scheduler";
 import { startMinecraftScheduler } from "../services/minecraft";
 import { startDecayScheduler } from "../services/community/decay";
 import { startSessionCleanupScheduler } from "../services/community/support";
@@ -32,7 +31,6 @@ export default {
         await setupGuildGuard(client);
         await reportOrphanShortcuts(client);
 
-        startComboScheduler(client);
         startMinecraftScheduler(client);
         startDecayScheduler(client);
         startSessionCleanupScheduler();

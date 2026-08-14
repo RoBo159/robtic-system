@@ -11,6 +11,7 @@ export const INTERACTION_MESSAGES = {
     noPermission: "You don't have permission to use this command.",
     superUserOnly: "This is a bot-owner command. Only super users can run it.",
     serverAdminOnly: "Only server administrators, or a role added with /command-access admin-roles, can use this command.",
+    profileTabDisabled: "That section isn't enabled in this server.",
     featureDisabled: (description: string, key: string) =>
         `${description} is not enabled in this server. An administrator can turn it on with \`/feature enable ${key}\`.`,
     cooldownWait: (remainingSeconds: number) => `Please wait ${remainingSeconds}s before using this command again.`,

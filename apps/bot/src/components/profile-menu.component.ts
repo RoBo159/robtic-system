@@ -4,13 +4,14 @@ import {
     MessageFlags,
 } from "discord.js";
 import type { BotClient } from "@core/bot-client";
-import { COLORS } from "@constants";
+import { COLORS, INTERACTION_MESSAGES } from "@constants";
 import { PunishmentRepository, NoteRepository, ActivityRepository, ProjectsRepository, UserRepository } from "@database/repositories";
 import type { ComponentHandler } from "@typings/command";
 import { calculateLevel, xpForLevel } from "../services/community/xp";
 import { getStaffActivity, getSupportStats, getActivityLogs } from "@bot/utils/staff-activity";
 import { getStreakSummary } from "@core/streak";
-import { buildStatusEmbed } from "../utils/combo-embeds";
+import { getProfileTab } from "@core/profile";
+import { isFeatureEnabled } from "@core/features";
 import { buildProfileSettingsRow, buildSettingsEmbed } from "./profile-settings-buttons.component";
 import { formatDuration } from "@utils";
 import { isStaff } from "@bot/utils/access";
@@ -107,9 +108,17 @@ export const profileMenuHandler: ComponentHandler<StringSelectMenuInteraction> =
             return;
         }
 
-        if (selected === "combo") {
+        // Feature-contributed tabs render through the registry, so profile never imports a
+        // feature's embed builders and a tab whose feature is switched off says so.
+        const tab = getProfileTab(selected);
+        if (tab) {
+            if (!(await isFeatureEnabled(interaction.guildId!, tab.feature))) {
+                await interaction.editReply({ content: INTERACTION_MESSAGES.profileTabDisabled });
+                return;
+            }
+
             const target = user ?? { id: targetId, username: "unknown", displayAvatarURL: () => "" };
-            const embed = await buildStatusEmbed(interaction.guild!, {
+            const embed = await tab.render(interaction.guild!, {
                 id: targetId,
                 username: target.username,
                 avatarUrl: user?.displayAvatarURL({ size: 256 }) ?? "",
