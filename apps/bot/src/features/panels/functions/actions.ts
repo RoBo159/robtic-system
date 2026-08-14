@@ -11,7 +11,7 @@ import {
 } from "discord.js";
 import { BRANCH_CONFIG } from "@config";
 import { COLORS } from "@constants";
-import { getPanel, listPanels, getPanelKeys } from "./registry";
+import { getPanel, listPanels, getPanelKeys } from "../registry";
 import { ServerConfigRepository } from "@database/repositories/ServerConfigRepository";
 import { getUserLang } from "@bot/utils/lang";
 

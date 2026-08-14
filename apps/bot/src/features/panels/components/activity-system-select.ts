@@ -1,7 +1,7 @@
 import path from "path";
 import { AttachmentBuilder, ContainerBuilder, MessageFlags, type StringSelectMenuInteraction } from "discord.js";
 import type { ComponentHandler } from "@typings/command";
-import { ACTIVITY_OPTIONS } from "../utils/panels/definitions/activity-system";
+import { ACTIVITY_OPTIONS } from "../definitions/activity-system";
 
 const LINE_IMAGE_PATH = path.join(process.cwd(), "images", "line.png");
 

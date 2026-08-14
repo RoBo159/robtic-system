@@ -1,5 +1,6 @@
 import type { BotClient } from "@core/bot-client";
 import type { ComponentHandler } from "@typings/command";
+import { getFeatureManifest } from "@core/features/feature-registry";
 import type { FeatureComponentIndex } from "@typings/feature";
 import type { LoadReport } from "./load-report";
 
@@ -10,7 +11,7 @@ function isHandler(value: unknown): value is ComponentHandler {
 
 function isComponentIndex(value: unknown): value is FeatureComponentIndex {
     const candidate = value as FeatureComponentIndex | undefined;
-    return typeof candidate?.namespace === "string" && Array.isArray(candidate?.handlers);
+    return typeof candidate?.feature === "string" && Array.isArray(candidate?.handlers);
 }
 
 function add(client: BotClient, handler: ComponentHandler, path: string, report: LoadReport, feature?: string): void {
@@ -42,10 +43,17 @@ function add(client: BotClient, handler: ComponentHandler, path: string, report:
  */
 export function registerComponentModule(client: BotClient, mod: Record<string, unknown>, path: string, report: LoadReport): void {
     if (isComponentIndex(mod.default)) {
-        const { namespace, handlers } = mod.default;
+        const { feature, handlers } = mod.default;
+
+        // A key with no manifest would make isFeatureEnabled fall through to "allowed", quietly
+        // disabling the gate for every handler here — so say so rather than let it pass.
+        if (!getFeatureManifest(feature)) {
+            report.invalid.push({ path, reason: `component index names feature "${feature}", which has no manifest` });
+        }
+
         for (const handler of handlers) {
-            if (isHandler(handler)) add(client, handler, path, report, handler.feature ?? namespace);
-            else report.invalid.push({ path, reason: `component index "${namespace}" contains a non-handler entry` });
+            if (isHandler(handler)) add(client, handler, path, report, feature);
+            else report.invalid.push({ path, reason: `component index "${feature}" contains a non-handler entry` });
         }
         return;
     }

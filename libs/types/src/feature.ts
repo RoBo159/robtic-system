@@ -117,9 +117,14 @@ export type AnyComponentHandler = ComponentHandler<never>;
 /** What a feature's `<key>.component.ts` default-exports. */
 export interface FeatureComponentIndex {
     /**
-     * Shared customId prefix for every handler below, e.g. "coins" for `coins:adjust:…`.
-     * Also the feature key the loader stamps on each handler for the activation gate.
+     * The owning feature's manifest key — the loader stamps it on every handler below so a disabled
+     * feature's buttons refuse rather than act.
+     *
+     * Deliberately not "the shared customId prefix": those coincide for coins and streak but not
+     * for panels, whose handlers answer `panel_view_*` and `activity_system_select`. Naming this
+     * after the prefix invited exactly that mismatch, and a key with no matching manifest silently
+     * disables the gate.
      */
-    namespace: string;
+    feature: string;
     handlers: readonly AnyComponentHandler[];
 }

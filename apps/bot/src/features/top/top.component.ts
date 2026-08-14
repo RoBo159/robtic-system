@@ -9,6 +9,6 @@ import { topPeriodHandler } from "./components/period-select";
  * instead of silently acting.
  */
 export default {
-    namespace: "top",
+    feature: "top",
     handlers: [topCategoryHandler, topPeriodHandler],
 } satisfies FeatureComponentIndex;

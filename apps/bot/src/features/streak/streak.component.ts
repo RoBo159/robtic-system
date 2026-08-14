@@ -4,7 +4,7 @@ import { streakSyncConfirmHandler } from "./components/sync-confirm";
 import { streakTopToggleHandler } from "./components/top-toggle";
 
 export default {
-    namespace: "streak",
+    feature: "streak",
     handlers: [
         streakRewardClaimHandler,
         streakSyncConfirmHandler,
