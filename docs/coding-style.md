@@ -22,5 +22,21 @@
 
 ## Discord Patterns
 
-- Commands export a default `CommandConfig` (`data` + `run`); components export `ComponentHandler`s keyed by `customId` (string or RegExp); events export `{ name, once?, execute }`. `ModuleLoader` discovers all three by folder convention.
-- Repositories are static classes over Mongoose models; atomic update pipelines are preferred over read-modify-write for hot paths.
+- **File suffixes are reserved.** `*.command.ts`, `*.event.ts`, `*.component.ts` and `*.message.ts`
+  are registered by the loader wherever they sit under `apps/bot/src`. Never give a helper one of
+  those names — a stray `*.event.ts` in `utils/` attaches a live gateway listener.
+- Commands default-export a `CommandConfig` (`data` + `run`), or an array of them. Events
+  default-export an `EventConfig` (`{ name, once?, execute }`) or an array. Components
+  default-export a `FeatureComponentIndex`, or export handlers under any name.
+- **New components use `feature:action:arg` custom ids.** Three older conventions coexist
+  (`a:b:c`, `a_b_c`, `a-b-c`) and must be left alone: a live message in a channel carries its custom
+  id in Discord's data, so renaming a handler permanently orphans every message already posted.
+- **Permission checks read from `member`, never from the interaction.** Both a real interaction and
+  the prefix stand-in from `build-fake-interaction.ts` reach `checkPermissions`, and the stand-in
+  has no `memberPermissions`, `appPermissions`, `locale` or `commandGuildId`.
+- **A feature owns nothing outside its folder.** Deleting `features/<key>/` must be a directory
+  removal with no other edit, so nothing outside may import from inside it — including
+  `events/client-ready.ts`, which is why features start their own schedulers.
+- Repositories are static classes over Mongoose models; atomic update pipelines are preferred over
+  read-modify-write for hot paths. Anything read inside `checkPermissions` must be cached — it runs
+  before `deferReply()`, inside Discord's ~3s acknowledgement window.

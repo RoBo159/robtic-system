@@ -55,6 +55,7 @@ export function buildFakeInteraction(
             },
             getString: (name: string, required = false) => getValue(name, required),
             getInteger: (name: string, required = false) => getValue(name, required),
+            getNumber: (name: string, required = false) => getValue(name, required),
             getBoolean: (name: string, required = false) => getValue(name, required),
             getUser: (name: string, required = false) => getValue(name, required),
             getChannel: (name: string, required = false) => getValue(name, required),

@@ -3,19 +3,38 @@
 ```
 apps/
     bot/
-        src/                     One bot, one client. Each top-level folder is a kind; the
-                                 absorbed systems keep a namespaced subfolder inside it.
+        src/                     One bot, one client. Big systems live in features/; everything
+                                 else is grouped by kind, then by command scope.
             index.ts             Entrypoint: DB connect + ClientManager bootstrap
-            commands/            Slash + prefix commands (community/ dev/ hr/ moderation/ modmail/)
-            components/          Button/select/modal handlers (dev/ hr/ moderation/ modmail/)
-            events/              Gateway listeners (community/ moderation/ modmail/)
-            services/            Background work and schedulers (community/)
+            features/            One folder per big system — see the layout below
+            commands/            Commands too small to be a feature, in the scope tree:
+                                   global/          data shared across all servers
+                                   guild/admin/     server admins or assigned roles
+                                   guild/general/   any member
+                                   guild/games/     any member, game-related
+                                   admin/           super users only, admin-guild only
+            components/          Button/select/modal handlers outside any feature
+            events/              Gateway listeners outside any feature
+            services/            Background work and schedulers not yet owned by a feature
             utils/               Helpers, plus the shared pipeline: access/, interaction/,
                                  prefix/, help/, lang/, server-log/, staff-activity/
             guards/              Server whitelist enforcement
-            handlers/            Modmail in-thread command handlers
-            sessions/            Modmail pending-session state
             config/              Static ticket configuration
+
+        A feature folder, using coins as the example. Omit any file the feature
+        does not need — no events means no coins.event.ts.
+
+            features/coins/
+                coins.ts             Manifest: key, description, activation, commands, subcommands
+                coins.command.ts     Builds the builder from the manifest, dispatches to commands/
+                coins.message.ts     Prefix form — a bare `!coins` prints its subcommand list
+                coins.event.ts       This feature's gateway listeners, schedulers included
+                coins.component.ts   FeatureComponentIndex re-exporting components/
+                commands/            One file per leaf subcommand
+                components/          One file per button, select menu or modal
+                functions/           Domain orchestration and event bodies
+                utils/               Embeds and feature-local helpers
+                lib/                 Re-export barrel over the matching libs/core domain
     activity/                    Discord Embedded Activity scaffold (React/Vite/SDK)
     dashboard/                   Web dashboard scaffold
     api/                         REST + WebSocket scaffold

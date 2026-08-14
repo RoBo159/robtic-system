@@ -36,6 +36,7 @@ export * from "./UserRepository";
 export * from "./StaffTierRepository";
 export * from "./PunishConfigRepository";
 export * from "./CommandAccessRepository";
+export * from "./GuildFeatureRepository";
 export * from "./StreakRewardRepository";
 export * from "./StreakRewardClaimRepository";
 export * from "./MinecraftLinkRepository";

@@ -10,6 +10,7 @@ import { SuperUserRepository } from "@database/repositories";
 
 export default {
     category: "Admin",
+    scope: "admin",
     data: new SlashCommandBuilder()
         .setName("whitelist")
         .setDescription("Manage the super user whitelist (bypasses all command permission checks)")

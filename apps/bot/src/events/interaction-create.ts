@@ -5,7 +5,9 @@ import {
 import type { BotClient } from "@core/bot-client";
 import { Logger } from "@logger";
 import { classifyError } from "@core/handlers";
-import { checkPermissions, commandError, cooldowns, releaseCooldown, HandlingComponent } from "../utils/interaction";
+import { MessageFlags } from "discord.js";
+import { errorEmbed } from "@utils";
+import { checkPermissions, checkFeatureEnabled, commandError, cooldowns, releaseCooldown, HandlingComponent } from "../utils/interaction";
 
 export default {
     name: Events.InteractionCreate,
@@ -36,6 +38,12 @@ export default {
         }
 
         try {
+            const gate = await checkFeatureEnabled(command, interaction.guildId);
+            if (!gate.allowed) {
+                await interaction.reply({ embeds: [errorEmbed(gate.message!)], flags: MessageFlags.Ephemeral });
+                return;
+            }
+
             const hasPerms = await checkPermissions(interaction, command);
             if (!hasPerms) return;
 

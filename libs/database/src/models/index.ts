@@ -32,6 +32,7 @@ export { PeriodicStat, type IPeriodicStat, type PeriodicStatMetric } from "./Per
 export { StaffTier, type IStaffTier } from "./StaffTier";
 export { PunishConfig, type IPunishConfig } from "./PunishConfig";
 export { CommandAccess, type ICommandAccess } from "./CommandAccess";
+export { GuildFeature, type IGuildFeature } from "./GuildFeature";
 export { StreakReward, type IStreakReward } from "./StreakReward";
 export { StreakRewardClaim, type IStreakRewardClaim } from "./StreakRewardClaim";
 export { MinecraftLink, type IMinecraftLink } from "./MinecraftLink";

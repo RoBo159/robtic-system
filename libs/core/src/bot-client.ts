@@ -3,44 +3,36 @@ import {
     Collection,
     REST,
     Routes,
+    type ClientEvents,
     type GatewayIntentBits,
     type Partials,
 } from "discord.js";
+import type { EventEmitter } from "node:events";
 import type { CommandConfig, ComponentHandler } from "@typings/command";
+import type { MessageCommandConfig } from "@typings/message-command";
 import { Logger } from "@logger";
 import { sendStatus } from "./status/status";
-
-/**
- * The character budget Discord actually measures a command against.
- *
- * Its limit covers the combined length of every name, description and choice value in one command
- * — not the serialised JSON, which is roughly twice as long because of keys and punctuation.
- * Measuring the wrong thing here would mean warning at half the real ceiling and sending people
- * to split commands that are nowhere near it.
- */
-function commandCharacterCount(node: unknown): number {
-    if (Array.isArray(node)) {
-        return node.reduce<number>((total, entry) => total + commandCharacterCount(entry), 0);
-    }
-
-    if (typeof node !== "object" || node === null) return 0;
-
-    let total = 0;
-
-    for (const [key, value] of Object.entries(node)) {
-        if (typeof value === "string" && (key === "name" || key === "description" || key === "value")) {
-            total += value.length;
-        } else if (typeof value === "object" && value !== null) {
-            total += commandCharacterCount(value);
-        }
-    }
-
-    return total;
-}
+import { buildCommandPayload } from "./registration/build-command-payload";
+import { putCommandRoute } from "./registration/put-command-route";
+import { getAdminGuildId } from "./bot-admin/admin-guild";
 
 export class BotClient extends Client {
     public commands = new Collection<string, CommandConfig>();
     public components = new Collection<string, ComponentHandler>();
+    /** Prefix-only handlers, keyed by name and by each alias. Deliberately separate from `commands`. */
+    public messageCommands = new Collection<string, MessageCommandConfig>();
+    /**
+     * Every listener the loader attached, so a reload can detach exactly those and no others.
+     *
+     * Typed against the base EventEmitter rather than discord.js's per-event overloads: those
+     * resolve one concrete event name at a time and cannot accept a `keyof ClientEvents` union.
+     */
+    public eventBindings: Array<{ name: keyof ClientEvents; listener: (...args: unknown[]) => void }> = [];
+
+    /** The client as a plain emitter, for attaching/detaching listeners by a non-literal event name. */
+    asEmitter(): EventEmitter {
+        return this as unknown as EventEmitter;
+    }
     public botName: BotName;
     private token_: string;
 
@@ -62,6 +54,21 @@ export class BotClient extends Client {
             throw err;
         }
     }
+    /** A REST client bound to this bot's token, for callers that publish command routes directly. */
+    rest_(): REST {
+        return new REST({ version: "10" }).setToken(this.token_);
+    }
+
+    /**
+     * Publishes commands to up to two routes: the ordinary one, and — for `scope: "admin"` commands
+     * — the guild set with `!admin-guild`.
+     *
+     * With no admin guild configured the admin payload is not published anywhere. That is
+     * deliberate rather than a fallback to COMMAND_GUILD_ID: admin commands stay fully usable by
+     * prefix, because the prefix router resolves against the loaded command collection and never
+     * against Discord's registry, so skipping costs nothing and never leaks `/whitelist` into every
+     * server the bot joins.
+     */
     async registerSlashCommands(): Promise<void> {
         if (this.commands.size === 0) return;
 
@@ -70,59 +77,49 @@ export class BotClient extends Client {
             return;
         }
 
-        const payload: object[] = [];
+        const { main, admin } = buildCommandPayload(this.commands, this.botName);
+        const rest = this.rest_();
 
-        for (const [name, command] of this.commands) {
-            try {
-                const json = command.data.toJSON();
+        const commandGuildId = process.env.COMMAND_GUILD_ID?.trim();
+        const adminGuildId = await getAdminGuildId();
 
-                const size = commandCharacterCount(json);
-                if (size > 6500) {
-                    Logger.warn(
-                        `Command "${name}" uses ${size} of Discord's 8000-character budget. ` +
-                        `Split a subcommand group out before it starts failing to register.`,
-                        this.botName,
-                    );
-                }
-
-                payload.push(json);
-            } catch (error) {
-                Logger.error(
-                    `Command "${name}" is invalid and was skipped so the rest can still register: ${error}`,
-                    this.botName,
-                );
-            }
+        // One test server for everything is the normal dev setup, and two puts to the same route
+        // would leave only whichever landed second. Merge instead.
+        if (adminGuildId && adminGuildId === commandGuildId) {
+            await putCommandRoute(
+                rest,
+                Routes.applicationGuildCommands(this.user.id, adminGuildId),
+                [...main, ...admin],
+                `guild ${adminGuildId}`,
+                this.botName,
+            );
+            return;
         }
 
-        const rest = new REST({ version: "10" }).setToken(this.token_);
-        const guildId = process.env.COMMAND_GUILD_ID?.trim();
+        const mainRoute = commandGuildId
+            ? Routes.applicationGuildCommands(this.user.id, commandGuildId)
+            : Routes.applicationCommands(this.user.id);
+        const mainLabel = commandGuildId ? `guild ${commandGuildId} (instant)` : "global (up to 1h to appear)";
 
-        try {
-            if (guildId) {
-                Logger.info(`Registering ${payload.length} commands to guild ${guildId} (instant)...`, this.botName);
-                await rest.put(Routes.applicationGuildCommands(this.user.id, guildId), { body: payload });
-                Logger.success(`Registered ${payload.length} commands to guild ${guildId}`, this.botName);
-                return;
-            }
+        await putCommandRoute(rest, mainRoute, main, mainLabel, this.botName);
 
-            Logger.info(`Registering ${payload.length} global commands (may take up to 1h to appear)...`, this.botName);
-            await rest.put(Routes.applicationCommands(this.user.id), { body: payload });
-            Logger.success(`Registered ${payload.length} global commands`, this.botName);
-        } catch (error) {
-            this.reportRegistrationFailure(error, payload);
+        if (!admin.length) return;
+
+        if (!adminGuildId) {
+            Logger.warn(
+                `${admin.length} admin-scope command(s) not registered — no admin guild is set. ` +
+                `Run \`!admin-guild set <id>\` in the server that should host them. They remain usable by prefix.`,
+                this.botName,
+            );
+            return;
         }
-    }
 
-    private reportRegistrationFailure(error: unknown, payload: object[]): void {
-        const raw = (error as { rawError?: { errors?: Record<string, unknown>; message?: string } }).rawError;
-
-        Logger.error(`Failed to register commands: ${(error as Error).message}`, this.botName);
-
-        if (!raw?.errors) return;
-
-        for (const [index, detail] of Object.entries(raw.errors)) {
-            const name = (payload[Number(index)] as { name?: string })?.name ?? `#${index}`;
-            Logger.error(`  → "${name}": ${JSON.stringify(detail)}`, this.botName);
-        }
+        await putCommandRoute(
+            rest,
+            Routes.applicationGuildCommands(this.user.id, adminGuildId),
+            admin,
+            `admin guild ${adminGuildId}`,
+            this.botName,
+        );
     }
 }

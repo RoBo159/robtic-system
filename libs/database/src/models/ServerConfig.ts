@@ -40,6 +40,15 @@ export interface IServerConfig extends Document {
     commandsChannelId?: string;
     /** Roles allowed into the Activity's guild admin panel (besides owner/Administrator). */
     adminPanelRoles: string[];
+    /**
+     * Roles treated as bot administrators in this guild: they pass `access: "admin"` commands
+     * alongside Discord's own Administrator permission.
+     *
+     * Deliberately separate from adminPanelRoles, which grants the web panel. Reusing that field
+     * would hand every panel role the ability to run admin commands in chat — a privilege
+     * escalation delivered by a rename.
+     */
+    botAdminRoles: string[];
     createdAt: Date;
     updatedAt: Date;
 }
@@ -80,6 +89,7 @@ const serverConfigSchema = new Schema<IServerConfig>(
         prefix: { type: String },
         commandsChannelId: { type: String },
         adminPanelRoles: { type: [String], default: [] },
+        botAdminRoles: { type: [String], default: [] },
     },
     { timestamps: true }
 );

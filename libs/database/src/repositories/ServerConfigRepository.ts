@@ -3,6 +3,9 @@ import { ServerConfig, type IServerConfig, type ISentPanel, type IShortcut, type
 const PREFIX_CACHE_TTL_MS = 60_000;
 const prefixCache = new Map<string, { prefix: string | null; expiresAt: number }>();
 
+const BOT_ADMIN_ROLES_CACHE_TTL_MS = 60_000;
+const botAdminRolesCache = new Map<string, { roleIds: string[]; expiresAt: number }>();
+
 export class ServerConfigRepository {
     static async find(guildId: string): Promise<IServerConfig | null> {
         return ServerConfig.findOne({ guildId });
@@ -40,6 +43,44 @@ export class ServerConfigRepository {
             { $set: { adminPanelRoles: roleIds } },
             { upsert: true, returnDocument: "after" }
         ) as Promise<IServerConfig>;
+    }
+
+    /**
+     * Roles that count as bot administrators here.
+     *
+     * Cached, because this is read inside checkPermissions — which runs before the command's own
+     * deferReply() and therefore inside Discord's ~3s acknowledgement window.
+     */
+    static async getBotAdminRolesCached(guildId: string): Promise<string[]> {
+        const cached = botAdminRolesCache.get(guildId);
+        if (cached && cached.expiresAt > Date.now()) return cached.roleIds;
+
+        const config = await ServerConfig.findOne({ guildId });
+        const roleIds = config?.botAdminRoles ?? [];
+        botAdminRolesCache.set(guildId, { roleIds, expiresAt: Date.now() + BOT_ADMIN_ROLES_CACHE_TTL_MS });
+        return roleIds;
+    }
+
+    static async addBotAdminRole(guildId: string, roleId: string): Promise<string[]> {
+        const config = await ServerConfig.findOneAndUpdate(
+            { guildId },
+            { $addToSet: { botAdminRoles: roleId } },
+            { upsert: true, returnDocument: "after" }
+        ) as IServerConfig;
+
+        botAdminRolesCache.delete(guildId);
+        return config.botAdminRoles ?? [];
+    }
+
+    static async removeBotAdminRole(guildId: string, roleId: string): Promise<string[]> {
+        const config = await ServerConfig.findOneAndUpdate(
+            { guildId },
+            { $pull: { botAdminRoles: roleId } },
+            { upsert: true, returnDocument: "after" }
+        ) as IServerConfig;
+
+        botAdminRolesCache.delete(guildId);
+        return config.botAdminRoles ?? [];
     }
 
     static async setPrefix(guildId: string, prefix: string): Promise<IServerConfig> {

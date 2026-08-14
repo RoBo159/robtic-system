@@ -1,5 +1,6 @@
 import { BotClient } from "@core/bot-client";
-import { ModuleLoader } from "@core/module-loader";
+import { loadModules } from "@core/loader/load-modules";
+import { clearFeatureRegistry } from "@core/features/feature-registry";
 import { DiscordErrorHandler } from "@core/handlers";
 import { Logger } from "@logger";
 import { BOT_DEFINITION } from "@config";
@@ -46,14 +47,7 @@ export class ClientManager {
             new DiscordErrorHandler(this.client).init();
         }
 
-        const loader = new ModuleLoader(this.client);
-        await loader.loadCommands(`${this.botModulesRoot}/commands`);
-        await loader.loadComponents(`${this.botModulesRoot}/components`);
-        if (!this.startedAt) {
-            // Re-attaching listeners to a live client would duplicate every one of them, so a reload
-            // refreshes commands and components only.
-            await loader.loadEvents(`${this.botModulesRoot}/events`);
-        }
+        await loadModules(this.client, this.botModulesRoot);
 
         return this.client;
     }
@@ -75,18 +69,36 @@ export class ClientManager {
         this.startedAt = Date.now();
     }
 
-    /** Re-reads commands and components from disk and re-publishes the slash command payload. */
+    /**
+     * Re-reads every module from disk and re-publishes the slash command payload.
+     *
+     * Listeners are detached one by one from the recorded bindings rather than with
+     * `removeAllListeners`, which would also tear down the ones DiscordErrorHandler installs on the
+     * client at construction and never reinstalls.
+     *
+     * Note that Bun caches ES modules, so `import()` returns what it returned the first time: this
+     * re-*registers* from disk, it does not re-*read* changed source. Restart for that.
+     */
     async reload(): Promise<void> {
         if (!this.client) {
             await this.start();
             return;
         }
 
+        const emitter = this.client.asEmitter();
+        for (const { name, listener } of this.client.eventBindings) {
+            emitter.off(name, listener);
+        }
+        this.client.eventBindings = [];
+
         this.client.commands.clear();
         this.client.components.clear();
+        this.client.messageCommands.clear();
+        clearFeatureRegistry();
+
         await this.initialize();
         await this.client.registerSlashCommands();
-        Logger.info("Commands and components reloaded", BOT_DEFINITION.name);
+        Logger.info("Modules reloaded", BOT_DEFINITION.name);
     }
 
     async stop(): Promise<void> {

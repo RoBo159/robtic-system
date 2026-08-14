@@ -1,7 +1,7 @@
 import { ChannelType, ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 import { ClientManager } from "@core/client-manager";
-import { systemStatus } from "../utils/system";
-import { systemReload } from "../utils/system";
+import { systemStatus } from "../../utils/system";
+import { systemReload } from "../../utils/system";
 
 /**
  * `enable` and `disable` used to take a bot name — there were six processes to bring up and take
@@ -10,6 +10,7 @@ import { systemReload } from "../utils/system";
  */
 export default {
     category: "Admin",
+    scope: "admin",
     data: new SlashCommandBuilder()
         .setName("system")
         .setDescription("System management commands")

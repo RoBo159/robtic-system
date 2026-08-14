@@ -68,13 +68,22 @@ export default {
         const { commandName, argString } = parsed;
 
         const command = client.commands.get(commandName);
-        if (!command) return;
+        const messageCommand = client.messageCommands.get(commandName);
+        if (!command && !messageCommand) return;
 
         if (PUNISH_SHORTCUT_COMMANDS.has(commandName)) {
             if (!(await passesShortcutRoleGate(message.guild.id, message.member as GuildMember))) return;
-        } else if (!(await enforceCommandsChannel(message, command.category))) {
+        } else if (!(await enforceCommandsChannel(message, command?.category))) {
             return;
         }
+
+        // A *.message.ts handler runs in front of the normal pipeline and may decline: returning
+        // false hands the message straight on, so it only has to describe what the option parser
+        // can't — chiefly a bare `!coins`, which deserves a list of subcommands rather than a
+        // "missing subcommand" error. Placed after the channel gate so a bare command in the wrong
+        // channel is still deleted rather than answered.
+        if (messageCommand && (await messageCommand.run({ message, client, prefix, argString, command }))) return;
+        if (!command) return;
 
         await runPrefixShortcut({ message, client, command, commandName, argString, prefix });
     },

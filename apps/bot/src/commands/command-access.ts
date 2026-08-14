@@ -8,7 +8,7 @@ import {
 } from "discord.js";
 import type { BotClient } from "@core/bot-client";
 import { COLORS, SUPER_ADMIN_ID } from "@constants";
-import { CommandAccessRepository, StaffTierRepository } from "@database/repositories";
+import { CommandAccessRepository, ServerConfigRepository, StaffTierRepository } from "@database/repositories";
 import { isGuildOperator } from "@bot/utils/access";
 
 export default {
@@ -44,6 +44,21 @@ export default {
             sub.setName("list")
                 .setDescription("Show the access grants configured for a command")
                 .addStringOption(opt => opt.setName("command").setDescription("Command name, e.g. ban").setRequired(true))
+        )
+        .addSubcommandGroup(group =>
+            group.setName("admin-roles")
+                .setDescription("Roles treated as bot administrators across every admin-access command")
+                .addSubcommand(sub =>
+                    sub.setName("add")
+                        .setDescription("Let a role use every admin-access command in this server")
+                        .addRoleOption(opt => opt.setName("role").setDescription("Role to add").setRequired(true))
+                )
+                .addSubcommand(sub =>
+                    sub.setName("remove")
+                        .setDescription("Stop treating a role as a bot administrator")
+                        .addRoleOption(opt => opt.setName("role").setDescription("Role to remove").setRequired(true))
+                )
+                .addSubcommand(sub => sub.setName("list").setDescription("Show this server's bot administrator roles"))
         ),
 
     // Configures the permission system itself — same bootstrap-safe check as /staff-tier and /whitelist.
@@ -62,6 +77,25 @@ export default {
 
         const guildId = interaction.guildId;
         const sub = interaction.options.getSubcommand();
+
+        // Server-wide bot-admin roles: not per-command, so they answer a different question from
+        // the grants below — "who administers the bot here" rather than "who else may run this one".
+        if (interaction.options.getSubcommandGroup(false) === "admin-roles") {
+            const roleIds = sub === "list"
+                ? await ServerConfigRepository.getBotAdminRolesCached(guildId)
+                : sub === "add"
+                    ? await ServerConfigRepository.addBotAdminRole(guildId, interaction.options.getRole("role", true).id)
+                    : await ServerConfigRepository.removeBotAdminRole(guildId, interaction.options.getRole("role", true).id);
+
+            await interaction.editReply({
+                embeds: [new EmbedBuilder()
+                    .setColor(COLORS.success)
+                    .setTitle("Bot administrator roles")
+                    .setDescription(roleIds.length ? roleIds.map(id => `<@&${id}>`).join(", ") : "None. Only server Administrators pass admin-access commands.")],
+            });
+            return;
+        }
+
         const commandName = interaction.options.getString("command", true).trim().toLowerCase();
 
         if (sub === "grant-role" || sub === "revoke-role") {

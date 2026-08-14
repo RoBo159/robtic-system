@@ -6,7 +6,6 @@ export * from "./coins";
 export * from "./common";
 export * from "./community";
 export * from "./dev";
-export * from "./hr";
 export * from "./moderation";
 export * from "./partner";
 export * from "./role-management";
