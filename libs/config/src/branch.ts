@@ -1,10 +1,12 @@
 /**
- * Single source of truth for values that differ per branch/server deployment
- * of this bot system (Discord role/channel IDs, emojis, branding text).
+ * Values that differ per branch/server deployment of this bot system (Discord role/channel IDs,
+ * emojis, branding text).
  *
- * When standing up a new branch for a different server, this is the one
- * file to edit — everything else should read from here instead of
- * hardcoding its own copy.
+ * The permission chain no longer reads from here: staff ranks are per-guild StaffTier rows, server
+ * operators are resolved from Discord's own ownership/Administrator permission (isGuildOperator),
+ * and the bot owner comes from the BOT_OWNER_ID environment variable. What remains is the set of
+ * subsystems still pinned to one server — punishments, language roles, tickets and the rules panel.
+ * Each is per-guild work still to be done, tracked in docs/architecture.md.
  */
 export const BRANCH_CONFIG = {
     server: {
@@ -16,41 +18,16 @@ export const BRANCH_CONFIG = {
     },
 
     roles: {
-        staffTeam: "1479440690063736892",
-        fullPower: ["1362501792407228426"],
-        superAdmin: "695223884735053905",
         lang: {
             en: "1480460792213274714",
             ar: "1480460771984019587",
         },
         members: "1362501805941985492",
         bots: "1362501806604943410",
-        hrStaffTrainee: "1479428092304035912",
 
-        permissionMap: {
-            Owner: ["1362501793128648976"],
-            LeadDev: ["1479427422280618157"],
-            LeadDesign: ["1479427422741856328"],
-            LeadModerator: ["1479427423484514324"],
-            LeadCommunity: ["1479427423820054568"],
-            LeadSupport: ["1479427424193220649"],
-            StaffLead: ["1479427427196342336"],
-            SeniorStaffLead: ["1479427427683012730"],
-            PrincipalStaff: ["1479427428219883541"],
-            DevManager: ["1479427429264003082"],
-            DesignManager: ["1479427429792612352"],
-            CommunityManager: ["1479427430291869870"],
-            EventManager: ["1479427432376307803"],
-            SupportManager: ["1479427432405536829"],
-            ModerationManager: ["1479427433638920245"],
-            HRManager: ["1479427436159697059"],
-            ContentManager: ["1479427434528116736"],
-            OperationManager: ["1479427436163764285"],
-            Expert: ["1479427439888302161"],
-            Professional: ["1479427444678332449"],
-            Associate: ["1479428088210260069"],
-            Member: ["1362501805941985492"],
-        },
+        /** Ticket access roles — see apps/bot/src/config/moderation/ticket.ts. */
+        ticketSupport: "1479440690063736892",
+        ticketAdmin: "1479427432405536829",
 
         memberPunishments: {
             warn: "1479443342390591528",
@@ -73,13 +50,8 @@ export const BRANCH_CONFIG = {
         generalChat: ["1479233532592390315", "1515971805481799770"],
         ticketCategory: "1486500136585789453",
         ticketSupportReport: "1479467031546826833",
-        hrResult: "1482197106868359208",
         devProjectReview: "1479465948422602982",
         devProjectLog: "1480925517317275761",
-    },
-
-    ids: {
-        modmailBot: "1479554317005623509",
     },
 
     emojis: {

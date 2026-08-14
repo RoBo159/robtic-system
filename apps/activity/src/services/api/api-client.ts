@@ -2,7 +2,7 @@ import type { LeaderboardResponse, Profile, ProfileDetails, SearchResult, TopCat
 import type { AdminBootstrap, AdminConfigSection, AdminConfigSnapshot, BotAdminConfig } from "../../types/admin";
 import type { UserSettings, UserSettingsUpdate } from "../../types/settings";
 import type { OwnProject, ProjectSubmission } from "../../types/projects";
-import type { BotProfile, StaffOverview } from "../../types/staff-admin";
+import type { BotProfile } from "../../types/bot-profile";
 
 /** Discord rewrites /.proxy to the backend in production; the Vite dev server proxies it locally. */
 const API_BASE = "/.proxy/api";
@@ -93,14 +93,6 @@ export async function saveProfileCustomization(update: {
     template?: string;
 }): Promise<void> {
     await postJson<{ ok: true }>("/profile/customize", { ...update });
-}
-
-export function fetchStaffOverview(): Promise<StaffOverview> {
-    return request<StaffOverview>("/admin/staff");
-}
-
-export async function setApplyTypeOpen(key: string, isOpen: boolean): Promise<void> {
-    await postJson<{ ok: true }>("/admin/staff/apply", { key, isOpen });
 }
 
 export function fetchBotProfile(): Promise<BotProfile> {

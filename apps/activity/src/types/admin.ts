@@ -3,7 +3,6 @@ export type AdminConfigSection = "server" | "xp" | "streak" | "combo" | "punish"
 export interface AdminServerConfig {
     prefix: string | null;
     commandsChannelId: string | null;
-    modmailChannelId: string | null;
     roles: { members: string | null; bots: string | null; en: string | null; ar: string | null };
     adminPanelRoles: string[];
 }

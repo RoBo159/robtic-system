@@ -25,7 +25,6 @@ export default {
         ),
 
     requiredPermission: 100,
-    department: "Management" as Department,
 
     async run(interaction: ChatInputCommandInteraction, client: BotClient) {
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });

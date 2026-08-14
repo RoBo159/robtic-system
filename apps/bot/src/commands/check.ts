@@ -9,12 +9,12 @@ import {
 import type { BotClient } from "@core/bot-client";
 import { COLORS, CHECK_MESSAGES, CHECK_RESULT_LIMIT } from "@constants";
 import { ActivityRepository, StreakRepository } from "@database/repositories";
-import { hasFullPower, isStaff } from "@bot/utils/access";
+import { isGuildOperator, isStaff } from "@bot/utils/access";
 import { getStaffActivity, getSupportStats } from "@bot/utils/staff-activity";
 
-/** Administrators (and whitelisted super users, via hasFullPower) may run bulk member lookups. */
+/** Administrators (and whitelisted super users, via isGuildOperator) may run bulk member lookups. */
 function isAllowed(member: GuildMember): boolean {
-    return hasFullPower(member) || member.permissions.has(PermissionFlagsBits.Administrator);
+    return isGuildOperator(member) || member.permissions.has(PermissionFlagsBits.Administrator);
 }
 
 export default {

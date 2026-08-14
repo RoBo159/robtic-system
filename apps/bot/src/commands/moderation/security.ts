@@ -8,7 +8,7 @@ import {
 } from "discord.js";
 import { COLORS } from "@constants";
 import { errorEmbed } from "@utils";
-import { getMemberLevel, isManagerOf } from "@bot/utils/access";
+import { getMemberLevel, isManager } from "@bot/utils/access";
 import {
     formatWindow,
     parseWindowToMs,
@@ -58,7 +58,7 @@ function parseActions(raw: string): SecurityActionType[] {
 async function managerOnly(member: GuildMember): Promise<boolean> {
     const { score } = await getMemberLevel(member);
     if (score >= 90) return true;
-    return isManagerOf(member, "Moderation");
+    return isManager(member);
 }
 
 function describeRule(rule: SecurityRule, index: number): string {
@@ -240,7 +240,6 @@ export default {
         ),
 
     requiredPermission: 80,
-    department: "Moderation" as Department,
 
     async run(interaction: ChatInputCommandInteraction) {
         if (!interaction.guildId || !interaction.guild) return;
@@ -250,7 +249,7 @@ export default {
         const member = interaction.member as GuildMember;
         if (!(await managerOnly(member))) {
             await interaction.editReply({
-                embeds: [errorEmbed("Only Moderation Department Managers can use this command.")],
+                embeds: [errorEmbed("Only managers can use this command.")],
             });
             return;
         }

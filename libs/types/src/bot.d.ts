@@ -26,11 +26,8 @@ interface BotStatus {
 }
 
 /**
- * Both used to be fixed unions (one Department/PermissionLevel set for every server). Now that
- * staff tiers/departments are per-guild data (see StaffTier model), these are free-form guild-defined
- * strings — kept as named type aliases purely for readability at call sites, not for compile-time
- * enumeration. The old fixed value sets (Dev/Design/Moderation/... and Owner/LeadDev/DevManager/...)
- * still exist as real string values, they're just no longer statically enforced.
+ * Used to be a fixed union (one PermissionLevel set for every server). Staff tiers are per-guild
+ * data now (see StaffTier model), so this is a free-form guild-defined key — a named alias for
+ * readability at call sites, not for compile-time enumeration.
  */
-type Department = string;
 type PermissionLevel = string;

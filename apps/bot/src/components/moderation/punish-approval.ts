@@ -7,7 +7,7 @@ import {
 import type { BotClient } from "@core/bot-client";
 import { COLORS } from "@constants";
 import { ReasonRepository } from "@database/repositories";
-import { getMemberLevel, isInDepartment } from "@bot/utils/access";
+import { getMemberLevel } from "@bot/utils/access";
 import { executeWarn } from "../../commands/moderation/warn";
 import { executeMute } from "../../commands/moderation/mute";
 import { executeBan } from "../../commands/moderation/jail";
@@ -27,7 +27,7 @@ export default {
         const modMember = interaction.member as GuildMember;
         const modLevel = await getMemberLevel(modMember);
 
-        if (modLevel.score < 60 || !(await isInDepartment(modMember, "Moderation"))) {
+        if (modLevel.score < 60) {
             await interaction.reply({
                 embeds: [new EmbedBuilder().setDescription("❌ Only Expert+ moderators can approve or deny punishment requests.").setColor(COLORS.error)],
                 flags: MessageFlags.Ephemeral,

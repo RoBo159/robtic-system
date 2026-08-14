@@ -33,7 +33,6 @@ export async function getAdminConfig(guildId: string): Promise<AdminConfigSnapsh
         server: {
             prefix: server?.prefix ?? null,
             commandsChannelId: server?.commandsChannelId ?? null,
-            modmailChannelId: server?.modmailChannelId ?? null,
             roles: {
                 members: server?.roles?.members ?? null,
                 bots: server?.roles?.bots ?? null,

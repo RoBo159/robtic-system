@@ -1,5 +1,5 @@
 import { Events, type GuildMember } from "discord.js";
-import { SavedRolesRepository, StaffRepository, StaffTierRepository } from "@database/repositories";
+import { SavedRolesRepository, StaffTierRepository } from "@database/repositories";
 import { Logger } from "@logger";
 
 export default {
@@ -20,18 +20,15 @@ export default {
 
         if (roleIds.length === 0) return;
 
-        const staffRecord = await StaffRepository.findByDiscordId(member.id).catch(() => null);
-        const wasStaff = !!staffRecord;
+        // Staff membership is read off the roles the member actually held against this guild's
+        // StaffTier bindings. That used to be a StaffMember lookup, but a per-guild role match is
+        // both portable and truer: a tier role is what grants staff powers, record or not.
+        const tiers = await StaffTierRepository.list(member.guild.id);
+        const staffRoleSet = new Set(tiers.flatMap((tier) => tier.roleIds));
 
-        let staffRoleIds: string[] = [];
-        let otherRoleIds = roleIds;
-
-        if (wasStaff) {
-            const tiers = await StaffTierRepository.list(member.guild.id);
-            const staffRoleSet = new Set(tiers.flatMap((tier) => tier.roleIds));
-            staffRoleIds = roleIds.filter((id) => staffRoleSet.has(id));
-            otherRoleIds = roleIds.filter((id) => !staffRoleSet.has(id));
-        }
+        const staffRoleIds = roleIds.filter((id) => staffRoleSet.has(id));
+        const otherRoleIds = roleIds.filter((id) => !staffRoleSet.has(id));
+        const wasStaff = staffRoleIds.length > 0;
 
         await SavedRolesRepository.save(member.guild.id, member.id, {
             staffRoles: staffRoleIds,

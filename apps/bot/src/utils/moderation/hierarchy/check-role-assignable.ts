@@ -1,6 +1,6 @@
 import { PermissionFlagsBits, type Guild, type GuildMember, type Role } from "discord.js";
 import { MODERATION_ACTION_MESSAGES as MSG } from "@constants";
-import { hasFullPower } from "@bot/utils/access";
+import { isGuildOperator } from "@bot/utils/access";
 
 /** Null when the role may be assigned, otherwise the reason it may not. */
 export function checkRoleAssignable(guild: Guild, executor: GuildMember, role: Role): string | null {
@@ -13,7 +13,7 @@ export function checkRoleAssignable(guild: Guild, executor: GuildMember, role: R
 
     // A moderator handing out a role at or above their own is how an escalation happens, so the
     // executor is held to the same hierarchy rule as the bot.
-    const exempt = executor.id === guild.ownerId || hasFullPower(executor);
+    const exempt = executor.id === guild.ownerId || isGuildOperator(executor);
     if (!exempt && role.comparePositionTo(executor.roles.highest) >= 0) return MSG.roleAboveExecutor(role.name);
 
     return null;

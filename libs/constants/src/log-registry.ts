@@ -1,7 +1,6 @@
 /** Every log destination configurable via /setup-log, keyed by the identifier stored in LogConfig. */
 export const LOG_REGISTRY = {
     guard_log: { label: "Guard Log", description: "Security and guild guard events" },
-    modmail_log: { label: "ModMail Log", description: "ModMail thread history" },
     punishments_notice: { label: "Punishments Notice", description: "Executed punishment notices" },
     report: { label: "Reports", description: "User-submitted reports" },
     punishments_case: { label: "Punishments Case", description: "Punishment approval workflow" },

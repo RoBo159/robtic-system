@@ -17,7 +17,6 @@ export interface CommandConfig {
         | Omit<SlashCommandBuilder, "addSubcommand" | "addSubcommandGroup">
         | ContextMenuCommandBuilder;
     requiredPermission?: number;
-    department?: Department;
     cooldown?: number;
     /** Grouping label shown in the `!help` category dropdown (e.g. "Streak", "Moderation"). Uncategorized commands fall under "General". */
     category?: string;

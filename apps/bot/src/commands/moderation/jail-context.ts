@@ -21,7 +21,6 @@ export default {
         .setType(ApplicationCommandType.User),
 
     requiredPermission: 20,
-    department: "Moderation" as Department,
 
     async run(interaction: UserContextMenuCommandInteraction, client: BotClient) {
         if (interaction.user.id === interaction.targetId) {

@@ -3,7 +3,7 @@ import type { BotClient } from "@core/bot-client";
 import { Logger } from "@logger";
 import { ChatUtils } from "../utils/moderation/chat";
 import { findShortcutMatch, runCustomCommandShortcut, resolveShortcutDeleteMode, scheduleShortcutCleanup } from "../utils/prefix";
-import { hasFullPower } from "../utils/access";
+import { isGuildOperator } from "../utils/access";
 
 const CHAT_UTIL_COMMANDS = new Set(Object.keys(ChatUtils));
 
@@ -28,7 +28,7 @@ export default {
             return;
         }
 
-        if (!hasFullPower(message.member) && !message.member.permissions.has(PermissionFlagsBits.ManageChannels)) return;
+        if (!isGuildOperator(message.member) && !message.member.permissions.has(PermissionFlagsBits.ManageChannels)) return;
 
         const channel = message.channel as GuildTextBasedChannel;
         const commandName = match.command as keyof typeof ChatUtils;

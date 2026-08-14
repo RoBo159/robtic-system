@@ -4,13 +4,9 @@ import {
     AutocompleteInteraction,
     EmbedBuilder,
     MessageFlags,
-    ActionRowBuilder,
-    ButtonBuilder,
-    ButtonStyle,
     type GuildMember,
 } from "discord.js";
 import type { BotClient } from "@core/bot-client";
-import { BRANCH_CONFIG } from "@config";
 import { COLORS, MEMBER_PUNISHMENTS, PUNISHMENT_POINTS } from "@constants";
 import { PunishmentRepository, ReasonRepository } from "@database/repositories";
 import { errorEmbed } from "@utils";
@@ -70,15 +66,7 @@ export async function executeWarn(
             .setDescription(t("moderation.warn_desc", lang, { reason: localReason }))
             .setTimestamp();
 
-        const modmailButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
-            new ButtonBuilder()
-                .setLabel(t("moderation.contact_modmail", lang))
-                .setStyle(ButtonStyle.Link)
-                .setURL(`https://discord.com/users/${BRANCH_CONFIG.ids.modmailBot}`)
-                .setEmoji("📨"),
-        );
-
-        await user.send({ embeds: [dmEmbed], components: [modmailButton] }).catch(() => null);
+        await user.send({ embeds: [dmEmbed] }).catch(() => null);
     }
 
     const embed = new EmbedBuilder()
@@ -136,7 +124,6 @@ export default {
         ),
 
     requiredPermission: 20,
-    department: "Moderation" as Department,
 
     async run(interaction: ChatInputCommandInteraction, client: BotClient) {
         const sub = interaction.options.getSubcommand();

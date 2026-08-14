@@ -37,7 +37,6 @@ export default {
         ),
 
     requiredPermission: 100,
-    department: "Management" as Department,
 
     async autocomplete(interaction: AutocompleteInteraction) {
         if (!interaction.guildId) {

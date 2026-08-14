@@ -40,7 +40,6 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
                 await ServerConfigRepository.setPrefix(guildId, v.prefix.trim().slice(0, 5));
             }
             await ServerConfigRepository.setCommandsChannel(guildId, idOrEmpty(v.commandsChannelId));
-            await ServerConfigRepository.setModmailChannel(guildId, idOrEmpty(v.modmailChannelId));
             for (const slot of SERVER_ROLE_SLOTS) {
                 await ServerConfigRepository.setRole(guildId, slot, idOrEmpty(v.roles?.[slot]));
             }

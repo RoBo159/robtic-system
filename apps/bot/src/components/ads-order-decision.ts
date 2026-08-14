@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import type { BotClient } from "@core/bot-client";
 import { AdOrderRepository, AdsConfigRepository, TicketRepository } from "@database/repositories";
-import { hasFullPower } from "@bot/utils/access";
+import { isGuildOperator } from "@bot/utils/access";
 import { Logger } from "@logger";
 import { buildOrderReview } from "../utils/ads-order-review";
 import { buildAdsTicketCard, createAdsTicketChannel } from "../utils/ads-ticket";
@@ -25,7 +25,7 @@ export default {
         const member = interaction.member as GuildMember;
         const isManager = Boolean(config.managerRoleId && member.roles.cache.has(config.managerRoleId));
 
-        if (!member.permissions.has(PermissionFlagsBits.ManageGuild) && !hasFullPower(member) && !isManager) {
+        if (!member.permissions.has(PermissionFlagsBits.ManageGuild) && !isGuildOperator(member) && !isManager) {
             await interaction.followUp({ content: "❌ You don't have permission to decide on ad orders.", flags: MessageFlags.Ephemeral });
             return;
         }

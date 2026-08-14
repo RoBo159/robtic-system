@@ -31,7 +31,6 @@ export interface IServerConfig extends Document {
     sentPanels: ISentPanel[];
     shortcuts: IShortcut[];
     roles: IServerRoles;
-    modmailChannelId?: string;
     /** @deprecated legacy single-channel field, replaced by lineChannelIds */
     lineChannelId?: string;
     lineChannelIds: string[];
@@ -76,7 +75,6 @@ const serverConfigSchema = new Schema<IServerConfig>(
             },
             default: {},
         },
-        modmailChannelId: { type: String },
         lineChannelId: { type: String }, // legacy single-channel field, kept for migration fallback
         lineChannelIds: { type: [String], default: [] },
         prefix: { type: String },

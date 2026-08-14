@@ -27,9 +27,6 @@ export const COMMAND_CATEGORIES = [
     "Admin",
     "Moderation",
     "Tickets",
-    "Staff",
-    "Threads",
-    "Tags",
 ] as const;
 
 export type CommandCategory = typeof COMMAND_CATEGORIES[number];
@@ -47,9 +44,6 @@ export const UNRESTRICTED_COMMAND_CATEGORIES: readonly string[] = [
     "Moderation",
     "Utility",
     "Tickets",
-    "Staff",
-    "Threads",
-    "Tags",
 ];
 
 /**

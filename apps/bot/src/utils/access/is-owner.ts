@@ -1,10 +1,10 @@
 import { GuildMember } from "discord.js";
 import { STAFF_TIER_THRESHOLDS } from "@constants";
-import { hasFullPower } from "./has-full-power";
+import { isGuildOperator } from "./is-guild-operator";
 import { getMemberLevel } from "./get-member-level";
 
 export async function isOwner(member: GuildMember): Promise<boolean> {
-    if (hasFullPower(member)) return true;
+    if (isGuildOperator(member)) return true;
     const { score } = await getMemberLevel(member);
     return score >= STAFF_TIER_THRESHOLDS.owner;
 }

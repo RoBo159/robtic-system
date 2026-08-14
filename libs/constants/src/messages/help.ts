@@ -30,9 +30,6 @@ export const HELP_CATEGORY_EMOJI: Record<string, string> = {
     Leveling: "📈",
     Moderation: "🛡️",
     Tickets: "🎫",
-    Tags: "🏷️",
-    Threads: "📨",
-    Staff: "👔",
     Partnership: "🤝",
     Projects: "🚀",
     Minecraft: "⛏️",
@@ -40,63 +37,6 @@ export const HELP_CATEGORY_EMOJI: Record<string, string> = {
     Admin: "🔑",
     Utility: "🧰",
 };
-
-/** Static content of the ModMail command-reference embed. */
-export const MODMAIL_HELP = {
-    title: "📖 ModMail Command Reference",
-    fields: [
-        {
-            name: "Thread Management",
-            value: [
-                "`/thread close` — Close the current modmail thread",
-                "`/thread stop` — Pause the conversation (claimer only)",
-                "`/thread start` — Resume a paused conversation (claimer only)",
-                "`/thread reopen` — Reopen a closed thread (managers only)",
-                "`/thread status` — Display all active and closed threads",
-            ].join("\n"),
-        },
-        {
-            name: "Communication",
-            value: [
-                "`!reply <message>` — Send a message to the user",
-                "`/transfer @staff` — Transfer the thread to another staff member",
-            ].join("\n"),
-        },
-        {
-            name: "Tags",
-            value: [
-                "`!tag` — List all available tags",
-                "`!tag <key>` — Send a tag message to the user",
-                "`/tag create` — Create a new tag",
-                "`/tag delete` — Delete an existing tag",
-                "`/tag help` — Show tag usage and template variables",
-            ].join("\n"),
-        },
-        {
-            name: "Notes",
-            value: [
-                "`!note` — View notes for the thread user",
-                "📝 **Notes** button — View notes from the info embed",
-            ].join("\n"),
-        },
-        {
-            name: "Info",
-            value: [
-                "✋ **Claim** button — Claim the thread to handle it",
-                "🔒 **Close** button — Close the thread from the info embed",
-            ].join("\n"),
-        },
-    ],
-} as const;
-
-/** Static content of the tag-system guide embed; tag/variable lists are appended at render time. */
-export const TAG_HELP = {
-    title: "📋 Tag System Guide",
-    usageFieldName: "Usage",
-    usageFieldValue: "`!tag` — List all tags\n`!tag <key>` — Send a tag to the user\n`/tag create` — Create a new tag\n`/tag delete` — Delete a tag",
-    availableTagsFieldName: "Available Tags",
-    templateVariablesFieldName: "Template Variables",
-} as const;
 
 /** Static content of the moderation command-reference embed. */
 export const MODERATION_HELP = {

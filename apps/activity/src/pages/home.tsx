@@ -11,10 +11,9 @@ import { ProjectsView } from "./projects-view";
 import { AdminView } from "./admin-view";
 import { ModerationView } from "./moderation-view";
 import { BotAdminView } from "./bot-admin-view";
-import { StaffAdminView } from "./staff-admin-view";
 import { LangToggle } from "../components/lang-toggle";
 
-type Tab = "home" | "profile" | "top" | "projects" | "moderation" | "admin" | "staff" | "bot";
+type Tab = "home" | "profile" | "top" | "projects" | "moderation" | "admin" | "bot";
 
 function viewerAvatarUrl(userId: string, avatar: string | null | undefined): string | null {
     if (!avatar) return null;
@@ -86,7 +85,6 @@ export function Home() {
         { id: "profile", label: "My Profile", icon: "user" },
         ...(isDevGuild ? [{ id: "projects", label: "Projects", icon: "rocket" } as UserMenuItem] : []),
         ...(isAdmin ? [
-            { id: "staff", label: "Staff", icon: "users" } as UserMenuItem,
             { id: "moderation", label: "Moderate", icon: "scale" } as UserMenuItem,
             { id: "admin", label: "Admin Panel", icon: "gear" } as UserMenuItem,
         ] : []),
@@ -95,7 +93,7 @@ export function Home() {
 
     // If a gated tab is open without the matching flag (bootstrap resolved late), fall back home.
     let activeTab: Tab = tab;
-    if ((tab === "admin" || tab === "moderation" || tab === "staff") && !isAdmin) activeTab = "home";
+    if ((tab === "admin" || tab === "moderation") && !isAdmin) activeTab = "home";
     if (tab === "bot" && !isSuperUser) activeTab = "home";
     if (tab === "projects" && !isDevGuild) activeTab = "home";
 
@@ -138,7 +136,6 @@ export function Home() {
                 )}
                 {activeTab === "top" && <LeaderboardView onSelectUser={openProfile} />}
                 {activeTab === "projects" && isDevGuild && <ProjectsView />}
-                {activeTab === "staff" && isAdmin && <StaffAdminView />}
                 {activeTab === "moderation" && isAdmin && <ModerationView />}
                 {activeTab === "admin" && isAdmin && admin.status === "ready" && <AdminView data={admin.data} />}
                 {activeTab === "bot" && isSuperUser && <BotAdminView currentGuildId={state.session.guildId} />}

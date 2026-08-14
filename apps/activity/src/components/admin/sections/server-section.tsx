@@ -44,12 +44,6 @@ export function ServerSection({ initial, channels, roles }: Props) {
                 options={chOpts}
                 onChange={(v) => setDraft({ ...draft, commandsChannelId: v })}
             />
-            <EntitySelect
-                label="ModMail channel"
-                value={draft.modmailChannelId}
-                options={chOpts}
-                onChange={(v) => setDraft({ ...draft, modmailChannelId: v })}
-            />
             <EntitySelect label="Members role" value={draft.roles.members} options={roleOpts} onChange={(v) => setRole("members", v)} />
             <EntitySelect label="Bots role" value={draft.roles.bots} options={roleOpts} onChange={(v) => setRole("bots", v)} />
             <EntitySelect label="English role" value={draft.roles.en} options={roleOpts} onChange={(v) => setRole("en", v)} />

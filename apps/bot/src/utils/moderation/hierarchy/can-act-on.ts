@@ -1,5 +1,5 @@
 import type { GuildMember } from "discord.js";
-import { hasFullPower } from "@bot/utils/access";
+import { isGuildOperator } from "@bot/utils/access";
 
 /**
  * Whether `executor` outranks `target` in the role hierarchy.
@@ -12,7 +12,7 @@ export function canActOn(executor: GuildMember, target: GuildMember): boolean {
     if (executor.id === target.id) return false;
     if (target.id === executor.guild.ownerId) return false;
     if (executor.id === executor.guild.ownerId) return true;
-    if (hasFullPower(executor)) return true;
+    if (isGuildOperator(executor)) return true;
 
     return executor.roles.highest.comparePositionTo(target.roles.highest) > 0;
 }

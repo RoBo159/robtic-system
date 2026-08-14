@@ -12,8 +12,6 @@ import { updateSettingsRoute } from "./routes/update-settings";
 import { customizeProfileRoute } from "./routes/customize-profile";
 import { getBotAdminConfigRoute } from "./routes/get-bot-admin-config";
 import { updateBotAdminConfigRoute } from "./routes/update-bot-admin-config";
-import { getStaffAdminRoute } from "./routes/get-staff-admin";
-import { updateApplyTypeRoute } from "./routes/update-apply-type";
 import { getBotProfileRoute } from "./routes/get-bot-profile";
 import { updateBotProfileRoute } from "./routes/update-bot-profile";
 import { getProfileDetailsRoute } from "./routes/get-profile-details";
@@ -61,9 +59,6 @@ Bun.serve({
             if (request.method === "POST" && url.pathname === "/api/bot-admin/config") {
                 return await updateBotAdminConfigRoute(request);
             }
-            if (request.method === "POST" && url.pathname === "/api/admin/staff/apply") {
-                return await updateApplyTypeRoute(request);
-            }
             if (request.method === "POST" && url.pathname === "/api/admin/bot-profile") {
                 return await updateBotProfileRoute(request);
             }
@@ -80,9 +75,6 @@ Bun.serve({
                 }
                 if (url.pathname === "/api/bot-admin/config") {
                     return await getBotAdminConfigRoute(request);
-                }
-                if (url.pathname === "/api/admin/staff") {
-                    return await getStaffAdminRoute(request, url);
                 }
                 if (url.pathname === "/api/admin/bot-profile") {
                     return await getBotProfileRoute(request, url);

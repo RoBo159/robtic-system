@@ -16,7 +16,6 @@ export default {
         .setDescription("Configure a global log channel"),
 
     requiredPermission: 100,
-    department: "Management" as Department,
 
     async run(interaction: ChatInputCommandInteraction, _client: BotClient) {
         const options = Object.entries(LOG_REGISTRY).map(([key, meta]) =>

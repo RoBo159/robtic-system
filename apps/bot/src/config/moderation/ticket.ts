@@ -30,8 +30,8 @@ export const TICKET_CATEGORIES: TicketCategory[] = [
         description: "اذا تريد اي مساعدة لحل مشاكلك لا تترد في فتح تذكرة و سيكون طاقم دعم الفني في خدمة",
         emoji: "🎫",
         parentId: BRANCH_CONFIG.channels.ticketCategory,
-        supportRoleId: BRANCH_CONFIG.roles.staffTeam,
-        adminRoleId: BRANCH_CONFIG.roles.permissionMap.SupportManager[0],
+        supportRoleId: BRANCH_CONFIG.roles.ticketSupport,
+        adminRoleId: BRANCH_CONFIG.roles.ticketAdmin,
         staffPoints: 1,
     },
     {
@@ -40,8 +40,8 @@ export const TICKET_CATEGORIES: TicketCategory[] = [
         description: "Help with technical difficulties.",
         emoji: "🛠️",
         parentId: BRANCH_CONFIG.channels.ticketCategory,
-        supportRoleId: BRANCH_CONFIG.roles.staffTeam,
-        adminRoleId: BRANCH_CONFIG.roles.permissionMap.SupportManager[0],
+        supportRoleId: BRANCH_CONFIG.roles.ticketSupport,
+        adminRoleId: BRANCH_CONFIG.roles.ticketAdmin,
         staffPoints: 1,
     },
     {
@@ -50,8 +50,8 @@ export const TICKET_CATEGORIES: TicketCategory[] = [
         description: "Ask for a feature or improvement.",
         emoji: "💡",
         parentId: BRANCH_CONFIG.channels.ticketCategory,
-        supportRoleId: BRANCH_CONFIG.roles.staffTeam,
-        adminRoleId: BRANCH_CONFIG.roles.permissionMap.SupportManager[0],
+        supportRoleId: BRANCH_CONFIG.roles.ticketSupport,
+        adminRoleId: BRANCH_CONFIG.roles.ticketAdmin,
         staffPoints: 1,
     },
     {
@@ -60,8 +60,8 @@ export const TICKET_CATEGORIES: TicketCategory[] = [
         description: "Report bugs or mistakes.",
         emoji: "🐛",
         parentId: BRANCH_CONFIG.channels.ticketCategory,
-        supportRoleId: BRANCH_CONFIG.roles.staffTeam,
-        adminRoleId: BRANCH_CONFIG.roles.permissionMap.SupportManager[0],
+        supportRoleId: BRANCH_CONFIG.roles.ticketSupport,
+        adminRoleId: BRANCH_CONFIG.roles.ticketAdmin,
         staffPoints: 1,
     },
 ];

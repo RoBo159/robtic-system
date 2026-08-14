@@ -9,7 +9,7 @@ import {
 import type { BotClient } from "@core/bot-client";
 import { COLORS, SUPER_ADMIN_ID } from "@constants";
 import { CommandAccessRepository, StaffTierRepository } from "@database/repositories";
-import { hasFullPower } from "@bot/utils/access";
+import { isGuildOperator } from "@bot/utils/access";
 
 export default {
     category: "Configuration",
@@ -49,7 +49,7 @@ export default {
     // Configures the permission system itself — same bootstrap-safe check as /staff-tier and /whitelist.
     async run(interaction: ChatInputCommandInteraction, _client: BotClient) {
         const member = interaction.member as GuildMember | null;
-        if (interaction.user.id !== SUPER_ADMIN_ID && !(member && hasFullPower(member))) {
+        if (interaction.user.id !== SUPER_ADMIN_ID && !(member && isGuildOperator(member))) {
             await interaction.reply({
                 embeds: [new EmbedBuilder().setDescription("❌ You are not authorized to use this command.").setColor(COLORS.error)],
                 flags: MessageFlags.Ephemeral,
@@ -123,6 +123,6 @@ export default {
             .filter(t => t.key.toLowerCase().includes(focused.value.toLowerCase()) || t.name.toLowerCase().includes(focused.value.toLowerCase()))
             .slice(0, 25);
 
-        await interaction.respond(filtered.map(t => ({ name: `${t.department ?? "—"} / ${t.name} (${t.key})`, value: t.key })));
+        await interaction.respond(filtered.map(t => ({ name: `${t.name} (${t.key})`, value: t.key })));
     },
 };

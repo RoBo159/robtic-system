@@ -3,7 +3,7 @@ import { MessageFlags, ModalSubmitInteraction, GuildMember, ActionRowBuilder, St
 import { ProjectShareRepository } from "@database/repositories";
 import { ProjectType } from "@database/models/ProjectShare";
 import { GENERIC_URL_REGEX, PROJECT_ID_LENGTH, PROJECT_SHARE_MODAL, PROJECT_SHARE_TYPE_PROMPT } from "@constants";
-import { isOwner, hasFullPower, isInDepartment } from "@bot/utils/access";
+import { isOwner, isGuildOperator, isStaff } from "@bot/utils/access";
 import { buildPendingProjectContainer } from "@bot/utils/dev/build-pending-project-container";
 import { normalizeProjectType } from "@bot/utils/dev/sanitize-project";
 
@@ -35,11 +35,11 @@ export default {
 
         const member = interaction.member as GuildMember;
         let pType: ProjectType = ProjectType.Member;
-        const isSystem = (await isOwner(member)) || hasFullPower(member);
+        const isSystem = (await isOwner(member)) || isGuildOperator(member);
 
         if (isSystem) {
             pType = ProjectType.System;
-        } else if (await isInDepartment(member, "Dev")) {
+        } else if (await isStaff(member)) {
             pType = ProjectType.Developer;
         }
 

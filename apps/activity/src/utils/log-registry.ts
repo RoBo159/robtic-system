@@ -4,7 +4,6 @@
  */
 export const LOG_LABELS: Record<string, string> = {
     guard_log: "Guard Log",
-    modmail_log: "ModMail Log",
     punishments_notice: "Punishments Notice",
     report: "Reports",
     punishments_case: "Punishments Case",

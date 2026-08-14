@@ -22,7 +22,7 @@ export class SuperUserRepository {
     }
 
     /**
-     * Synchronous variant for callers that can't await (e.g. hasFullPower, used inside sync guards).
+     * Synchronous variant for callers that can't await (e.g. isGuildOperator, used inside sync guards).
      * Reads only the already-warmed cache — `preload()` runs at boot, and if it somehow hasn't yet,
      * this returns false and the caller falls through to the normal permission checks. Fail-closed:
      * it can under-grant for a moment, never over-grant.

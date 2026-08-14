@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { SaveStatus } from "../../../hooks/use-section-save";
-import type { BotProfile } from "../../../types/staff-admin";
+import type { BotProfile } from "../../../types/bot-profile";
 import { fetchBotProfile, saveBotProfile } from "../../../services/api/api-client";
 import { SectionShell } from "../section-shell";
 import { Avatar } from "../../avatar";

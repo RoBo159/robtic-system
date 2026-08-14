@@ -42,19 +42,6 @@ export class ServerConfigRepository {
         ) as Promise<IServerConfig>;
     }
 
-    static async setModmailChannel(guildId: string, channelId: string): Promise<IServerConfig> {
-        return ServerConfig.findOneAndUpdate(
-            { guildId },
-            { $set: { modmailChannelId: channelId } },
-            { upsert: true, returnDocument: "after" }
-        ) as Promise<IServerConfig>;
-    }
-
-    static async getModmailChannel(guildId: string): Promise<string | null> {
-        const config = await ServerConfig.findOne({ guildId });
-        return config?.modmailChannelId ?? null;
-    }
-
     static async setPrefix(guildId: string, prefix: string): Promise<IServerConfig> {
         const config = await ServerConfig.findOneAndUpdate(
             { guildId },

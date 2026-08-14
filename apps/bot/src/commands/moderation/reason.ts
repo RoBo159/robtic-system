@@ -49,7 +49,6 @@ export default {
         ),
 
     requiredPermission: 80,
-    department: "Moderation" as Department,
 
     async run(interaction: ChatInputCommandInteraction, client: BotClient) {
         const sub = interaction.options.getSubcommand();

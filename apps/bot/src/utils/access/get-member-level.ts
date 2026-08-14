@@ -3,9 +3,8 @@ import { StaffTierRepository } from "@database/repositories";
 import { matchesTier } from "./matches-tier";
 
 /**
- * Per-guild staff tiers/departments (see StaffTier model) replaced the old global
- * ROLE_MAP/PERMISSION_HIERARCHY — the check reads a per-guild, cached tier list
- * instead of a hardcoded constant, hence the `async`.
+ * The member's highest matching staff tier. Tiers are per-guild rows (see StaffTier) rather than a
+ * hardcoded ladder, so this reads a cached list per guild — hence the `async`.
  */
 export async function getMemberLevel(member: GuildMember): Promise<{ level: string; score: number }> {
     const tiers = await StaffTierRepository.getCached(member.guild.id);

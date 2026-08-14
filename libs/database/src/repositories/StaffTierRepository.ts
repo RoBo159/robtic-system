@@ -9,7 +9,6 @@ export class StaffTierRepository {
         key: string,
         name: string,
         score: number,
-        department: string | null,
         firstRoleId?: string,
     ): Promise<IStaffTier> {
         const tier = await StaffTier.create({
@@ -17,7 +16,6 @@ export class StaffTierRepository {
             key,
             name,
             score,
-            department,
             roleIds: firstRoleId ? [firstRoleId] : [],
         });
         this.invalidate(guildId);

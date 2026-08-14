@@ -29,7 +29,6 @@ export default {
         ),
 
     requiredPermission: 60,
-    department: "Moderation" as Department,
 
     async run(interaction: ChatInputCommandInteraction, _client: BotClient) {
         const guild = interaction.guild;

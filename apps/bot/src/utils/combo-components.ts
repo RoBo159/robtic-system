@@ -12,7 +12,7 @@ import {
 } from "discord.js";
 import { COMBO_LEADERBOARD_PERIODS, SUPER_ADMIN_ID, type ComboLeaderboardPeriod, type ComboLeaderboardType } from "@constants";
 import { SuperUserRepository } from "@database/repositories";
-import { isAnyManager } from "@bot/utils/access";
+import { isManager } from "@bot/utils/access";
 
 export type ComboPage = "status" | "statistics" | "history" | "leaderboards" | "records" | "settings";
 
@@ -35,7 +35,7 @@ const COMBO_LEADERBOARD_TYPES: ComboLeaderboardType[] = ["combo", "streak", "par
 export async function isComboAdmin(userId: string, member: GuildMember | null): Promise<boolean> {
     if (userId === SUPER_ADMIN_ID) return true;
     if (await SuperUserRepository.isWhitelisted(userId)) return true;
-    return member ? isAnyManager(member) : false;
+    return member ? isManager(member) : false;
 }
 
 /** Only the invoking user may operate their own /combo message's components. */

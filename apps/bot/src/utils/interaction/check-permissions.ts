@@ -1,9 +1,9 @@
 import { MessageFlags, type ChatInputCommandInteraction, type GuildMember, type Interaction } from "discord.js";
 import type { CommandConfig } from "@typings/command";
-import { FULL_POWER_ROLE_IDS, SUPER_ADMIN_ID, STAFF_TIER_THRESHOLDS, INTERACTION_MESSAGES } from "@constants";
+import { SUPER_ADMIN_ID, STAFF_TIER_THRESHOLDS, INTERACTION_MESSAGES } from "@constants";
 import { errorEmbed } from "@utils";
 import { SuperUserRepository } from "@database/repositories";
-import { getMemberLevel, isInDepartment } from "@bot/utils/access";
+import { getMemberLevel, isGuildOperator } from "@bot/utils/access";
 import { hasCommandAccessGrant } from "@bot/utils/command-access";
 import { scheduleDeletion } from "./schedule-deletion";
 
@@ -32,7 +32,7 @@ export const checkPermissions = async (intract: Interaction, command: CommandCon
         return false;
     }
 
-    if (FULL_POWER_ROLE_IDS.some(id => member.roles.cache.has(id))) return true;
+    if (isGuildOperator(member)) return true;
 
     // Per-guild /command-access grant — an additional way in, on top of the check below.
     if (hasGrant) return true;
@@ -44,15 +44,6 @@ export const checkPermissions = async (intract: Interaction, command: CommandCon
     if (command.requiredPermission && score < command.requiredPermission) {
         await interaction.reply({
             embeds: [errorEmbed(INTERACTION_MESSAGES.noPermission)],
-            flags: MessageFlags.Ephemeral,
-        });
-        scheduleDeletion(() => interaction.deleteReply());
-        return false;
-    }
-
-    if (command.department && !(await isInDepartment(member, command.department))) {
-        await interaction.reply({
-            embeds: [errorEmbed(INTERACTION_MESSAGES.departmentRestricted(command.department))],
             flags: MessageFlags.Ephemeral,
         });
         scheduleDeletion(() => interaction.deleteReply());
