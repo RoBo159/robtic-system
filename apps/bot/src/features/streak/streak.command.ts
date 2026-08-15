@@ -6,7 +6,6 @@ import { buildFeatureCommands } from "@core/features";
 import { streakFeature } from "./streak";
 import { view } from "./commands/view";
 import { top } from "./commands/top";
-import { check } from "./commands/check";
 import { recover } from "./commands/recover";
 import { add as rewardAdd } from "./commands/reward/add";
 import { remove as rewardRemove } from "./commands/reward/remove";
@@ -14,6 +13,7 @@ import { list as rewardList } from "./commands/reward/list";
 import { channelAdd } from "./commands/config/channel-add";
 import { channelRemove } from "./commands/config/channel-remove";
 import { channelList } from "./commands/config/channel-list";
+import { channelAnnounce } from "./commands/config/channel-announce";
 import { reminderDefault } from "./commands/config/reminder-default";
 import { settings } from "./commands/config/settings";
 import { restore } from "./commands/config/restore";
@@ -30,6 +30,7 @@ const configHandlers: Record<string, FeatureSubcommandHandler> = {
     "channel:add": channelAdd,
     "channel:remove": channelRemove,
     "channel:list": channelList,
+    "channel:announce": channelAnnounce,
     "reminder:default": reminderDefault,
     settings,
     return: restore,
@@ -44,7 +45,6 @@ async function deferEphemeral(interaction: CommandInteractionLike): Promise<void
 export default buildFeatureCommands(streakFeature, {
     streak: view,
     "streak-top": top,
-    "streak-check": check,
     "streak-return": recover,
 
     "streak-reward": async (interaction: CommandInteractionLike, client: BotClient) => {

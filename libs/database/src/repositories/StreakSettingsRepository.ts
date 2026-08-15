@@ -58,4 +58,13 @@ export class StreakSettingsRepository {
             { upsert: true, returnDocument: "after" }
         ) as Promise<IStreakSettings>;
     }
+
+    /** Passing null clears it, which puts announcements back in whichever channel earned the streak. */
+    static async setAnnounceChannel(guildId: string, channelId: string | null): Promise<IStreakSettings> {
+        return StreakSettings.findOneAndUpdate(
+            { guildId },
+            channelId ? { announceChannelId: channelId } : { $unset: { announceChannelId: "" } },
+            { upsert: true, returnDocument: "after" }
+        ) as Promise<IStreakSettings>;
+    }
 }

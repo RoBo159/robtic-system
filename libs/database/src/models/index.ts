@@ -7,6 +7,7 @@ export { ServiceTier, type IServiceTier } from "./ServiceTier";
 export { BotConfig, type IBotConfig } from "./BotConfig";
 export { Send, type ISend } from "./send";
 export { Note, type INote } from "./Note";
+export { Reply, type IReply } from "./Reply";
 export { Reason, type IReason } from "./Reason";
 export { LevelReward, type ILevelReward } from "./LevelReward";
 export { XPSettings, type IXPSettings } from "./XPSettings";

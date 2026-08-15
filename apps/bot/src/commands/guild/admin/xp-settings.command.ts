@@ -57,6 +57,14 @@ export default {
         )
         .addSubcommand(sub =>
             sub
+                .setName("level-up-channel")
+                .setDescription("Where level-ups are announced (leave empty to stop announcing them)")
+                .addChannelOption(opt =>
+                    opt.setName("channel").setDescription("Announcement channel").addChannelTypes(ChannelType.GuildText).setRequired(false)
+                )
+        )
+        .addSubcommand(sub =>
+            sub
                 .setName("view")
                 .setDescription("View current XP settings")
         ),
@@ -101,6 +109,17 @@ export default {
 
             await interaction.editReply({
                 content: `XP decay is now **${enabled ? "enabled" : "disabled"}**.`,
+            });
+        }
+
+        else if (sub === "level-up-channel") {
+            const channel = interaction.options.getChannel("channel");
+            await XPSettingsRepository.setLevelUpChannel(guildId, channel?.id ?? null);
+
+            await interaction.editReply({
+                content: channel
+                    ? `Level-ups will be announced in <#${channel.id}>.`
+                    : "Level-ups will no longer be announced.",
             });
         }
 

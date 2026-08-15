@@ -7,6 +7,8 @@ export interface IXPSettings extends Document {
     staffChannels: string[];
     allowedRoles: string[];
     decayEnabled: boolean;
+    /** Where "reached level N" is posted. Unset means level-ups are not announced publicly. */
+    levelUpChannelId?: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -19,6 +21,7 @@ const xpSettingsSchema = new Schema<IXPSettings>(
         staffChannels: [{ type: String }],
         allowedRoles: [{ type: String }],
         decayEnabled: { type: Boolean, default: true },
+        levelUpChannelId: { type: String },
     },
     { timestamps: true }
 );

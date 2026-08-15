@@ -100,4 +100,13 @@ export class XPSettingsRepository {
             { upsert: true, returnDocument: "after" }
         );
     }
+
+    /** Passing null clears it, which stops level-ups being announced publicly. */
+    static async setLevelUpChannel(guildId: string, channelId: string | null): Promise<IXPSettings> {
+        return XPSettings.findOneAndUpdate(
+            { guildId },
+            channelId ? { levelUpChannelId: channelId } : { $unset: { levelUpChannelId: "" } },
+            { upsert: true, returnDocument: "after" }
+        ) as Promise<IXPSettings>;
+    }
 }

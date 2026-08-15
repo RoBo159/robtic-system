@@ -57,7 +57,7 @@ export async function processStreakMessage(message: Message): Promise<void> {
         );
     }
 
-    await sendStreakReply(message, updated);
+    await sendStreakReply(message, updated, settings);
     await sendStreakDM(message.author, updated);
     await announceStreakRewards(message.guild, message.author, guildId, updated.currentStreak);
     await awardStreakCoin(guildId, message.author.id, message.author.username, updated.currentStreak).catch(err =>

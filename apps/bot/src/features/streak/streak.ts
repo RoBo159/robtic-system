@@ -32,18 +32,7 @@ export const streakFeature = defineFeature({
             scope: "guild",
             access: "general",
             category: "Streak",
-        },
-        {
-            name: "streak-check",
-            description: "التحقق من حالة مكافآت التتابع لعضو",
-            scope: "guild",
-            access: "general",
-            category: "Streak",
-            options: [
-                { name: "user", description: "العضو (افتراضيًا أنت)", type: "user" },
-            ],
-        },
-        {
+        },        {
             name: "streak-return",
             description: "Recover your last streak, if it broke recently",
             scope: "guild",
@@ -103,6 +92,13 @@ export const streakFeature = defineFeature({
                             ],
                         },
                         { name: "list", description: "List configured streak channels" },
+                        {
+                            name: "announce",
+                            description: "Where streak milestones are announced (leave empty to clear)",
+                            options: [
+                                { name: "channel", description: "Announcement channel", type: "channel", channelTypes: [ChannelType.GuildText] },
+                            ],
+                        },
                     ],
                 },
                 {

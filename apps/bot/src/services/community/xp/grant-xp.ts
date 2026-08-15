@@ -6,6 +6,7 @@ import { AI_MEANINGFUL_SKIP_CONFIDENCE } from "@constants";
 import { Logger } from "@logger";
 import { analyzeActivity } from "@core/ai";
 import { calculateLevel } from "@core/xp";
+import { announceLevelUp } from "./announce-level-up";
 import { randomXP } from "./random-xp";
 import { isOnXPCooldown } from "./is-on-xp-cooldown";
 import { grantLevelRewards } from "./grant-level-rewards";

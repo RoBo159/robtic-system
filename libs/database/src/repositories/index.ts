@@ -4,6 +4,7 @@ export * from "./MembershipRepository";
 export * from "./PunishmentRepository";
 export * from "./TicketRepository";
 export * from "./NoteRepository";
+export * from "./ReplyRepository";
 export * from "./ReasonRepository";
 export * from "./LevelRewardRepository";
 export * from "./XPSettingsRepository";
