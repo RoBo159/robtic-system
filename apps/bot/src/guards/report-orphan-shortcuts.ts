@@ -1,8 +1,23 @@
 import type { BotClient } from "@core/bot-client";
 import { Logger } from "@logger";
 import { ServerConfig } from "@database/models";
+import { ChatUtils } from "@bot/utils/moderation/chat";
+import { isValidCommandPath } from "@bot/utils/prefix";
 
 const CTX = "shortcut-audit";
+
+const CHAT_UTIL_COMMANDS = new Set(Object.keys(ChatUtils));
+
+/**
+ * A shortcut target is valid if it is a channel utility, or a runnable command path.
+ *
+ * Path-aware on purpose: targets are stored as `warn add`, and checking only the first word would
+ * pass a bare `warn` that cannot actually run, while a name-only check would flag every correct
+ * path as an orphan.
+ */
+function isReachable(client: BotClient, target: string): boolean {
+    return CHAT_UTIL_COMMANDS.has(target) || isValidCommandPath(client, target);
+}
 
 /**
  * Reports `/shortcut` rows pointing at commands that no longer exist.
@@ -22,7 +37,7 @@ export async function reportOrphanShortcuts(client: BotClient): Promise<void> {
     let orphans = 0;
 
     for (const config of configs) {
-        const missing = config.shortcuts.filter(shortcut => !client.commands.has(shortcut.command));
+        const missing = config.shortcuts.filter(shortcut => !isReachable(client, shortcut.command));
         if (!missing.length) continue;
 
         orphans += missing.length;

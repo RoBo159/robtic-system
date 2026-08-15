@@ -2,7 +2,7 @@ import { EmbedBuilder, type Guild } from "discord.js";
 import {
     COLORS,
     TOP_CATEGORY_EMOJI,
-    TOP_DISPLAY_LIMIT,
+    TOP_DETAIL_LIMIT,
     VIEWER_RANK_SCAN_LIMIT,
     TOP_RANK_GAP_SEPARATOR,
     type ComboLeaderboardPeriod,
@@ -18,7 +18,12 @@ function formatEntry(rank: number, entry: TopEntry, unit: string, isViewer: bool
     return isViewer ? `**${line}**` : line;
 }
 
-/** `viewerId` bolds that member's line — inline in the top 5, or appended below (with a "...." separator past rank 6). */
+/**
+ * One category in depth: the top ten, plus the viewer's own standing.
+ *
+ * The viewer's line is bolded in place when they are already listed, and appended below otherwise —
+ * with a "...." separator when there is a gap, so rank 40 does not read as rank 11.
+ */
 export async function buildTopEmbed(
     guild: Guild,
     category: TopCategory,
@@ -26,7 +31,7 @@ export async function buildTopEmbed(
     lang: Lang,
     viewerId?: string,
 ): Promise<EmbedBuilder> {
-    const entries = await getTopEntries(guild.id, category, period, TOP_DISPLAY_LIMIT);
+    const entries = await getTopEntries(guild.id, category, period, TOP_DETAIL_LIMIT);
     const unit = t(`top.unit_${category}`, lang);
 
     const lines = entries.map((e, i) => formatEntry(i + 1, e, unit, e.discordId === viewerId));
@@ -37,8 +42,8 @@ export async function buildTopEmbed(
 
         if (viewerIndex !== -1) {
             const rank = viewerIndex + 1;
-            if (rank > TOP_DISPLAY_LIMIT + 1) lines.push(TOP_RANK_GAP_SEPARATOR);
-            lines.push(formatEntry(rank, scanned[viewerIndex], unit, true));
+            if (rank > TOP_DETAIL_LIMIT + 1) lines.push(TOP_RANK_GAP_SEPARATOR);
+            lines.push(formatEntry(rank, scanned[viewerIndex]!, unit, true));
         }
     }
 

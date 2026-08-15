@@ -146,7 +146,10 @@
             "unit_combo": "combo score",
             "unit_xp": "XP",
             "unit_messages": "messages",
-            "unit_coins": "coins"
+            "unit_coins": "coins",
+            "overview_title": "🏆 Leaderboards ({period}) — {guild}",
+            "overview_footer": "Use /top <category> for the full top 10 and your own rank.",
+            "unknown_category": "Unknown leaderboard. Pick one of: {categories}."
         }
     },
     "ar": {
@@ -296,7 +299,10 @@
             "unit_combo": "نقطة كومبو",
             "unit_xp": "خبرة",
             "unit_messages": "رسالة",
-            "unit_coins": "عملة"
+            "unit_coins": "عملة",
+            "overview_title": "🏆 لوحات المتصدرين ({period}) — {guild}",
+            "overview_footer": "استخدم /top <الفئة> لعرض أفضل 10 مع ترتيبك.",
+            "unknown_category": "لوحة غير معروفة. اختر واحدة من: {categories}."
         }
     }
 }

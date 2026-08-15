@@ -11,8 +11,14 @@ export const TOP_CATEGORY_EMOJI: Record<TopCategory, string> = {
     coins: "🪙",
 };
 
-/** How many ranks the leaderboard shows by default. */
+/** Ranks shown per category in the combined `/top` overview. */
 export const TOP_DISPLAY_LIMIT = 5;
+
+/** Ranks shown when one category is asked for by name — `/top combo`. */
+export const TOP_DETAIL_LIMIT = 10;
+
+/** Overview value, meaning "every category at once" rather than one of them. */
+export const TOP_ALL_CATEGORIES = "all";
 
 /** How far to scan for the viewer's own rank when outside the top 5. */
 export const VIEWER_RANK_SCAN_LIMIT = 100;

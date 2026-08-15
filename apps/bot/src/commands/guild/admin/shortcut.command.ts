@@ -17,17 +17,23 @@ import {
     type ShortcutDeleteMode,
 } from "@constants";
 import { ChatUtils } from "@bot/utils/moderation/chat";
-import { resolveShortcutDeleteMode } from "@bot/utils/prefix";
+import { resolveShortcutDeleteMode, allCommandPaths, isValidCommandPath } from "@bot/utils/prefix";
 
 /** Channel-utility actions have no slash command behind them — events/custom-shortcut.ts runs them directly. */
 const CHAT_UTIL_COMMANDS = Object.keys(ChatUtils);
 
-function getAllCommandNames(client: BotClient): string[] {
-    return [...new Set([...CHAT_UTIL_COMMANDS, ...client.commands.keys()])];
+/**
+ * Chat utilities, plus every runnable command *path* — `warn add`, not just `warn`.
+ *
+ * A bare subcommand-only name is not offered, because it is not runnable: `warn` alone would feed
+ * the first typed argument to the parser as a subcommand and fail.
+ */
+function getAllCommandTargets(client: BotClient): string[] {
+    return [...new Set([...CHAT_UTIL_COMMANDS, ...allCommandPaths(client)])];
 }
 
 function commandExists(client: BotClient, command: string): boolean {
-    return CHAT_UTIL_COMMANDS.includes(command) || client.commands.has(command);
+    return CHAT_UTIL_COMMANDS.includes(command) || isValidCommandPath(client, command);
 }
 
 export default {
@@ -81,11 +87,13 @@ export default {
     async autocomplete(interaction: AutocompleteInteraction, client: BotClient) {
         const focused = interaction.options.getFocused(true);
         if (focused.name === "command") {
-            const items = getAllCommandNames(client)
-                .filter(c => c.toLowerCase().startsWith(focused.value.toLowerCase()))
+            const query = focused.value.toLowerCase();
+            // `includes`, not `startsWith`: typing "add" should still find "warn add".
+            const items = getAllCommandTargets(client)
+                .filter(c => c.toLowerCase().includes(query))
                 .sort()
                 .slice(0, 25);
-            await interaction.respond(items.map(c => ({ name: CHAT_UTIL_COMMANDS.includes(c) ? `${c} (chat)` : c, value: c })));
+            await interaction.respond(items.map(c => ({ name: CHAT_UTIL_COMMANDS.includes(c) ? `${c} (chat)` : `/${c}`, value: c })));
         } else if (focused.name === "msg") {
             if (!interaction.guildId) return;
             const shortcuts = await ServerConfigRepository.getShortcuts(interaction.guildId);
@@ -108,7 +116,12 @@ export default {
 
             if (!commandExists(client, command)) {
                 await interaction.deleteReply().catch(() => {});
-                await interaction.followUp({ content: `Unknown command \`${command}\` — pick a suggestion from autocomplete.`, flags: MessageFlags.Ephemeral });
+                await interaction.followUp({
+                    content:
+                        `Unknown command \`${command}\` — pick a suggestion from autocomplete.\n` +
+                        "Commands built from subcommands need the whole path, e.g. `warn add` rather than `warn`.",
+                    flags: MessageFlags.Ephemeral,
+                });
                 return;
             }
 
