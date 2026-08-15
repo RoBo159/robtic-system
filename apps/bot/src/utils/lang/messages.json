@@ -149,7 +149,11 @@
             "unit_coins": "coins",
             "overview_title": "🏆 Leaderboards ({period}) — {guild}",
             "overview_footer": "Use /top <category> for the full top 10 and your own rank.",
-            "unknown_category": "Unknown leaderboard. Pick one of: {categories}."
+            "unknown_category": "Unknown leaderboard. Pick one of: {categories}.",
+            "category_voice": "Voice",
+            "category_points": "Points",
+            "unit_voice": "",
+            "unit_points": "points"
         }
     },
     "ar": {
@@ -302,7 +306,11 @@
             "unit_coins": "عملة",
             "overview_title": "🏆 لوحات المتصدرين ({period}) — {guild}",
             "overview_footer": "استخدم /top <الفئة> لعرض أفضل 10 مع ترتيبك.",
-            "unknown_category": "لوحة غير معروفة. اختر واحدة من: {categories}."
+            "unknown_category": "لوحة غير معروفة. اختر واحدة من: {categories}.",
+            "category_voice": "الصوت",
+            "category_points": "النقاط",
+            "unit_voice": "",
+            "unit_points": "نقطة"
         }
     }
 }

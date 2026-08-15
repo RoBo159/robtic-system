@@ -12,9 +12,10 @@ import type { TopEntry } from "@typings/top";
 import type { Lang } from "@typings/lang";
 import { t } from "@bot/utils/lang";
 import { getTopEntries } from "../lib";
+import { formatTopValue } from "../utils/format-value";
 
-function formatEntry(rank: number, entry: TopEntry, unit: string, isViewer: boolean): string {
-    const line = `#${rank} <@${entry.discordId}> — ${entry.value} ${unit}`;
+function formatEntry(rank: number, entry: TopEntry, category: TopCategory, unit: string, isViewer: boolean): string {
+    const line = `#${rank} <@${entry.discordId}> — ${formatTopValue(category, entry.value, unit)}`;
     return isViewer ? `**${line}**` : line;
 }
 
@@ -34,7 +35,7 @@ export async function buildTopEmbed(
     const entries = await getTopEntries(guild.id, category, period, TOP_DETAIL_LIMIT);
     const unit = t(`top.unit_${category}`, lang);
 
-    const lines = entries.map((e, i) => formatEntry(i + 1, e, unit, e.discordId === viewerId));
+    const lines = entries.map((e, i) => formatEntry(i + 1, e, category, unit, e.discordId === viewerId));
 
     if (viewerId && !entries.some(e => e.discordId === viewerId)) {
         const scanned = await getTopEntries(guild.id, category, period, VIEWER_RANK_SCAN_LIMIT);
@@ -43,7 +44,7 @@ export async function buildTopEmbed(
         if (viewerIndex !== -1) {
             const rank = viewerIndex + 1;
             if (rank > TOP_DETAIL_LIMIT + 1) lines.push(TOP_RANK_GAP_SEPARATOR);
-            lines.push(formatEntry(rank, scanned[viewerIndex]!, unit, true));
+            lines.push(formatEntry(rank, scanned[viewerIndex]!, category, unit, true));
         }
     }
 

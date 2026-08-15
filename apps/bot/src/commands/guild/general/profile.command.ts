@@ -16,6 +16,9 @@ import { getStaffActivity, getSupportStats } from "@bot/utils/staff-activity";
 import { getStreakSummary } from "@core/streak";
 import { getUserHighestCombo } from "@core/combo";
 import { getCoinSummary } from "@core/coins";
+import { getPointSummary } from "@core/points";
+import { VoiceRepository, PeriodicStatRepository } from "@database/repositories";
+import { formatVoiceDuration } from "@bot/features/voice/utils/format-duration";
 import { getProfileBadges } from "@core/profile";
 import { getUserLang, t } from "@bot/utils/lang";
 import { BRANCH_EMOJIS as emoji } from "@config";
@@ -88,6 +91,14 @@ export default {
         const customization = await UserRepository.getCustomization(target.id);
         const coinSummary = await getCoinSummary(guildId, target.id);
 
+        // Voice and points sit alongside the other activity figures rather than in their own
+        // command, so a profile answers "how active is this member" in one place.
+        const [pointSummary, voiceStat, voiceWeek] = await Promise.all([
+            getPointSummary(guildId, target.id),
+            VoiceRepository.getStat(guildId, target.id),
+            PeriodicStatRepository.getValue(guildId, "weekly", "voiceTime", target.id),
+        ]);
+
         // The user's chosen accent color styles their profile unless a punishment tier overrides it.
         const profileColor = customization.profileColor && /^#[0-9a-f]{6}$/i.test(customization.profileColor)
             ? Number.parseInt(customization.profileColor.slice(1), 16)
@@ -116,7 +127,15 @@ export default {
                 { name: t("profile.field_total_xp", lang), value: `${xpRecord.totalXP}`, inline: true },
                 { name: t("profile.field_streak", lang), value: t("profile.streak_value", lang, { current: `${streak.record.currentStreak}`, best: `${streak.record.bestStreak}` }), inline: true },
                 { name: t("profile.field_combo", lang), value: comboValue, inline: true },
+                { name: "🎯 Points", value: `${pointSummary.points}${pointSummary.rank > 0 ? ` (#${pointSummary.rank})` : ""}${pointSummary.rc > 0 ? ` · ${pointSummary.rc} RC` : ""}`, inline: true },
                 { name: "🪙 Coins", value: `${coinSummary.coins}${coinSummary.rank > 0 ? ` (#${coinSummary.rank})` : ""}`, inline: true },
+                {
+                    name: "🎙️ Voice",
+                    value: voiceStat
+                        ? `${formatVoiceDuration(voiceStat.totalActiveSeconds)} active · ${formatVoiceDuration(voiceWeek)} this week · ${voiceStat.totalXpEarned} XP`
+                        : "No voice activity yet",
+                    inline: true,
+                },
                 ...(!isPrivate ? [{ name: t("profile.field_roles", lang), value: roles }] : []),
             );
 

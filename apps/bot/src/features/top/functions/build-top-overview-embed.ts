@@ -9,6 +9,7 @@ import {
 import type { Lang } from "@typings/lang";
 import { t } from "@bot/utils/lang";
 import { getTopEntries } from "../lib";
+import { formatTopValue } from "../utils/format-value";
 
 /**
  * Every leaderboard at once, top five each, one field per category.
@@ -37,7 +38,7 @@ export async function buildTopOverviewEmbed(
 
     for (const { category, entries } of boards) {
         const lines = entries.map((entry, index) => {
-            const line = `**${index + 1}.** <@${entry.discordId}> — ${entry.value}`;
+            const line = `**${index + 1}.** <@${entry.discordId}> — ${formatTopValue(category, entry.value, t(`top.unit_${category}`, lang))}`;
             return entry.discordId === viewerId ? `__${line}__` : line;
         });
 

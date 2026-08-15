@@ -1,4 +1,4 @@
-import { CoinsRepository, ComboLeaderboardRepository, PeriodicStatRepository } from "@database/repositories";
+import { CoinsRepository, ComboLeaderboardRepository, PeriodicStatRepository, PointsRepository } from "@database/repositories";
 import { TOP_DISPLAY_LIMIT, type ComboLeaderboardPeriod, type TopCategory } from "@constants";
 import { periodKeyFor } from "@utils";
 import type { TopEntry } from "@typings/top";
@@ -20,6 +20,16 @@ export async function getTopEntries(
     if (category === "xp" || category === "messages") {
         const rows = await PeriodicStatRepository.getTop(guildId, period, category, limit);
         return rows.map(r => ({ discordId: r.discordId, value: r.value }));
+    }
+    if (category === "voice") {
+        // Active seconds, so the board ranks participation rather than time spent connected and idle.
+        const rows = await PeriodicStatRepository.getTop(guildId, period, "voiceTime", limit);
+        return rows.map(r => ({ discordId: r.discordId, value: r.value }));
+    }
+    if (category === "points") {
+        // A balance, not a per-period delta — every period shows the current standings.
+        const rows = await PointsRepository.getTop(guildId, limit);
+        return rows.map(r => ({ discordId: r.discordId, value: r.points }));
     }
     if (category === "coins") {
         // Coin balances are cumulative — every period shows the all-time standings.

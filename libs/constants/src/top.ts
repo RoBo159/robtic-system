@@ -1,6 +1,6 @@
-export type TopCategory = "streak" | "combo" | "xp" | "messages" | "coins";
+export type TopCategory = "streak" | "combo" | "xp" | "messages" | "voice" | "points" | "coins";
 
-export const TOP_CATEGORIES: TopCategory[] = ["streak", "combo", "xp", "messages", "coins"];
+export const TOP_CATEGORIES: TopCategory[] = ["streak", "combo", "xp", "messages", "voice", "points", "coins"];
 
 /** Emoji shown in each leaderboard's title. */
 export const TOP_CATEGORY_EMOJI: Record<TopCategory, string> = {
@@ -8,6 +8,8 @@ export const TOP_CATEGORY_EMOJI: Record<TopCategory, string> = {
     combo: "💬",
     xp: "⭐",
     messages: "📨",
+    voice: "🎙️",
+    points: "🎯",
     coins: "🪙",
 };
 
