@@ -18,6 +18,7 @@ export * from "./moderation-security";
 export * from "./security";
 export * from "./shortcuts";
 export * from "./permissions";
+export * from "./points";
 export * from "./prefix";
 export * from "./presence";
 export * from "./punishments";

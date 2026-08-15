@@ -3,7 +3,7 @@ import { ActivityRepository, PeriodicStatRepository } from "@database/repositori
 import { isAcceptableMessage } from "@utils";
 import { MESSAGE_STATS_CONFIG } from "@constants";
 import { handleError, BotError } from "@core/handlers";
-import { awardMessageCoin } from "@core/coins";
+import { awardMessagePoint } from "@core/points";
 
 /**
  * Counts every "real" message a user sends, guild-wide — unlike XP, this has no channel/role
@@ -23,7 +23,7 @@ export default {
         try {
             await ActivityRepository.incrementRealMessageCount(message.author.id, message.guild.id, message.author.username);
             await PeriodicStatRepository.incrementAllPeriods(message.guild.id, "messages", message.author.id, 1);
-            await awardMessageCoin(message.guild.id, message.author.id, message.author.username);
+            await awardMessagePoint(message.guild.id, message.author.id, message.author.username);
         } catch (err) {
             handleError(new BotError(`Failed to process message stats: ${err}`, "EVENT"), "main/message-stats");
         }

@@ -1,7 +1,7 @@
 import type { Message } from "discord.js";
 import { StreakRepository, StreakSettingsRepository } from "@database/repositories";
 import { Logger } from "@logger";
-import { awardStreakCoin } from "@core/coins";
+import { awardStreakPoint } from "@core/points";
 import { isClaimable, isStreakExpired } from "../lib";
 import { applyStreakRole } from "../utils/streak-role";
 import { isValidStreakMessage } from "./is-valid-streak-message";
@@ -60,7 +60,7 @@ export async function processStreakMessage(message: Message): Promise<void> {
     await sendStreakReply(message, updated, settings);
     await sendStreakDM(message.author, updated);
     await announceStreakRewards(message.guild, message.author, guildId, updated.currentStreak);
-    await awardStreakCoin(guildId, message.author.id, message.author.username, updated.currentStreak).catch(err =>
-        Logger.warn(`Failed to award streak coins for ${message.author.id} in ${guildId}: ${err}`, CTX)
+    await awardStreakPoint(guildId, message.author.id, message.author.username, updated.currentStreak).catch(err =>
+        Logger.warn(`Failed to award streak points for ${message.author.id} in ${guildId}: ${err}`, CTX)
     );
 }

@@ -8,6 +8,7 @@ export * from "./community";
 export * from "./dev";
 export * from "./moderation";
 export * from "./partner";
+export * from "./points";
 export * from "./role-management";
 export * from "./security";
 export * from "./streak";
