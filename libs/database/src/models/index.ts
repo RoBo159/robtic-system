@@ -35,6 +35,7 @@ export { PunishConfig, type IPunishConfig } from "./PunishConfig";
 export { CommandAccess, type ICommandAccess } from "./CommandAccess";
 export { RejoinRolesConfig, type IRejoinRolesConfig } from "./RejoinRolesConfig";
 export { GuildFeature, type IGuildFeature } from "./GuildFeature";
+export { FeatureCatalog, type IFeatureCatalog } from "./FeatureCatalog";
 export { StreakReward, type IStreakReward } from "./StreakReward";
 export { StreakRewardClaim, type IStreakRewardClaim } from "./StreakRewardClaim";
 export { MinecraftLink, type IMinecraftLink } from "./MinecraftLink";

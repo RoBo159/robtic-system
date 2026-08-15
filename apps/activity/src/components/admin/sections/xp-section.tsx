@@ -3,6 +3,7 @@ import { useSectionEditor } from "../../../hooks/use-section-editor";
 import { channelOptions, roleOptions } from "../../../utils/to-options";
 import { SectionShell } from "../section-shell";
 import { EntityMultiSelect } from "../entity-multi-select";
+import { EntitySelect } from "../entity-select";
 import { ToggleField } from "../toggle-field";
 
 interface Props {
@@ -56,6 +57,13 @@ export function XpSection({ initial, channels, roles }: Props) {
                 hint="Slowly removes XP from inactive members."
                 checked={draft.decayEnabled}
                 onChange={(v) => setDraft({ ...draft, decayEnabled: v })}
+            />
+            <EntitySelect
+                label="Level-up channel"
+                hint="Where level-ups are announced. Leave as None to keep them silent."
+                value={draft.levelUpChannelId}
+                options={chOpts}
+                onChange={(v) => setDraft({ ...draft, levelUpChannelId: v })}
             />
         </SectionShell>
     );

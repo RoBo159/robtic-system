@@ -7,12 +7,15 @@ import {
     PunishConfigRepository,
     LogConfigRepository,
     CoinSettingsRepository,
+    FeatureCatalogRepository,
+    GuildFeatureRepository,
+    RejoinRolesConfigRepository,
 } from "@database/repositories";
 import { COIN_DEFAULTS, LOG_REGISTRY, STREAK_CONFIG } from "@constants";
 
 /** Reads every editable config section for a guild into one snapshot for the admin panel. */
 export async function getAdminConfig(guildId: string): Promise<AdminConfigSnapshot> {
-    const [server, xp, streak, combo, punish, logConfigs, coins] = await Promise.all([
+    const [server, xp, streak, combo, punish, logConfigs, coins, catalog, overrides, rejoin] = await Promise.all([
         ServerConfigRepository.find(guildId),
         XPSettingsRepository.get(guildId),
         StreakSettingsRepository.get(guildId),
@@ -20,6 +23,9 @@ export async function getAdminConfig(guildId: string): Promise<AdminConfigSnapsh
         PunishConfigRepository.findOrCreate(guildId),
         LogConfigRepository.findAll(),
         CoinSettingsRepository.get(guildId),
+        FeatureCatalogRepository.list(),
+        GuildFeatureRepository.getOverrides(guildId),
+        RejoinRolesConfigRepository.getCached(guildId),
     ]);
 
     const logChannels: Record<string, string | null> = {};
@@ -40,6 +46,7 @@ export async function getAdminConfig(guildId: string): Promise<AdminConfigSnapsh
                 ar: server?.roles?.ar ?? null,
             },
             adminPanelRoles: server?.adminPanelRoles ?? [],
+            botAdminRoles: server?.botAdminRoles ?? [],
         },
         xp: {
             chatChannels: xp?.chatChannels ?? [],
@@ -47,11 +54,13 @@ export async function getAdminConfig(guildId: string): Promise<AdminConfigSnapsh
             staffChannels: xp?.staffChannels ?? [],
             allowedRoles: xp?.allowedRoles ?? [],
             decayEnabled: xp?.decayEnabled ?? false,
+            levelUpChannelId: xp?.levelUpChannelId ?? null,
         },
         streak: {
             channels: streak?.channels ?? [],
             remindersEnabled: streak?.remindersEnabled ?? false,
             minMessageLength: streak?.minMessageLength ?? STREAK_CONFIG.minMessageLength,
+            announceChannelId: streak?.announceChannelId ?? null,
         },
         combo: {
             championRoleId: combo?.championRoleId ?? null,
@@ -70,6 +79,24 @@ export async function getAdminConfig(guildId: string): Promise<AdminConfigSnapsh
             messagesPerCoin: coins?.messagesPerCoin ?? COIN_DEFAULTS.messagesPerCoin,
             comboPerCoin: coins?.comboPerCoin ?? COIN_DEFAULTS.comboPerCoin,
             streakRewards: (coins?.streakRewards ?? []).map(r => ({ streak: r.streak, coins: r.coins })),
+        },
+        features: {
+            // The catalog is whatever the bot last published; the override map is this guild's
+            // explicit choices. Absence of an override means the feature runs on its default.
+            features: catalog.map(entry => ({
+                key: entry.key,
+                description: entry.description,
+                activation: entry.activation,
+                commands: entry.commands,
+                enabled: overrides.get(entry.key) ?? entry.activation === "default-on",
+                overridden: overrides.has(entry.key),
+            })),
+        },
+        rejoinRoles: {
+            excludedRoleIds: rejoin.excludedRoleIds,
+            staffRoleIds: rejoin.staffRoleIds,
+            retentionHours: rejoin.retentionHours,
+            staffRetentionHours: rejoin.staffRetentionHours,
         },
     };
 }

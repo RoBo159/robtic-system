@@ -72,6 +72,18 @@ export class ServerConfigRepository {
         return config.botAdminRoles ?? [];
     }
 
+    /** Replaces the whole list — the admin panel sends the section, not a delta. */
+    static async setBotAdminRoles(guildId: string, roleIds: string[]): Promise<string[]> {
+        const config = await ServerConfig.findOneAndUpdate(
+            { guildId },
+            { $set: { botAdminRoles: roleIds } },
+            { upsert: true, returnDocument: "after" }
+        ) as IServerConfig;
+
+        botAdminRolesCache.delete(guildId);
+        return config.botAdminRoles ?? [];
+    }
+
     static async removeBotAdminRole(guildId: string, roleId: string): Promise<string[]> {
         const config = await ServerConfig.findOneAndUpdate(
             { guildId },

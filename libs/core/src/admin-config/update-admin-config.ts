@@ -7,10 +7,13 @@ import {
     PunishConfigRepository,
     LogConfigRepository,
     CoinSettingsRepository,
+    FeatureCatalogRepository,
+    GuildFeatureRepository,
+    RejoinRolesConfigRepository,
 } from "@database/repositories";
 import {
     LOG_REGISTRY, ADMIN_CONFIG_LIMITS, SERVER_ROLE_SLOTS,
-    COIN_RATE_LIMITS, COIN_STREAK_REWARDS_MAX, type LogKey,
+    COIN_RATE_LIMITS, COIN_STREAK_REWARDS_MAX, REJOIN_ROLES_LIMITS, type LogKey,
 } from "@constants";
 
 const clampInt = (value: number, { min, max }: { min: number; max: number }): number =>
@@ -22,6 +25,9 @@ const cleanIds = (ids: unknown, cap: number): string[] => {
 };
 
 const idOrEmpty = (value: unknown): string => (typeof value === "string" && /^\d{15,25}$/.test(value) ? value : "");
+
+/** REJOIN_ROLES_LIMITS in the shape clampInt expects. */
+const REJOIN_HOUR_BOUNDS = { min: REJOIN_ROLES_LIMITS.minHours, max: REJOIN_ROLES_LIMITS.maxHours };
 
 /**
  * Applies one validated config section for a guild. Every value is re-validated here (never trusted
@@ -44,6 +50,7 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
                 await ServerConfigRepository.setRole(guildId, slot, idOrEmpty(v.roles?.[slot]));
             }
             await ServerConfigRepository.setAdminPanelRoles(guildId, cleanIds(v.adminPanelRoles, ADMIN_CONFIG_LIMITS.maxChannelsPerField));
+            await ServerConfigRepository.setBotAdminRoles(guildId, cleanIds(v.botAdminRoles, ADMIN_CONFIG_LIMITS.maxRolesPerField));
             return;
         }
 
@@ -55,6 +62,7 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
             await XPSettingsRepository.setStaffChannels(guildId, cleanIds(v.staffChannels, cap));
             await XPSettingsRepository.setAllowedRoles(guildId, cleanIds(v.allowedRoles, ADMIN_CONFIG_LIMITS.maxRolesPerField));
             await XPSettingsRepository.setDecayEnabled(guildId, Boolean(v.decayEnabled));
+            await XPSettingsRepository.setLevelUpChannel(guildId, idOrEmpty(v.levelUpChannelId) || null);
             return;
         }
 
@@ -63,6 +71,7 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
             await StreakSettingsRepository.setChannels(guildId, cleanIds(v.channels, ADMIN_CONFIG_LIMITS.maxChannelsPerField));
             await StreakSettingsRepository.setRemindersEnabled(guildId, Boolean(v.remindersEnabled));
             await StreakSettingsRepository.setMinMessageLength(guildId, clampInt(v.minMessageLength, ADMIN_CONFIG_LIMITS.streakMinMessageLength));
+            await StreakSettingsRepository.setAnnounceChannel(guildId, idOrEmpty(v.announceChannelId) || null);
             return;
         }
 
@@ -109,6 +118,43 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
                 .sort((a, b) => a.streak - b.streak)
                 .slice(0, COIN_STREAK_REWARDS_MAX);
             await CoinSettingsRepository.setStreakRewards(guildId, rewards);
+            return;
+        }
+
+        case "features": {
+            const v = values as AdminConfigUpdate["features"];
+            const known = new Set((await FeatureCatalogRepository.list()).map(entry => entry.key));
+
+            // Only keys the running bot actually published. A stale panel could otherwise write
+            // rows for features that no longer exist, which nothing would ever clean up.
+            for (const [key, enabled] of Object.entries(v.states ?? {})) {
+                if (!known.has(key)) continue;
+                await GuildFeatureRepository.set(guildId, key, Boolean(enabled), actorId);
+            }
+            return;
+        }
+
+        case "rejoinRoles": {
+            const v = values as AdminConfigUpdate["rejoinRoles"];
+            const cap = ADMIN_CONFIG_LIMITS.maxRolesPerField;
+
+            const current = await RejoinRolesConfigRepository.getCached(guildId);
+            const memberHours = clampInt(v.retentionHours, REJOIN_HOUR_BOUNDS);
+            const staffHours = clampInt(v.staffRetentionHours, REJOIN_HOUR_BOUNDS);
+
+            await RejoinRolesConfigRepository.replaceRoles(
+                guildId,
+                cleanIds(v.excludedRoleIds, cap),
+                cleanIds(v.staffRoleIds, cap),
+            );
+
+            // The staff window has to stay the shorter of the two. Rather than reject the whole
+            // write, keep the previous pair — the panel shows the unchanged values back.
+            if (staffHours < memberHours) {
+                await RejoinRolesConfigRepository.setWindows(guildId, memberHours, staffHours);
+            } else {
+                await RejoinRolesConfigRepository.setWindows(guildId, current.retentionHours, current.staffRetentionHours);
+            }
             return;
         }
 

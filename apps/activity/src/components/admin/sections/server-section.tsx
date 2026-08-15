@@ -55,6 +55,13 @@ export function ServerSection({ initial, channels, roles }: Props) {
                 options={roleOpts}
                 onChange={(ids) => setDraft({ ...draft, adminPanelRoles: ids })}
             />
+            <EntityMultiSelect
+                label="Bot administrator roles"
+                hint="Can run admin-only commands in chat. Separate from panel access on purpose — this one grants real command permissions."
+                selected={draft.botAdminRoles}
+                options={roleOpts}
+                onChange={(ids) => setDraft({ ...draft, botAdminRoles: ids })}
+            />
         </SectionShell>
     );
 }

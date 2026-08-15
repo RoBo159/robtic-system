@@ -50,6 +50,11 @@ export class RejoinRolesConfigRepository {
         return config;
     }
 
+    /** Replaces both role lists in one write — the admin panel sends the whole section. */
+    static async replaceRoles(guildId: string, excludedRoleIds: string[], staffRoleIds: string[]): Promise<IRejoinRolesConfig> {
+        return this.update(guildId, { $set: { excludedRoleIds, staffRoleIds } });
+    }
+
     static invalidate(guildId: string): void {
         cache.delete(guildId);
     }

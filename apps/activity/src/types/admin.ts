@@ -1,10 +1,21 @@
-export type AdminConfigSection = "server" | "xp" | "streak" | "combo" | "punish" | "logs" | "coins";
+export type AdminConfigSection =
+    | "server"
+    | "xp"
+    | "streak"
+    | "combo"
+    | "punish"
+    | "logs"
+    | "coins"
+    | "features"
+    | "rejoinRoles";
 
 export interface AdminServerConfig {
     prefix: string | null;
     commandsChannelId: string | null;
     roles: { members: string | null; bots: string | null; en: string | null; ar: string | null };
     adminPanelRoles: string[];
+    /** Roles that pass admin-access commands in chat. Not the same as adminPanelRoles. */
+    botAdminRoles: string[];
 }
 
 export interface AdminXpConfig {
@@ -13,12 +24,34 @@ export interface AdminXpConfig {
     staffChannels: string[];
     allowedRoles: string[];
     decayEnabled: boolean;
+    levelUpChannelId: string | null;
 }
 
 export interface AdminStreakConfig {
     channels: string[];
     remindersEnabled: boolean;
     minMessageLength: number;
+    announceChannelId: string | null;
+}
+
+export interface AdminFeatureEntry {
+    key: string;
+    description: string;
+    activation: "opt-in" | "default-on";
+    commands: string[];
+    enabled: boolean;
+    overridden: boolean;
+}
+
+export interface AdminFeaturesConfig {
+    features: AdminFeatureEntry[];
+}
+
+export interface AdminRejoinRolesConfig {
+    excludedRoleIds: string[];
+    staffRoleIds: string[];
+    retentionHours: number;
+    staffRetentionHours: number;
 }
 
 export interface AdminComboConfig {
@@ -51,6 +84,8 @@ export interface AdminConfigSnapshot {
     punish: AdminPunishConfig;
     logs: AdminLogsConfig;
     coins: AdminCoinsConfig;
+    features: AdminFeaturesConfig;
+    rejoinRoles: AdminRejoinRolesConfig;
 }
 
 export interface GuildChannelInfo {

@@ -1,10 +1,11 @@
 import { getAdminConfig, updateAdminConfig } from "@core/admin-config";
 import type { AdminConfigSection } from "@typings/admin-config";
+import { ADMIN_CONFIG_SECTIONS } from "@constants";
 import { authenticateRequest } from "../lib/authenticate-request";
 import { isGuildAdmin } from "../lib/is-guild-admin";
 import { jsonError, API_ERRORS } from "../lib/json-response";
 
-const SECTIONS: AdminConfigSection[] = ["server", "xp", "streak", "combo", "punish", "logs"];
+const SECTIONS: readonly AdminConfigSection[] = ADMIN_CONFIG_SECTIONS;
 
 /** POST /api/admin/config — body { guildId, section, values }. Writes one section, admins only. */
 export async function updateAdminConfigRoute(request: Request): Promise<Response> {

@@ -3,6 +3,7 @@ import { useSectionEditor } from "../../../hooks/use-section-editor";
 import { channelOptions } from "../../../utils/to-options";
 import { SectionShell } from "../section-shell";
 import { EntityMultiSelect } from "../entity-multi-select";
+import { EntitySelect } from "../entity-select";
 import { ToggleField } from "../toggle-field";
 import { NumberField } from "../number-field";
 
@@ -35,6 +36,13 @@ export function StreakSection({ initial, channels }: Props) {
                 hint="DM members before their streak lapses."
                 checked={draft.remindersEnabled}
                 onChange={(v) => setDraft({ ...draft, remindersEnabled: v })}
+            />
+            <EntitySelect
+                label="Announcement channel"
+                hint="Where milestones are posted. Leave as None to reply in the channel that earned the streak."
+                value={draft.announceChannelId}
+                options={channelOptions(channels)}
+                onChange={(v) => setDraft({ ...draft, announceChannelId: v })}
             />
             <NumberField
                 label="Minimum message length"
