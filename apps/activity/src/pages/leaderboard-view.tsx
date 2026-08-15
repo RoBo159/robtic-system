@@ -3,15 +3,20 @@ import type { LeaderboardResponse, LeaderboardRow, TopCategory, TopPeriod } from
 import { fetchLeaderboard } from "../services/api/api-client";
 import { Avatar } from "../components/avatar";
 import { Icon, type IconName } from "../components/icon";
-import { formatNumber } from "../utils/format";
+import { formatNumber, formatSeconds } from "../utils/format";
 
 const CATEGORIES: { value: TopCategory; label: string; icon: IconName }[] = [
     { value: "streak", label: "Streak", icon: "fire" },
     { value: "combo", label: "Combo", icon: "message" },
     { value: "xp", label: "XP", icon: "zap" },
     { value: "messages", label: "Messages", icon: "activity" },
+    { value: "voice", label: "Voice", icon: "mic" },
+    { value: "points", label: "Points", icon: "star" },
     { value: "coins", label: "Coins", icon: "coin" },
 ];
+
+/** Voice ranks on seconds of active time, so raw numbers would be unreadable. */
+const DURATION_CATEGORIES = new Set<TopCategory>(["voice"]);
 
 const PERIODS: { value: TopPeriod; label: string }[] = [
     { value: "daily", label: "Today" },
@@ -24,7 +29,16 @@ const MEDALS = ["🥇", "🥈", "🥉"];
 
 const PAGE_SIZES = [10, 25, 50];
 
-function Row({ row, isViewer, onSelect }: { row: LeaderboardRow; isViewer: boolean; onSelect: (id: string) => void }) {
+interface RowProps {
+    row: LeaderboardRow;
+    isViewer: boolean;
+    category: TopCategory;
+    onSelect: (id: string) => void;
+}
+
+function Row({ row, isViewer, category, onSelect }: RowProps) {
+    const value = DURATION_CATEGORIES.has(category) ? formatSeconds(row.value) : formatNumber(row.value);
+
     return (
         <li>
             <button
@@ -35,7 +49,7 @@ function Row({ row, isViewer, onSelect }: { row: LeaderboardRow; isViewer: boole
                 <span className="row__rank">{MEDALS[row.rank - 1] ?? row.rank}</span>
                 <Avatar src={row.avatarUrl} name={row.displayName} seed={row.discordId} size={32} />
                 <span className="row__name">{row.displayName}</span>
-                <span className="row__value">{formatNumber(row.value)}</span>
+                <span className="row__value">{value}</span>
             </button>
         </li>
     );
@@ -128,6 +142,7 @@ export function LeaderboardView({ onSelectUser }: { onSelectUser: (userId: strin
                                 key={row.discordId}
                                 row={row}
                                 isViewer={row.discordId === data.viewer?.discordId}
+                                category={data.category}
                                 onSelect={onSelectUser}
                             />
                         ))}
@@ -135,7 +150,7 @@ export function LeaderboardView({ onSelectUser }: { onSelectUser: (userId: strin
                         {showViewerGap && (
                             <>
                                 <li className="row__gap">···</li>
-                                <Row row={data.viewer!} isViewer onSelect={onSelectUser} />
+                                <Row row={data.viewer!} isViewer category={data.category} onSelect={onSelectUser} />
                             </>
                         )}
                     </ul>

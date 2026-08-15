@@ -5,7 +5,8 @@ export type AdminConfigSection =
     | "combo"
     | "punish"
     | "logs"
-    | "coins"
+    | "points"
+    | "voice"
     | "features"
     | "rejoinRoles";
 
@@ -70,10 +71,28 @@ export interface AdminLogsConfig {
     channels: Record<string, string | null>;
 }
 
-export interface AdminCoinsConfig {
-    messagesPerCoin: number;
-    comboPerCoin: number;
-    streakRewards: { streak: number; coins: number }[];
+export interface AdminPointsConfig {
+    messagesPerPoint: number;
+    comboPerPoint: number;
+    voiceMinutesPerPoint: number;
+    streakRewards: { streak: number; points: number }[];
+    /** Points needed for one RC. */
+    pointsPerRc: number;
+    conversionEnabled: boolean;
+    minConversionPoints: number;
+}
+
+export interface AdminVoiceConfig {
+    enabled: boolean;
+    /** Empty means every voice channel. */
+    trackedChannelIds: string[];
+    excludedChannelIds: string[];
+    /** Empty means everyone. */
+    allowedRoleIds: string[];
+    /** Share of the reward when alone, 0-1. */
+    aloneMultiplier: number;
+    afkTimeoutMinutes: number;
+    minMembersForFullRate: number;
 }
 
 export interface AdminConfigSnapshot {
@@ -83,7 +102,8 @@ export interface AdminConfigSnapshot {
     combo: AdminComboConfig;
     punish: AdminPunishConfig;
     logs: AdminLogsConfig;
-    coins: AdminCoinsConfig;
+    points: AdminPointsConfig;
+    voice: AdminVoiceConfig;
     features: AdminFeaturesConfig;
     rejoinRoles: AdminRejoinRolesConfig;
 }

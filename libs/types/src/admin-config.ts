@@ -53,13 +53,32 @@ export interface AdminLogsConfig {
     channels: Record<string, string | null>;
 }
 
-export interface AdminCoinsConfig {
-    /** Real messages needed per earned coin. */
-    messagesPerCoin: number;
-    /** Combo score needed per earned coin. */
-    comboPerCoin: number;
-    /** Streak day-counts that pay out coins when reached. */
-    streakRewards: { streak: number; coins: number }[];
+export interface AdminPointsConfig {
+    /** Real messages needed per earned point. */
+    messagesPerPoint: number;
+    /** Combo score needed per earned point. */
+    comboPerPoint: number;
+    /** Minutes of active voice needed per earned point. */
+    voiceMinutesPerPoint: number;
+    /** Streak day-counts that pay out when reached. */
+    streakRewards: { streak: number; points: number }[];
+    /** Points needed for one RC. */
+    pointsPerRc: number;
+    conversionEnabled: boolean;
+    minConversionPoints: number;
+}
+
+export interface AdminVoiceConfig {
+    enabled: boolean;
+    /** Empty means every voice channel. */
+    trackedChannelIds: string[];
+    excludedChannelIds: string[];
+    /** Empty means everyone. */
+    allowedRoleIds: string[];
+    /** Share of the reward when alone, 0-1. */
+    aloneMultiplier: number;
+    afkTimeoutMinutes: number;
+    minMembersForFullRate: number;
 }
 
 /** One feature as the panel sees it: what it is, and whether it is on in this guild. */
@@ -101,7 +120,8 @@ export interface AdminConfigSnapshot {
     combo: AdminComboConfig;
     punish: AdminPunishConfig;
     logs: AdminLogsConfig;
-    coins: AdminCoinsConfig;
+    points: AdminPointsConfig;
+    voice: AdminVoiceConfig;
     features: AdminFeaturesConfig;
     rejoinRoles: AdminRejoinRolesConfig;
 }
@@ -114,7 +134,8 @@ export interface AdminConfigUpdate {
     combo: AdminComboConfig;
     punish: AdminPunishConfig;
     logs: AdminLogsConfig;
-    coins: AdminCoinsConfig;
+    points: AdminPointsConfig;
+    voice: AdminVoiceConfig;
     features: AdminFeaturesUpdate;
     rejoinRoles: AdminRejoinRolesConfig;
 }

@@ -14,6 +14,15 @@ export function channelOptions(channels: GuildChannelInfo[]): EntityOption[] {
         .map((channel) => ({ id: channel.id, name: `# ${channel.name}` }));
 }
 
+/** Voice-capable channels (voice, stage) — the only ones the voice tracker can watch. */
+const VOICE_CHANNEL_TYPES = new Set([2, 13]);
+
+export function voiceChannelOptions(channels: GuildChannelInfo[]): EntityOption[] {
+    return channels
+        .filter((channel) => VOICE_CHANNEL_TYPES.has(channel.type))
+        .map((channel) => ({ id: channel.id, name: `🔊 ${channel.name}` }));
+}
+
 export function roleOptions(roles: GuildRoleInfo[]): EntityOption[] {
     return roles
         .filter((role) => !role.managed)

@@ -6,6 +6,8 @@ import {
     ComboRepository,
     ComboUserStatsRepository,
     UserRepository,
+    VoiceRepository,
+    PointsRepository,
 } from "@database/repositories";
 import { calculateLevel, xpForLevel } from "@core/xp";
 import { levelForScore } from "@core/combo/level-for-score";
@@ -56,6 +58,13 @@ export async function getProfileSnapshot(input: SnapshotInput): Promise<ProfileS
         ? (bestActive.userLowId === targetId ? bestActive.userHighId : bestActive.userLowId)
         : null;
 
+    // Absent records are normal — a member who has never joined voice or earned a point has none.
+    const voiceStat = await VoiceRepository.getStat(guildId, targetId);
+    const voiceRank = voiceStat ? await VoiceRepository.getRankByActiveTime(guildId, targetId) : 0;
+
+    const pointRecord = await PointsRepository.get(guildId, targetId);
+    const pointRank = pointRecord ? await PointsRepository.getRank(guildId, targetId) : 0;
+
     const comboStats = await ComboUserStatsRepository.get(guildId, targetId);
     const favorite = comboStats?.partners?.length
         ? [...comboStats.partners].sort((a, b) => favoritePartnerWeight(b) - favoritePartnerWeight(a))[0]
@@ -105,6 +114,24 @@ export async function getProfileSnapshot(input: SnapshotInput): Promise<ProfileS
             bestScore: comboStats?.bestComboScore ?? 0,
             totalConversations: comboStats?.totalConversations ?? 0,
             favoritePartnerId: favorite?.partnerId ?? null,
+        },
+        voice: {
+            totalConnectedSeconds: voiceStat?.totalConnectedSeconds ?? 0,
+            totalActiveSeconds: voiceStat?.totalActiveSeconds ?? 0,
+            totalXpEarned: voiceStat?.totalXpEarned ?? 0,
+            sessionCount: voiceStat?.sessionCount ?? 0,
+            longestSessionSeconds: voiceStat?.longestSessionSeconds ?? 0,
+            averageSessionSeconds: voiceStat?.sessionCount
+                ? Math.round(voiceStat.totalActiveSeconds / voiceStat.sessionCount)
+                : 0,
+            rank: voiceRank,
+            lastSeenAt: voiceStat?.lastSeenAt?.getTime() ?? null,
+        },
+        points: {
+            points: pointRecord?.points ?? 0,
+            lifetimePoints: pointRecord?.lifetimePoints ?? 0,
+            rc: pointRecord?.rc ?? 0,
+            rank: pointRank,
         },
     };
 }

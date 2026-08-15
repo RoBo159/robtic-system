@@ -17,6 +17,25 @@ export function formatDuration(ms: number): string {
     return `${seconds}s`;
 }
 
+/**
+ * A span of time that has already elapsed, in seconds — voice totals.
+ *
+ * Separate from formatDuration because that one renders a *countdown* and reads 0 as "now",
+ * which is the wrong word for a member who has spent no time in voice.
+ */
+export function formatSeconds(seconds: number): string {
+    if (seconds <= 0) return "0m";
+
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (days > 0) return `${days}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${minutes % 60}m`;
+    if (minutes > 0) return `${minutes}m`;
+    return `${seconds}s`;
+}
+
 export function formatRank(rank: number): string {
     return rank > 0 ? `#${rank}` : "—";
 }

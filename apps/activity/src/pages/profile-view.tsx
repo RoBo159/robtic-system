@@ -5,11 +5,13 @@ import { Avatar } from "../components/avatar";
 import { XpCard } from "../components/xp-card";
 import { StreakCard } from "../components/streak-card";
 import { ComboCard } from "../components/combo-card";
+import { VoiceCard } from "../components/voice-card";
+import { PointsCard } from "../components/points-card";
 import { ProfileDetailsPanel } from "../components/profile-details";
 import { ProfileCustomizer } from "../components/profile-customizer";
 import { ProfileBadges } from "../components/profile-badges";
 import { Icon } from "../components/icon";
-import { formatNumber, formatRank } from "../utils/format";
+import { formatNumber, formatRank, formatSeconds } from "../utils/format";
 
 interface ProfileViewProps {
     /** Null renders the signed-in user's own profile. */
@@ -224,6 +226,16 @@ export function ProfileView({ userId, onBack }: ProfileViewProps) {
                         <span className="stat__label"><Icon name="message" size={14} /> Best combo</span>
                         <div className="stat__value">{formatNumber(profile.combo.bestScore)}</div>
                     </div>
+                    <div className="stat stat--xp">
+                        <span className="stat__label"><Icon name="mic" size={14} /> Voice</span>
+                        <div className="stat__value">{formatSeconds(profile.voice.totalActiveSeconds)}</div>
+                        <div className="stat__meta">active time</div>
+                    </div>
+                    <div className="stat stat--coins">
+                        <span className="stat__label"><Icon name="star" size={14} /> Points</span>
+                        <div className="stat__value">{formatNumber(profile.points.points)}</div>
+                        <div className="stat__meta">{formatNumber(profile.points.rc)} RC</div>
+                    </div>
                     <div className="stat stat--coins">
                         <span className="stat__label"><Icon name="coin" size={14} /> Coins</span>
                         <div className="stat__value">{formatNumber(profile.coins)}</div>
@@ -235,6 +247,8 @@ export function ProfileView({ userId, onBack }: ProfileViewProps) {
                 <XpCard xp={profile.xp} />
                 <StreakCard streak={profile.streak} />
                 <ComboCard combo={profile.combo} partners={profile.partners} />
+                <VoiceCard voice={profile.voice} />
+                <PointsCard points={profile.points} />
             </div>
 
             {!profile.isPrivate && <ProfileDetailsPanel userId={profile.discordId} />}

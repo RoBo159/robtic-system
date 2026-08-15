@@ -9,7 +9,7 @@ whether the command is confined to the configured commands channel.
 |---|---|---|
 | `General` (or no category) | ✅ Yes | `!help` |
 | `Profile` | ✅ Yes | `/profile` |
-| `Economy` | ✅ Yes | `/coins` |
+| `Economy` | ✅ Yes | `/points`, `/coins` |
 | `Leaderboard` | ✅ Yes | `/top` |
 | `Streak` | ✅ Yes | `/streak`, `/streak-top` |
 | `Activity` | ✅ Yes | `/check` |

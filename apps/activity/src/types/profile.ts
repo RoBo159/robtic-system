@@ -1,4 +1,4 @@
-export type TopCategory = "streak" | "combo" | "xp" | "messages" | "coins";
+export type TopCategory = "streak" | "combo" | "xp" | "messages" | "voice" | "points" | "coins";
 export type TopPeriod = "daily" | "weekly" | "monthly" | "alltime";
 
 export interface ProfilePartner {
@@ -53,6 +53,23 @@ export interface Profile {
         bestScore: number;
         totalConversations: number;
         favoritePartnerId: string | null;
+    };
+    /** All durations in seconds. */
+    voice: {
+        totalConnectedSeconds: number;
+        totalActiveSeconds: number;
+        totalXpEarned: number;
+        sessionCount: number;
+        longestSessionSeconds: number;
+        averageSessionSeconds: number;
+        rank: number;
+        lastSeenAt: number | null;
+    };
+    points: {
+        points: number;
+        lifetimePoints: number;
+        rc: number;
+        rank: number;
     };
     partners: Record<string, ProfilePartner>;
 }

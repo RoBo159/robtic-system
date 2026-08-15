@@ -4,7 +4,6 @@ import type { BotClient } from "@core/bot-client";
 import { buildFeatureCommands } from "@core/features";
 import { coinsFeature } from "./coins";
 import { balance } from "./commands/balance";
-import { rates } from "./commands/rates";
 import { add } from "./commands/add";
 import { remove } from "./commands/remove";
 
@@ -12,7 +11,7 @@ import { remove } from "./commands/remove";
  * An explicit map rather than a glob over commands/: it keeps typecheck honest about every
  * subcommand having a handler, and avoids a second filesystem pass at boot.
  */
-const handlers: Record<string, FeatureSubcommandHandler> = { balance, rates, add, remove };
+const handlers: Record<string, FeatureSubcommandHandler> = { balance, add, remove };
 
 export default buildFeatureCommands(coinsFeature, {
     coins: async (interaction: CommandInteractionLike, client: BotClient) => {

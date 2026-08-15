@@ -1,29 +1,22 @@
 import { CoinsRepository } from "@database/repositories";
-import { getCoinRates, type CoinRates } from "./get-coin-rates";
 
 export interface CoinSummary {
     coins: number;
     rank: number;
-    /** Progress toward the next message-earned coin. */
-    messageProgress: number;
-    /** Progress toward the next combo-earned coin. */
-    comboProgress: number;
-    rates: CoinRates;
 }
 
-/** One member's coin balance, rank, and progress toward their next coins. */
+/**
+ * A member's Minecraft wallet.
+ *
+ * Coins are no longer earned from Discord activity — that is what Points are for — so there are no
+ * earning rates left to report. What remains is the in-game balance, moved by the plugin over
+ * /api/economy/coins and readable here.
+ */
 export async function getCoinSummary(guildId: string, discordId: string): Promise<CoinSummary> {
-    const [record, rank, rates] = await Promise.all([
+    const [record, rank] = await Promise.all([
         CoinsRepository.get(guildId, discordId),
         CoinsRepository.getRank(guildId, discordId),
-        getCoinRates(guildId),
     ]);
 
-    return {
-        coins: record?.coins ?? 0,
-        rank,
-        messageProgress: record?.messageProgress ?? 0,
-        comboProgress: record?.comboProgress ?? 0,
-        rates,
-    };
+    return { coins: record?.coins ?? 0, rank };
 }

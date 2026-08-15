@@ -1,14 +1,7 @@
-/** Fallback coin-earning rates when a guild hasn't configured its own. */
-export const COIN_DEFAULTS = {
-    messagesPerCoin: 100,
-    comboPerCoin: 100,
-} as const;
-
-/** Bounds for the admin panel's coin-rate fields. */
-export const COIN_RATE_LIMITS = { min: 10, max: 100000 } as const;
-
-/** Most streak→coins reward rows a guild can configure. */
-export const COIN_STREAK_REWARDS_MAX = 15;
+/**
+ * Coins are the Minecraft wallet, moved only over /api/economy — Discord activity now earns Points
+ * instead, so there are no coin-earning rates left to tune. See points.ts for those.
+ */
 
 /** Layout templates the Activity's profile view can render. */
 export const PROFILE_TEMPLATES = ["classic", "banner", "compact", "card", "minimal"] as const;

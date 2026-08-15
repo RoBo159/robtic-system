@@ -29,7 +29,6 @@ export * from "./CoinsRepository";
 export * from "./PointsRepository";
 export * from "./PointSettingsRepository";
 export * from "./PointHistoryRepository";
-export * from "./CoinSettingsRepository";
 export * from "./ComboRepository";
 export * from "./ComboHistoryRepository";
 export * from "./ComboUserStatsRepository";

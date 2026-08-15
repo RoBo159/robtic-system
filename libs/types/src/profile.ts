@@ -34,6 +34,34 @@ export interface ProfileCombo {
     favoritePartnerId: string | null;
 }
 
+/** Time in voice for one member of one guild. All durations in seconds. */
+export interface ProfileVoice {
+    /** Everything the member spent connected, AFK or not. */
+    totalConnectedSeconds: number;
+    /** The subset that counted as active and therefore earned. */
+    totalActiveSeconds: number;
+    /** Voice's share of the member's XP — the same XP as chat, tracked separately for display. */
+    totalXpEarned: number;
+    sessionCount: number;
+    longestSessionSeconds: number;
+    /** Active seconds divided by sessions; 0 when there are none. */
+    averageSessionSeconds: number;
+    /** Rank by active time. 0 when the member has no voice record. */
+    rank: number;
+    /** Unix ms of the last time they were seen in voice, or null. */
+    lastSeenAt: number | null;
+}
+
+/** The activity wallet: Points earned from chat/combo/voice/streaks, and RC converted from them. */
+export interface ProfilePoints {
+    points: number;
+    /** Only ever climbs — spending doesn't reduce it. */
+    lifetimePoints: number;
+    rc: number;
+    /** Rank by current point balance. 0 when the member has no wallet. */
+    rank: number;
+}
+
 /** A small achievement badge rendered next to the profile name. */
 export interface ProfileBadge {
     /** "fire<min>-<max>" streak tiers, or "top-combo" / "top-streak" for server #1s. */
@@ -63,11 +91,14 @@ export interface ProfileSnapshot {
     isPrivate: boolean;
     isSelf: boolean;
     customization: ProfileCustomization;
+    /** The Minecraft wallet, moved over /api/economy. Discord activity earns `points` instead. */
     coins: number;
     badges: ProfileBadge[];
     xp: ProfileXp;
     streak: ProfileStreak;
     combo: ProfileCombo;
+    voice: ProfileVoice;
+    points: ProfilePoints;
 }
 
 /** One row of the Activity's user-search autocomplete. */

@@ -4,10 +4,12 @@ interface NumberFieldProps {
     value: number;
     min?: number;
     max?: number;
+    /** Defaults to whole numbers — pass a fraction for the rate fields that accept one. */
+    step?: number;
     onChange: (value: number) => void;
 }
 
-export function NumberField({ label, hint, value, min, max, onChange }: NumberFieldProps) {
+export function NumberField({ label, hint, value, min, max, step, onChange }: NumberFieldProps) {
     return (
         <label className="field">
             <span className="field__label">{label}</span>
@@ -18,6 +20,7 @@ export function NumberField({ label, hint, value, min, max, onChange }: NumberFi
                 value={Number.isFinite(value) ? value : 0}
                 min={min}
                 max={max}
+                step={step}
                 onChange={(e) => onChange(Number(e.target.value))}
             />
         </label>

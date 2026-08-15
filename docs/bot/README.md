@@ -10,14 +10,24 @@ become a feature.
 
 | System | Location | Purpose |
 |---|---|---|
-| coins | `features/coins/` | Coin economy — on by default |
-| streak | `features/streak/` | Daily message streaks — opt-in per guild |
+| points | `features/points/` | Activity points + RC premium currency — on by default |
+| coins | `features/coins/` | Minecraft wallet, moved over the API — on by default |
+| combo | `features/combo/` | Two-user conversation scoring — on by default |
 | top | `features/top/` | Cross-category leaderboard panel — on by default |
+| logging | `features/logging/` | Log channel routing — on by default |
+| panels | `features/panels/` | Reusable message panels — on by default |
+| shortcuts | `features/shortcuts/` | Custom message triggers — on by default |
+| voice | `features/voice/` | Voice XP and time tracking — opt-in per guild |
+| streak | `features/streak/` | Daily message streaks — opt-in per guild |
+| reply | `features/reply/` | Auto-replies to trigger phrases — opt-in per guild |
+| rejoin-roles | `features/rejoin-roles/` | Restore roles when a member returns — opt-in per guild |
+| ads | `features/ads/` | Advertisement ordering — opt-in per guild |
+| partner | `features/partner/` | Partner server directory — opt-in per guild |
 | moderation | `commands/guild/admin/moderation/` | Punishments, audit logging, security rules |
 | tickets | `commands/guild/admin/tickets/` | Ticket lifecycle |
 | configuration | `commands/guild/admin/` | Prefix, roles, channels, panels, XP, ads, shortcuts |
 | minecraft | `commands/guild/games/` | Linking, shared economy, chat bridge, LuckPerms sync |
-| member-facing | `commands/guild/general/` | Profile, combo, level, help, notes |
+| member-facing | `commands/guild/general/` | Profile, level, help, notes |
 | cross-server | `commands/global/` | Partners, project sharing, version |
 | bot operator | `commands/admin/` | Server allowlist, super users, reload, admin guild |
 
@@ -28,9 +38,11 @@ loader reports a collision rather than letting one silently overwrite the other.
 
 - [ads.md](./ads.md) — advertisement ordering system
 - [combo.md](./combo.md) — two-user conversation scoring
+- [economy.md](./economy.md) — points, RC, coins, and every way activity pays out
 - [command-categories.md](./command-categories.md) — command categories and which are confined to the commands channel
 - [minecraft.md](./minecraft.md) — Minecraft architecture: linking, shared economy, chat bridge, LuckPerms sync
 - [minecraft-setup.md](./minecraft-setup.md) — Operator guide: API keys, chat wiring, logging channels, full command reference
 - [modal.md](./modal.md) — modal patterns
 - [shortcuts.md](./shortcuts.md) — `/shortcut` triggers and their cleanup modes
 - [streak.md](./streak.md) — daily streak system
+- [voice.md](./voice.md) — voice activity XP, AFK detection and time tracking

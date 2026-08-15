@@ -6,18 +6,23 @@ import {
     ComboSettingsRepository,
     PunishConfigRepository,
     LogConfigRepository,
-    CoinSettingsRepository,
+    PointSettingsRepository,
+    VoiceSettingsRepository,
     FeatureCatalogRepository,
     GuildFeatureRepository,
     RejoinRolesConfigRepository,
 } from "@database/repositories";
 import {
-    LOG_REGISTRY, ADMIN_CONFIG_LIMITS, SERVER_ROLE_SLOTS,
-    COIN_RATE_LIMITS, COIN_STREAK_REWARDS_MAX, REJOIN_ROLES_LIMITS, type LogKey,
+    LOG_REGISTRY, ADMIN_CONFIG_LIMITS, SERVER_ROLE_SLOTS, POINT_RATE_LIMITS, RC_RATE_LIMITS,
+    POINT_STREAK_REWARDS_MAX, VOICE_LIMITS, REJOIN_ROLES_LIMITS, type LogKey,
 } from "@constants";
 
 const clampInt = (value: number, { min, max }: { min: number; max: number }): number =>
     Math.max(min, Math.min(max, Math.round(Number.isFinite(value) ? value : min)));
+
+/** As clampInt, but for the fractional settings where rounding would destroy the value. */
+const clampFloat = (value: number, { min, max }: { min: number; max: number }): number =>
+    Math.max(min, Math.min(max, Number.isFinite(value) ? value : min));
 
 const cleanIds = (ids: unknown, cap: number): string[] => {
     if (!Array.isArray(ids)) return [];
@@ -98,26 +103,50 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
             return;
         }
 
-        case "coins": {
-            const v = values as AdminConfigUpdate["coins"];
-            await CoinSettingsRepository.setRates(
+        case "points": {
+            const v = values as AdminConfigUpdate["points"];
+            await PointSettingsRepository.setRates(
                 guildId,
-                clampInt(v.messagesPerCoin, COIN_RATE_LIMITS),
-                clampInt(v.comboPerCoin, COIN_RATE_LIMITS),
+                clampInt(v.messagesPerPoint, POINT_RATE_LIMITS),
+                clampInt(v.comboPerPoint, POINT_RATE_LIMITS),
+                clampInt(v.voiceMinutesPerPoint, POINT_RATE_LIMITS),
             );
             const cleaned = Array.isArray(v.streakRewards)
                 ? v.streakRewards
-                    .filter(r => Number.isFinite(r?.streak) && Number.isFinite(r?.coins))
+                    .filter(r => Number.isFinite(r?.streak) && Number.isFinite(r?.points))
                     .map(r => ({
                         streak: clampInt(r.streak, { min: 1, max: 10000 }),
-                        coins: clampInt(r.coins, { min: 1, max: 10000 }),
+                        points: clampInt(r.points, { min: 1, max: 10000 }),
                     }))
                 : [];
             // One payout per day-count — last entry for a duplicate streak wins.
             const rewards = [...new Map(cleaned.map(r => [r.streak, r])).values()]
                 .sort((a, b) => a.streak - b.streak)
-                .slice(0, COIN_STREAK_REWARDS_MAX);
-            await CoinSettingsRepository.setStreakRewards(guildId, rewards);
+                .slice(0, POINT_STREAK_REWARDS_MAX);
+            await PointSettingsRepository.setStreakRewards(guildId, rewards);
+            await PointSettingsRepository.setConversion(
+                guildId,
+                clampInt(v.pointsPerRc, RC_RATE_LIMITS),
+                Boolean(v.conversionEnabled),
+                clampInt(v.minConversionPoints, RC_RATE_LIMITS),
+            );
+            return;
+        }
+
+        case "voice": {
+            const v = values as AdminConfigUpdate["voice"];
+            await VoiceSettingsRepository.update(guildId, {
+                $set: {
+                    enabled: Boolean(v.enabled),
+                    trackedChannelIds: cleanIds(v.trackedChannelIds, ADMIN_CONFIG_LIMITS.maxChannelsPerField),
+                    excludedChannelIds: cleanIds(v.excludedChannelIds, ADMIN_CONFIG_LIMITS.maxChannelsPerField),
+                    allowedRoleIds: cleanIds(v.allowedRoleIds, ADMIN_CONFIG_LIMITS.maxRolesPerField),
+                    // A fraction, not an integer — clampInt would round 0.25 away.
+                    aloneMultiplier: clampFloat(v.aloneMultiplier, VOICE_LIMITS.aloneMultiplier),
+                    afkTimeoutMinutes: clampInt(v.afkTimeoutMinutes, VOICE_LIMITS.afkTimeoutMinutes),
+                    minMembersForFullRate: clampInt(v.minMembersForFullRate, VOICE_LIMITS.minMembersForFullRate),
+                },
+            });
             return;
         }
 

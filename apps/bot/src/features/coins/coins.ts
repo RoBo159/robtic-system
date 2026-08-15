@@ -30,10 +30,6 @@ export const coinsFeature = defineFeature({
                     ],
                 },
                 {
-                    name: "rates",
-                    description: "See how coins are earned in this server",
-                },
-                {
                     name: "add",
                     description: "Grant coins to a member (admins only)",
                     options: [

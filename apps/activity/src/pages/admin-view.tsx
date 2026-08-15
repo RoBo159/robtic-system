@@ -6,7 +6,8 @@ import { StreakSection } from "../components/admin/sections/streak-section";
 import { ComboSection } from "../components/admin/sections/combo-section";
 import { PunishSection } from "../components/admin/sections/punish-section";
 import { LogsSection } from "../components/admin/sections/logs-section";
-import { CoinsSection } from "../components/admin/sections/coins-section";
+import { PointsSection } from "../components/admin/sections/points-section";
+import { VoiceSection } from "../components/admin/sections/voice-section";
 import { FeaturesSection } from "../components/admin/sections/features-section";
 import { RejoinRolesSection } from "../components/admin/sections/rejoin-roles-section";
 
@@ -31,7 +32,8 @@ export function AdminView({ data }: { data: AdminBootstrap }) {
             <StreakSection initial={config.streak} channels={channels} />
             <ComboSection initial={config.combo} roles={roles} />
             <PunishSection initial={config.punish} channels={channels} roles={roles} />
-            <CoinsSection initial={config.coins} />
+            <VoiceSection initial={config.voice} channels={channels} roles={roles} />
+            <PointsSection initial={config.points} />
             <RejoinRolesSection initial={config.rejoinRoles} roles={roles} />
             <LogsSection initial={config.logs} channels={channels} />
         </div>

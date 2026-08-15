@@ -25,7 +25,8 @@ export const ADMIN_CONFIG_SECTIONS = [
     "combo",
     "punish",
     "logs",
-    "coins",
+    "points",
+    "voice",
     "features",
     "rejoinRoles",
 ] as const;

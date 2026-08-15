@@ -27,6 +27,7 @@ export const VOICE_DEFAULTS = {
 export const VOICE_LIMITS = {
     aloneMultiplier: { min: 0, max: 1 },
     afkTimeoutMinutes: { min: 1, max: 240 },
+    minMembersForFullRate: { min: 1, max: 99 },
 } as const;
 
 /** How often cached activity timestamps are written back. */

@@ -5,7 +5,7 @@ export type IconName =
     | "fire" | "message" | "zap" | "star" | "clock" | "hammer" | "user-x" | "ban"
     | "check" | "x" | "alert" | "sliders" | "hash" | "at" | "activity" | "scale"
     | "home" | "globe" | "lock" | "pencil" | "folder" | "plus" | "link" | "note" | "rocket"
-    | "users" | "chevron-right" | "image" | "coin" | "palette";
+    | "users" | "chevron-right" | "image" | "coin" | "palette" | "mic";
 
 /** Inner SVG paths per icon — stroke-based line icons that inherit `currentColor`. */
 const PATHS: Record<IconName, ReactNode> = {
@@ -46,6 +46,7 @@ const PATHS: Record<IconName, ReactNode> = {
     image: <><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.8" /><path d="m5 19 5.5-5.5 3 3L17 13l4 4" /></>,
     coin: <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.2" /><path d="M12 3.5v2M12 18.5v2M3.5 12h2M18.5 12h2" /></>,
     palette: <><path d="M12 3a9 9 0 1 0 0 18h1.5a2 2 0 0 0 0-4H12a2 2 0 0 1 0-4h6.5A2.5 2.5 0 0 0 21 10.5 9 9 0 0 0 12 3Z" /><circle cx="7.5" cy="11" r="1" /><circle cx="10" cy="7.5" r="1" /><circle cx="14.5" cy="7" r="1" /></>,
+    mic: <><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0" /><path d="M12 18v3M9 21h6" /></>,
 };
 
 interface IconProps extends SVGProps<SVGSVGElement> {
