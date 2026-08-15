@@ -4,7 +4,6 @@ import { Logger } from "@logger";
 import { BRANCH_CONFIG } from "@config";
 import { setPresence } from "../utils/set-presence";
 import { setupGuildGuard } from "../guards/setup-guild-guard";
-import { reportOrphanShortcuts } from "../guards/report-orphan-shortcuts";
 import { publishFeatureCatalog } from "../guards/publish-feature-catalog";
 import { startMinecraftScheduler } from "../services/minecraft";
 import { startDecayScheduler } from "../services/community/decay";
@@ -30,7 +29,6 @@ export default {
 
         setPresence(client, "dnd", "Playing", [...BRANCH_CONFIG.presence]);
         await setupGuildGuard(client);
-        await reportOrphanShortcuts(client);
         await publishFeatureCatalog();
 
         startMinecraftScheduler(client);

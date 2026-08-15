@@ -12,6 +12,7 @@ export * from "./SupportSessionRepository";
 export * from "./ActivityLogRepository";
 export * from "./AuditLogRepository";
 export * from "./ServerConfigRepository";
+export * from "./ShortcutRepository";
 export * from "./LogConfigRepository";
 export * from "./GlobalConfigRepository";
 export * from "./ProjectsRepository";

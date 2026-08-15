@@ -15,6 +15,7 @@ export { SupportSession, type ISupportSession } from "./SupportSession";
 export { ActivityLog, type IActivityLog, type ActivityLogType } from "./ActivityLog";
 export { AuditLog, type IAuditLog } from "./AuditLog";
 export { ServerConfig, type IServerConfig, type ISentPanel } from "./ServerConfig";
+export { Shortcut, type IShortcutDoc } from "./Shortcut";
 export { Project, type IProject } from "./ProjectShare";
 export { Partner, type IPartner } from "./Partner";
 export { SavedRoles, type ISavedRoles } from "./SavedRoles";

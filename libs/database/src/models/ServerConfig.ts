@@ -29,6 +29,7 @@ export interface IServerRoles {
 export interface IServerConfig extends Document {
     guildId: string;
     sentPanels: ISentPanel[];
+    /** Legacy, read once by the shortcuts feature migration. New rows live in the Shortcut collection. */
     shortcuts: IShortcut[];
     roles: IServerRoles;
     /** @deprecated legacy single-channel field, replaced by lineChannelIds */

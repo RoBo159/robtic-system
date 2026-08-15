@@ -1,4 +1,4 @@
-import { ServerConfig, type IServerConfig, type ISentPanel, type IShortcut, type IServerRoles } from "@database/models/ServerConfig";
+import { ServerConfig, type IServerConfig, type ISentPanel, type IServerRoles } from "@database/models/ServerConfig";
 
 const PREFIX_CACHE_TTL_MS = 60_000;
 const prefixCache = new Map<string, { prefix: string | null; expiresAt: number }>();
@@ -157,33 +157,6 @@ export class ServerConfigRepository {
             ? [config.lineChannelId]
             : [];
         return [...config.lineChannelIds, ...legacy];
-    }
-
-    static async addShortcut(guildId: string, command: string, trigger: string, deleteMode?: IShortcut["deleteMode"]): Promise<IServerConfig> {
-        const config = await this.findOrCreate(guildId);
-        // Avoid duplicates for same trigger
-        const exists = config.shortcuts.find(s => s.trigger === trigger);
-        if (exists) {
-            exists.command = command; // Update existing
-            exists.deleteMode = deleteMode;
-        } else {
-            config.shortcuts.push({ command, trigger, deleteMode });
-        }
-        config.markModified("shortcuts");
-        return config.save();
-    }
-
-    static async removeShortcut(guildId: string, trigger: string): Promise<IServerConfig | null> {
-        return ServerConfig.findOneAndUpdate(
-            { guildId },
-            { $pull: { shortcuts: { trigger } } },
-            { returnDocument: "after" }
-        );
-    }
-
-    static async getShortcuts(guildId: string): Promise<IShortcut[]> {
-        const config = await this.findOrCreate(guildId);
-        return config.shortcuts || [];
     }
 
     static async addSentPanel(
