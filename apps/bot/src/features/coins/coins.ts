@@ -52,5 +52,4 @@ export const coinsFeature = defineFeature({
             ],
         },
     ],
-    components: ["coins"],
 });

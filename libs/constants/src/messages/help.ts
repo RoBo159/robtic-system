@@ -17,6 +17,14 @@ export const HELP = {
     footer: (count: number) => `${count} command${count === 1 ? "" : "s"} • ! or / both work`,
     emptyCategory: "No commands in this category.",
     noCommands: "No commands are available here.",
+
+    featuresHeading: "**Features:**",
+    featureOn: (key: string) => `🟢 ${key}`,
+    featureOff: (key: string) => `⚪ ${key}`,
+    featuresHint: (prefix: string) => `Greyed features are switched off here — an admin can turn one on with \`${prefix}feature enable <name>\`.`,
+    /** Appended to a command whose feature is switched off in this server. */
+    disabledNote: "⚪ Its feature is off in this server.",
+    adminOnlyCategory: "Admin",
 } as const;
 
 /** Per-category emoji for the help dropdown/embeds; falls back to 📁. */

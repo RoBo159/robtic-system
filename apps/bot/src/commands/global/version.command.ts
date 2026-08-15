@@ -12,6 +12,7 @@ import { buildVersionEmbed } from "@bot/utils/minecraft/server-info-embed";
  */
 export default {
     scope: "global",
+    access: "general",
     category: "Minecraft",
     data: new SlashCommandBuilder()
         .setName("version")
