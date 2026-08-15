@@ -37,6 +37,8 @@ export * from "./ComboServerRecordsRepository";
 export * from "./ComboLeaderboardRepository";
 export * from "./ComboSettingsRepository";
 export * from "./PeriodicStatRepository";
+export * from "./VoiceRepository";
+export * from "./VoiceSettingsRepository";
 export * from "./UserRepository";
 export * from "./StaffTierRepository";
 export * from "./PunishConfigRepository";

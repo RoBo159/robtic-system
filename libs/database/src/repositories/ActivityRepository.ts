@@ -23,6 +23,25 @@ export class ActivityRepository {
         );
     }
 
+    /**
+     * Adds XP earned somewhere other than chat.
+     *
+     * Deliberately not addXP: that one bumps messageCount and lastMessageAt, which would make a
+     * member who sat in voice all evening look like they had been talking in text channels, and
+     * would corrupt the message leaderboard.
+     */
+    static async addNonMessageXP(discordId: string, guildId: string, amount: number): Promise<IActivityXP | null> {
+        return ActivityXP.findOneAndUpdate(
+            { discordId, guildId },
+            {
+                $inc: { totalXP: amount },
+                "decay.lastActiveAt": new Date(),
+                "decay.inactiveDays": 0,
+            },
+            { returnDocument: "after" }
+        );
+    }
+
     static async getLeaderboard(guildId: string, limit = 10): Promise<IActivityXP[]> {
         return ActivityXP.find({ guildId })
             .sort({ totalXP: -1 })

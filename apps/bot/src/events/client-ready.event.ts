@@ -8,6 +8,7 @@ import { publishFeatureCatalog } from "../guards/publish-feature-catalog";
 import { startMinecraftScheduler } from "../services/minecraft";
 import { startDecayScheduler } from "../services/community/decay";
 import { startSessionCleanupScheduler } from "../services/community/support";
+import { startActivityFlush } from "../services/activity-flush";
 
 /**
  * Bot-wide startup: presence, the guild guard, and the schedulers for systems that are not yet
@@ -34,5 +35,6 @@ export default {
         startMinecraftScheduler(client);
         startDecayScheduler(client);
         startSessionCleanupScheduler();
+        startActivityFlush();
     },
 };

@@ -6,4 +6,5 @@ export { isOnXPCooldown } from "./is-on-xp-cooldown";
 export { grantXP } from "./grant-xp";
 export { grantLevelRewards } from "./grant-level-rewards";
 export { announceLevelUp } from "./announce-level-up";
+export { applyXpGain, type XpGainResult } from "./apply-xp-gain";
 export { removeLevelRewards } from "./remove-level-rewards";

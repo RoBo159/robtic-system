@@ -28,4 +28,23 @@ export class PeriodicStatRepository {
             .sort({ value: -1 })
             .limit(limit);
     }
+
+    /** One member's figure for the current period. Zero when they have none, which is not an error. */
+    static async getValue(
+        guildId: string,
+        period: ComboLeaderboardPeriod,
+        metric: PeriodicStatMetric,
+        discordId: string,
+        now = new Date(),
+    ): Promise<number> {
+        const row = await PeriodicStat.findOne({
+            guildId,
+            period,
+            periodKey: periodKeyFor(period, now),
+            metric,
+            discordId,
+        });
+
+        return row?.value ?? 0;
+    }
 }

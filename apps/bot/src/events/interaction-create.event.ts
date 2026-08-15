@@ -5,6 +5,7 @@ import {
 import type { BotClient } from "@core/bot-client";
 import { Logger } from "@logger";
 import { classifyError } from "@core/handlers";
+import { touchActivity } from "@core/activity";
 import { MessageFlags } from "discord.js";
 import { errorEmbed } from "@utils";
 import { checkPermissions, checkFeatureEnabled, commandError, cooldowns, releaseCooldown, HandlingComponent } from "../utils/interaction";
@@ -29,6 +30,9 @@ export default {
         }
 
         if (!interaction.isCommand()) return;
+
+        // Running a command is deliberate participation, so it counts toward presence.
+        if (interaction.guildId) touchActivity(interaction.guildId, interaction.user.id, "command");
 
         const command = client.commands.get(interaction.commandName);
         

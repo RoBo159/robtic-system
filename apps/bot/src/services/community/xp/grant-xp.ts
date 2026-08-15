@@ -1,15 +1,11 @@
 import type { Guild } from "discord.js";
 import { ActivityRepository } from "@database/repositories/ActivityRepository";
-import { ActivityLogRepository } from "@database/repositories/ActivityLogRepository";
-import { PeriodicStatRepository } from "@database/repositories/PeriodicStatRepository";
 import { AI_MEANINGFUL_SKIP_CONFIDENCE } from "@constants";
 import { Logger } from "@logger";
 import { analyzeActivity } from "@core/ai";
-import { calculateLevel } from "@core/xp";
-import { announceLevelUp } from "./announce-level-up";
+import { applyXpGain } from "./apply-xp-gain";
 import { randomXP } from "./random-xp";
 import { isOnXPCooldown } from "./is-on-xp-cooldown";
-import { grantLevelRewards } from "./grant-level-rewards";
 
 const CTX = "community:xp";
 
@@ -46,30 +42,5 @@ export async function grantXP(
         return null;
     }
 
-    await PeriodicStatRepository.incrementAllPeriods(guildId, "xp", discordId, xp);
-
-    const newLevel = calculateLevel(updated.totalXP);
-    const leveledUp = newLevel > record.level;
-
-    if (leveledUp) {
-        Logger.debug(`${username} leveled up: ${record.level} → ${newLevel} (totalXP: ${updated.totalXP})`, CTX);
-        await ActivityRepository.updateLevel(discordId, guildId, newLevel);
-        await ActivityLogRepository.log({
-            guildId,
-            userId: discordId,
-            type: "level_up",
-            amount: newLevel,
-            details: `Leveled up from ${record.level} to ${newLevel}`,
-        });
-        await grantLevelRewards(discordId, guildId, newLevel, guild);
-    }
-
-    await ActivityLogRepository.log({
-        guildId,
-        userId: discordId,
-        type: "xp_gain",
-        amount: xp,
-    });
-
-    return { xp, leveledUp, newLevel };
+    return applyXpGain(discordId, guildId, username, guild, xp, record.level, updated, CTX);
 }

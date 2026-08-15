@@ -35,6 +35,9 @@ export { ComboServerRecords, type IComboServerRecords, type IComboRecordEntry } 
 export { ComboLeaderboardEntry, type IComboLeaderboardEntry } from "./ComboLeaderboardEntry";
 export { ComboSettings, type IComboSettings } from "./ComboSettings";
 export { PeriodicStat, type IPeriodicStat, type PeriodicStatMetric } from "./PeriodicStat";
+export { VoiceSession, type IVoiceSession } from "./VoiceSession";
+export { VoiceStat, type IVoiceStat } from "./VoiceStat";
+export { VoiceSettings, type IVoiceSettings } from "./VoiceSettings";
 export { StaffTier, type IStaffTier } from "./StaffTier";
 export { PunishConfig, type IPunishConfig } from "./PunishConfig";
 export { CommandAccess, type ICommandAccess } from "./CommandAccess";

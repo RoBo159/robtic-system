@@ -1,7 +1,14 @@
 import { Schema, model, type Document } from "mongoose";
 import type { ComboLeaderboardPeriod } from "@constants";
 
-export type PeriodicStatMetric = "xp" | "messages";
+/**
+ * Cumulative counters that need a per-period delta view.
+ *
+ * `voiceTime` is stored in seconds and `voiceXp` in XP, both accumulated the same way as chat XP —
+ * which is what lets the voice leaderboards reuse the existing period machinery rather than
+ * carrying their own daily/weekly/monthly tables.
+ */
+export type PeriodicStatMetric = "xp" | "messages" | "voiceTime" | "voiceXp";
 
 /**
  * Per-period, per-user running totals for cumulative counters (XP gained, messages sent) that need
@@ -25,7 +32,7 @@ const periodicStatSchema = new Schema<IPeriodicStat>(
         guildId: { type: String, required: true },
         period: { type: String, enum: ["daily", "weekly", "monthly", "alltime"], required: true },
         periodKey: { type: String, required: true },
-        metric: { type: String, enum: ["xp", "messages"], required: true },
+        metric: { type: String, enum: ["xp", "messages", "voiceTime", "voiceXp"], required: true },
         discordId: { type: String, required: true },
         value: { type: Number, required: true, default: 0 },
     },

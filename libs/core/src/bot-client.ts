@@ -16,6 +16,9 @@ import { buildCommandPayload } from "./registration/build-command-payload";
 import { putCommandRoute } from "./registration/put-command-route";
 import { getAdminGuildId } from "./bot-admin/admin-guild";
 
+/** Comfortably above the listeners the loader attaches, low enough that a real leak still warns. */
+const MAX_LISTENERS_PER_EVENT = 40;
+
 export class BotClient extends Client {
     public commands = new Collection<string, CommandConfig>();
     public components = new Collection<string, ComponentHandler>();
@@ -40,6 +43,12 @@ export class BotClient extends Client {
         super({ intents, ...(partials?.length ? { partials } : {}) });
         this.botName = name;
         this.token_ = token;
+
+        // Node warns past ten listeners on one event as a leak heuristic. Here they are deliberate:
+        // messageCreate alone carries the prefix router, shortcuts, the channel guard, message
+        // stats, combo, streak, community XP, auto-replies and presence tracking. Raised rather
+        // than removed, so a genuine runaway still trips it.
+        this.setMaxListeners(MAX_LISTENERS_PER_EVENT);
     }
 
     async start(): Promise<void> {
