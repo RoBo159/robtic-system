@@ -3,15 +3,130 @@ name: Deploy
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Redeploy even when nothing changed
+        type: choice
+        default: none
+        options: [none, all, bot, api, platform-api, activity]
 
 permissions:
   contents: read
   packages: write
 
+# One deploy at a time. Two runs building different commits onto the same server would race on
+# compose, and the second to finish would decide what is live regardless of which is newer.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
+  # Every service is content-addressed: `scripts/deploy-signature.sh` hashes the tracked files that
+  # can change that image, and the hash is looked up in the Actions cache. A hit means this exact
+  # content was already built and deployed, so the job is skipped; a miss means it is new.
+  #
+  # The marker is only written **after** a successful deploy (see `seal`), so a failed run leaves
+  # the signature unclaimed and the next push retries it rather than skipping a service that never
+  # actually shipped.
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    outputs:
+      bot: ${{ steps.decide.outputs.bot }}
+      api: ${{ steps.decide.outputs.api }}
+      platform_api: ${{ steps.decide.outputs.platform_api }}
+      activity: ${{ steps.decide.outputs.activity }}
+      sig_bot: ${{ steps.sign.outputs.bot }}
+      sig_api: ${{ steps.sign.outputs.api }}
+      sig_platform_api: ${{ steps.sign.outputs.platform_api }}
+      sig_activity: ${{ steps.sign.outputs.activity }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute build signatures
+        id: sign
+        env:
+          # Inlined into the Activity bundle at build time, so it is part of that image even though
+          # it is not part of the tree.
+          ACTIVITY_CLIENT_ID: ${{ vars.VITE_DISCORD_CLIENT_ID }}
+        run: |
+          for service in bot api platform-api activity; do
+            if [ "$service" = activity ]; then
+              signature=$(EXTRA_SIGNATURE_INPUT="$ACTIVITY_CLIENT_ID" bash scripts/deploy-signature.sh "$service")
+            else
+              signature=$(bash scripts/deploy-signature.sh "$service")
+            fi
+            echo "${service//-/_}=$signature" >> "$GITHUB_OUTPUT"
+            echo "$service $signature"
+          done
+
+      # lookup-only: the marker's contents are irrelevant, only whether the key exists.
+      - id: cache-bot
+        uses: actions/cache/restore@v4
+        with:
+          path: .deploy-signatures/bot
+          key: deploy-v1-bot-${{ steps.sign.outputs.bot }}
+          lookup-only: true
+
+      - id: cache-api
+        uses: actions/cache/restore@v4
+        with:
+          path: .deploy-signatures/api
+          key: deploy-v1-api-${{ steps.sign.outputs.api }}
+          lookup-only: true
+
+      - id: cache-platform-api
+        uses: actions/cache/restore@v4
+        with:
+          path: .deploy-signatures/platform-api
+          key: deploy-v1-platform-api-${{ steps.sign.outputs.platform_api }}
+          lookup-only: true
+
+      - id: cache-activity
+        uses: actions/cache/restore@v4
+        with:
+          path: .deploy-signatures/activity
+          key: deploy-v1-activity-${{ steps.sign.outputs.activity }}
+          lookup-only: true
+
+      - name: Decide what to deploy
+        id: decide
+        env:
+          FORCE: ${{ inputs.force || 'none' }}
+          HIT_BOT: ${{ steps.cache-bot.outputs.cache-hit }}
+          HIT_API: ${{ steps.cache-api.outputs.cache-hit }}
+          HIT_PLATFORM_API: ${{ steps.cache-platform-api.outputs.cache-hit }}
+          HIT_ACTIVITY: ${{ steps.cache-activity.outputs.cache-hit }}
+        run: |
+          echo "| Service | Signature | Decision |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+
+          decide() {
+            service="$1"; key="$2"; hit="$3"; signature="$4"
+
+            if [ "$FORCE" = all ] || [ "$FORCE" = "$service" ]; then
+              deploy=true; why="forced"
+            elif [ "$hit" = true ]; then
+              deploy=false; why="unchanged — already deployed"
+            else
+              deploy=true; why="changed"
+            fi
+
+            echo "$key=$deploy" >> "$GITHUB_OUTPUT"
+            echo "| $service | \`${signature:0:12}\` | $why |" >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          decide bot          bot          "$HIT_BOT"          '${{ steps.sign.outputs.bot }}'
+          decide api          api          "$HIT_API"          '${{ steps.sign.outputs.api }}'
+          decide platform-api platform_api "$HIT_PLATFORM_API" '${{ steps.sign.outputs.platform_api }}'
+          decide activity     activity     "$HIT_ACTIVITY"     '${{ steps.sign.outputs.activity }}'
+
   # Deployed first: the bot and every Minecraft server are clients of it, so it must be up before
   # anything that depends on it restarts.
   deploy-platform-api:
+    needs: changes
+    if: ${{ needs.changes.outputs.platform_api == 'true' }}
     uses: robticorg/robtic-actions/.github/workflows/deploy.yml@main
     with:
       deploy-type: docker
@@ -28,8 +143,15 @@ jobs:
     secrets:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 
+  # The chain is kept so compose never runs twice at once, but a skipped upstream must not skip
+  # everything after it — hence `!cancelled()` and an explicit failure check rather than plain
+  # `needs`, which treats "skipped" as a reason to skip.
   deploy-api:
-    needs: deploy-platform-api
+    needs: [changes, deploy-platform-api]
+    if: >-
+      ${{ !cancelled()
+      && needs.deploy-platform-api.result != 'failure'
+      && needs.changes.outputs.api == 'true' }}
     uses: robticorg/robtic-actions/.github/workflows/deploy.yml@main
     with:
       deploy-type: docker
@@ -47,7 +169,12 @@ jobs:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 
   deploy-activity:
-    needs: deploy-api
+    needs: [changes, deploy-platform-api, deploy-api]
+    if: >-
+      ${{ !cancelled()
+      && needs.deploy-platform-api.result != 'failure'
+      && needs.deploy-api.result != 'failure'
+      && needs.changes.outputs.activity == 'true' }}
     uses: robticorg/robtic-actions/.github/workflows/deploy.yml@main
     with:
       deploy-type: docker
@@ -67,7 +194,13 @@ jobs:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 
   deploy-bot:
-    needs: deploy-activity
+    needs: [changes, deploy-platform-api, deploy-api, deploy-activity]
+    if: >-
+      ${{ !cancelled()
+      && needs.deploy-platform-api.result != 'failure'
+      && needs.deploy-api.result != 'failure'
+      && needs.deploy-activity.result != 'failure'
+      && needs.changes.outputs.bot == 'true' }}
     uses: robticorg/robtic-actions/.github/workflows/deploy.yml@main
     with:
       deploy-type: docker
@@ -79,3 +212,48 @@ jobs:
       compose-env-file: '/home/robtic/robtic-system/.env'
     secrets:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
+
+  # Claims each signature that actually reached the server. Nothing here runs for a service that
+  # failed or was skipped, which is what keeps "cached" and "deployed" the same statement.
+  seal:
+    name: Record what was deployed
+    needs: [changes, deploy-platform-api, deploy-api, deploy-activity, deploy-bot]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write markers
+        run: |
+          mkdir -p .deploy-signatures
+          printf '%s %s %s\n' "${{ github.sha }}" "$(date -u +%FT%TZ)" "${{ github.run_id }}" \
+            | tee .deploy-signatures/bot .deploy-signatures/api \
+                  .deploy-signatures/platform-api .deploy-signatures/activity > /dev/null
+
+      # continue-on-error: a concurrent run may have claimed the same key first. That is a
+      # duplicate, not a failure — the deploy already happened either way.
+      - if: ${{ needs.deploy-platform-api.result == 'success' }}
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: .deploy-signatures/platform-api
+          key: deploy-v1-platform-api-${{ needs.changes.outputs.sig_platform_api }}
+
+      - if: ${{ needs.deploy-api.result == 'success' }}
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: .deploy-signatures/api
+          key: deploy-v1-api-${{ needs.changes.outputs.sig_api }}
+
+      - if: ${{ needs.deploy-activity.result == 'success' }}
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: .deploy-signatures/activity
+          key: deploy-v1-activity-${{ needs.changes.outputs.sig_activity }}
+
+      - if: ${{ needs.deploy-bot.result == 'success' }}
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: .deploy-signatures/bot
+          key: deploy-v1-bot-${{ needs.changes.outputs.sig_bot }}

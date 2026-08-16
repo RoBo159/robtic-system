@@ -27,7 +27,10 @@ ENV NODE_ENV=production
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
-COPY apps ./apps
+# Only the bot's own source. It imports nothing from apps/api, apps/activity or apps/robtic-api —
+# copying all of `apps` put their source in this image and, worse, made every Activity-only change
+# produce a different bot image, which the deploy signature would then have to rebuild for.
+COPY apps/bot ./apps/bot
 COPY libs ./libs
 COPY images ./images
 
