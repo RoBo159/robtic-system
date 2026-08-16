@@ -2,15 +2,41 @@
 
 Three currencies, with different jobs and different sources.
 
-| | What it is | How it comes into existence | Where it lives |
+| | What it is | Scope | How it comes into existence |
 |---|---|---|---|
-| **Points** | The activity currency | Earned passively from chat, combo, voice and streaks | `features/points/`, `Point` |
-| **RC** | The premium currency | **Only** by converting Points | `Point.rc` |
-| **Coins** | The Minecraft wallet | Moved over `/api/economy` by the game server | `features/coins/`, `Coins` |
+| **Points** | The activity currency | **Per guild** | Earned from chat, combo, voice, streaks and quests |
+| **RC** | The premium currency | **Per guild** | **Only** by converting Points |
+| **Coins** | The Minecraft wallet | **Global** | `/api/economy` from the game server, or an admin |
 
 Coins and Points are separate systems, not a rename. The Minecraft plugin's wire contract talks
 about coins, and keeping the two apart meant the plugin never had to change. Discord activity used
-to pay coins; it now pays Points, and `/points migrate` moves legacy balances across once.
+to pay coins; it now pays Points.
+
+**Coins are global** — one balance per person, the same in every Discord server and on every game
+server on the network. Points are per guild, because they measure activity *in* a server. That
+difference in scope is why moving between them is a one-way, once-per-server claim rather than an
+ongoing exchange.
+
+## Coins
+
+There is nothing to configure and nothing to earn passively. Two things move a balance:
+
+| | |
+|---|---|
+| `POST /api/economy/{add,remove,sell}` | The game server. Every mutation is an `$inc`, so several servers can credit concurrently |
+| `/coins add` · `/coins remove` | An admin, in any server — it moves the same global wallet, including their in-game money |
+
+`/coins balance` and the `coins` leaderboard are likewise global: the same numbers wherever you ask.
+`guildId` is still required by the API, but only to resolve a Minecraft UUID through the per-guild
+`MinecraftLink` table — it no longer scopes the balance. That is what let coins go global with no
+plugin release.
+
+### The legacy archive
+
+Before this change, coins were per guild. Those balances were snapshotted into `LegacyCoin` and the
+live wallet was reset to zero for everyone. Nothing spends from the archive; a server can claim its
+own rows into Points once with `/points migrate-coins`, and consumed rows are marked rather than
+deleted so the transfer stays reconcilable against the `coin-migration` ledger entries it wrote.
 
 ## Earning Points
 
@@ -24,9 +50,13 @@ message short of a point keeps that message rather than losing it at the boundar
 | Combo | `comboProgress` | 100 combo score → 1 point | combo score awarded |
 | Voice | `voiceProgress` | 10 active minutes → 1 point | the voice tick, when eligible |
 | Streaks | — | configurable table | reaching a rewarded day-count, exact match |
+| Quests | — | fixed per tier, 10–1000 | completing a claimed quest |
+| Community | — | `communityRewardBase` × rank | settling the weekly challenge, above the floor |
 
-Streaks are the exception: they pay a fixed amount from a `streak → points` table rather than
-accumulating, because a streak climbs one day at a time so each threshold fires exactly once.
+Streaks and quests are the exceptions: they pay a fixed amount rather than accumulating, because
+each one fires exactly once — a streak climbs one day at a time, and a quest is completed once by
+each member who claimed it. Quest payouts carry an idempotency key so a retried completion cannot
+pay twice. See [quests.md](./quests.md).
 
 Every movement writes a `PointHistory` row with `balanceAfter` — an append-only ledger, readable
 with `/points history`. `lifetimePoints` only ever climbs; spending reduces the balance alone, so
@@ -57,7 +87,7 @@ number; Points are a balance you spend.
 | Command | Access |
 |---|---|
 | `/points balance [user]` · `rates` · `history` · `convert` | anyone |
-| `/points add` · `remove` · `migrate` | admin |
+| `/points add` · `remove` · `migrate-coins` | admin |
 | `/coins balance [user]` · `add` · `remove` | balance anyone, rest admin |
 
 ## Configuration
@@ -84,4 +114,5 @@ Coins have no earning rates left to configure — the game server decides what a
 | `PointHistory` | Append-only ledger, one row per movement, with `balanceAfter` |
 | `RcConversion` | One row per conversion, with the rate, fee and bonus that applied |
 | `PointSettings` | Per-guild rates, cached 60s |
-| `Coins` | The Minecraft wallet, untouched by any of the above |
+| `Coin` | The global Minecraft wallet, keyed by `discordId` alone |
+| `LegacyCoin` | Frozen per-guild balances from before coins went global; claimable once per server |

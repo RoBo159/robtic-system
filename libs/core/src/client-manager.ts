@@ -2,6 +2,7 @@ import { BotClient } from "@core/bot-client";
 import { loadModules } from "@core/loader/load-modules";
 import { clearFeatureRegistry } from "@core/features/feature-registry";
 import { clearProfileTabs } from "@core/profile/profile-tabs";
+import { clearMetricListeners } from "@core/metrics";
 import { DiscordErrorHandler } from "@core/handlers";
 import { Logger } from "@logger";
 import { BOT_DEFINITION } from "@config";
@@ -97,6 +98,9 @@ export class ClientManager {
         this.client.messageCommands.clear();
         clearFeatureRegistry();
         clearProfileTabs();
+        // Consumers re-subscribe as their modules re-import; without this a reload would leave the
+        // old closures attached and every metric would be handled twice.
+        clearMetricListeners();
 
         await this.initialize();
         await this.client.registerSlashCommands();

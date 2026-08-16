@@ -13,6 +13,7 @@ const CATEGORIES: { value: TopCategory; label: string; icon: IconName }[] = [
     { value: "voice", label: "Voice", icon: "mic" },
     { value: "points", label: "Points", icon: "star" },
     { value: "coins", label: "Coins", icon: "coin" },
+    { value: "quests", label: "Quests", icon: "check" },
 ];
 
 /** Voice ranks on seconds of active time, so raw numbers would be unreadable. */

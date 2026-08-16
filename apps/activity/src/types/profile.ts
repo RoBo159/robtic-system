@@ -1,4 +1,4 @@
-export type TopCategory = "streak" | "combo" | "xp" | "messages" | "voice" | "points" | "coins";
+export type TopCategory = "streak" | "combo" | "xp" | "messages" | "voice" | "points" | "coins" | "quests";
 export type TopPeriod = "daily" | "weekly" | "monthly" | "alltime";
 
 export interface ProfilePartner {

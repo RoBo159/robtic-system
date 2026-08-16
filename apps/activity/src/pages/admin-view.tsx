@@ -29,7 +29,7 @@ export function AdminView({ data }: { data: AdminBootstrap }) {
             <FeaturesSection initial={config.features} />
             <ServerSection initial={config.server} channels={channels} roles={roles} />
             <XpSection initial={config.xp} channels={channels} roles={roles} />
-            <StreakSection initial={config.streak} channels={channels} />
+            <StreakSection initial={config.streak} channels={channels} roles={roles} />
             <ComboSection initial={config.combo} roles={roles} />
             <PunishSection initial={config.punish} channels={channels} roles={roles} />
             <VoiceSection initial={config.voice} channels={channels} roles={roles} />

@@ -18,7 +18,7 @@ export interface ITicket extends Document {
     closedBy: string | null;
     closedAt: Date | null;
     transcript: string | null;
-    /** Set only by the support-panel flow, not by other Ticket.create() callers like the ads-order flow — backs the partial unique index below. */
+    /** Set only by the support-panel flow, never by other Ticket.create() callers — backs the partial unique index below. */
     openLock?: true;
     createdAt: Date;
     updatedAt: Date;

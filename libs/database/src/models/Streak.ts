@@ -11,6 +11,14 @@ export interface IStreak extends Document {
     lastMessageContent: string;
     reminderSent: boolean;
     active: boolean;
+    /**
+     * Set when the streak dies, to the moment staff can no longer give it back.
+     *
+     * While it is in the future the member is frozen: qualifying messages are ignored silently, so
+     * posting cannot quietly replace a 200-day streak with a 1-day one before anyone has had the
+     * chance to restore it. Cleared on a return, and ignored once it passes.
+     */
+    pendingReturnUntil: Date | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -27,6 +35,7 @@ const streakSchema = new Schema<IStreak>(
         lastMessageContent: { type: String, default: "" },
         reminderSent: { type: Boolean, default: false },
         active: { type: Boolean, default: false },
+        pendingReturnUntil: { type: Date, default: null },
     },
     { timestamps: true }
 );

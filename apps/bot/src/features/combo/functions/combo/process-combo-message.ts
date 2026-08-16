@@ -10,6 +10,7 @@ import { isStale } from "./is-stale";
 import { getScoreRange } from "./score-range-cache";
 import { finalizeCombo } from "./finalize-combo";
 import { awardComboPoint } from "@core/points";
+import { publishMetric } from "@core/metrics";
 
 export async function processComboMessage(message: Message): Promise<void> {
     if (!message.guild || message.author.bot || message.webhookId) return;
@@ -61,6 +62,18 @@ export async function processComboMessage(message: Message): Promise<void> {
     if (!updated) return;
 
     cachePartners(guildId, authorId, partnerId, updated.currentScore);
-    await awardComboPoint(guildId, authorId, message.author.username, scoreGain);
+
+    // Credited to the author only, matching awardComboPoint — a combo is a pair, but progress is
+    // personal. Score and heat are the pair's *new absolute values*, not deltas: both are levels a
+    // member reaches, so their missions accumulate with `max`.
+    const username = message.author.username;
+    publishMetric({ guildId, discordId: authorId, username, metric: "comboScore", value: updated.currentScore });
+    publishMetric({ guildId, discordId: authorId, username, metric: "comboHeat", value: updated.heat });
+
+    const earnedPoints = await awardComboPoint(guildId, authorId, username, scoreGain);
+    if (earnedPoints > 0) {
+        publishMetric({ guildId, discordId: authorId, username, metric: "pointsEarned", value: earnedPoints });
+    }
+
     await checkLiveRecords(guildId, updated, updated.userLowId, updated.userHighId);
 }

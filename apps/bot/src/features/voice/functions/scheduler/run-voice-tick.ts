@@ -1,6 +1,7 @@
 import type { Client, Guild, GuildMember, VoiceBasedChannel } from "discord.js";
 import { PeriodicStatRepository, VoiceSettingsRepository } from "@database/repositories";
 import { isFeatureEnabled } from "@core/features";
+import { publishMetric } from "@core/metrics";
 import { VOICE_CONFIG } from "@constants";
 import { Logger } from "@logger";
 import { getSession, startSession } from "../session-store";
@@ -62,5 +63,12 @@ async function tickGuild(guild: Guild, settings: Awaited<ReturnType<typeof Voice
 
         // Active seconds, not connected — the voice-time leaderboards rank participation.
         await PeriodicStatRepository.incrementAllPeriods(guild.id, "voiceTime", member.id, TICK_SECONDS);
+        publishMetric({
+            guildId: guild.id,
+            discordId: member.id,
+            username: member.user.username,
+            metric: "voiceTime",
+            value: TICK_SECONDS,
+        });
     }
 }

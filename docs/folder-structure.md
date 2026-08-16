@@ -55,6 +55,11 @@ libs/
             client-manager.ts    Client lifecycle: initialize, start, reload
             module-loader.ts     Dynamic command/event/component loading
             ai/                  Groq-backed analyzers and prompts
+            loader/              Module scan and registration (commands, events, components, manifests)
+            features/            Feature manifest registry and the enable/disable gate
+            metrics/             The metric bus activity systems publish to and quests consume
+            <domain>/            One folder per domain, discord.js-free: activity, coins, combo,
+                                 leaderboard, minecraft, points, profile, quests, streak, xp, ...
             config/              BOT_DEFINITION, BRANCH_CONFIG, constants (extraction pending)
             handlers/            Error handling
             libs/                Logger, health, permissions (extraction pending)
@@ -81,7 +86,7 @@ docs/
     sdk/                         Activity + SDK architecture docs
     api/                         API docs
     database/                    Database docs
-    bot/                         Feature docs (ads, combo, modal, streak)
+    bot/                         Feature docs (combo, economy, streak, voice, ...)
 
 scripts/
     monitor/                     PM2 crash monitor, memory monitor

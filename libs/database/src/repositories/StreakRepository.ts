@@ -31,6 +31,9 @@ export class StreakRepository {
                 lastMessageContent: messageContent,
                 reminderSent: false,
                 active: true,
+                // Reaching here means any freeze had already lapsed — the caller refuses to advance
+                // a frozen streak. Clearing it keeps a stale past date from reading as "pending".
+                pendingReturnUntil: null,
             },
             { returnDocument: "after" }
         );
@@ -40,10 +43,21 @@ export class StreakRepository {
         await Streak.updateOne({ discordId, guildId }, { reminderSent: true });
     }
 
-    static async expire(discordId: string, guildId: string): Promise<void> {
+    /**
+     * Ends a streak and opens the return window.
+     *
+     * `pendingReturnUntil` freezes the member until staff decide or the window lapses — without it,
+     * their next message would start a 1-day streak and the old one would look already replaced.
+     */
+    static async expire(discordId: string, guildId: string, returnWindowHours: number): Promise<void> {
         await Streak.updateOne(
             { discordId, guildId },
-            { currentStreak: 0, active: false, reminderSent: false }
+            {
+                currentStreak: 0,
+                active: false,
+                reminderSent: false,
+                pendingReturnUntil: new Date(Date.now() + Math.max(0, returnWindowHours) * 3_600_000),
+            }
         );
     }
 
@@ -56,6 +70,7 @@ export class StreakRepository {
                 lastIncrement: new Date(),
                 reminderSent: false,
                 active: true,
+                pendingReturnUntil: null,
             },
             { upsert: true, returnDocument: "after" }
         );

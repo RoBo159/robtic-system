@@ -6,7 +6,7 @@ import { buildFeatureCommands } from "@core/features";
 import { streakFeature } from "./streak";
 import { view } from "./commands/view";
 import { top } from "./commands/top";
-import { recover } from "./commands/recover";
+import { returnStreak } from "./commands/return-streak";
 import { add as rewardAdd } from "./commands/reward/add";
 import { remove as rewardRemove } from "./commands/reward/remove";
 import { list as rewardList } from "./commands/reward/list";
@@ -16,7 +16,9 @@ import { channelList } from "./commands/config/channel-list";
 import { channelAnnounce } from "./commands/config/channel-announce";
 import { reminderDefault } from "./commands/config/reminder-default";
 import { settings } from "./commands/config/settings";
-import { restore } from "./commands/config/restore";
+import { windows } from "./commands/config/windows";
+import { breakOn } from "./commands/config/break-on";
+import { returnRoleAdd, returnRoleRemove, returnRoleList } from "./commands/config/return-role";
 import { sync } from "./commands/config/sync";
 
 const rewardHandlers: Record<string, FeatureSubcommandHandler> = {
@@ -33,7 +35,11 @@ const configHandlers: Record<string, FeatureSubcommandHandler> = {
     "channel:announce": channelAnnounce,
     "reminder:default": reminderDefault,
     settings,
-    return: restore,
+    windows,
+    "break-on": breakOn,
+    "return-role:add": returnRoleAdd,
+    "return-role:remove": returnRoleRemove,
+    "return-role:list": returnRoleList,
     sync,
 };
 
@@ -45,7 +51,7 @@ async function deferEphemeral(interaction: CommandInteractionLike): Promise<void
 export default buildFeatureCommands(streakFeature, {
     streak: view,
     "streak-top": top,
-    "streak-return": recover,
+    "streak-return": returnStreak,
 
     "streak-reward": async (interaction: CommandInteractionLike, client: BotClient) => {
         await deferEphemeral(interaction);

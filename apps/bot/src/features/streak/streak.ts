@@ -1,5 +1,6 @@
 import { ChannelType } from "discord.js";
 import { defineFeature } from "@typings/feature";
+import { STREAK_LIMITS } from "@constants";
 
 /**
  * Daily message streaks.
@@ -33,11 +34,17 @@ export const streakFeature = defineFeature({
             access: "general",
             category: "Streak",
         },        {
+            // access "general" so assigned roles can reach the handler; the handler itself gates on
+            // administrator-or-assigned-role. Declaring "admin" here would lock those roles out
+            // before any of our code ran.
             name: "streak-return",
-            description: "Recover your last streak, if it broke recently",
+            description: "Give a member their expired streak back (staff only)",
             scope: "guild",
             access: "general",
             category: "Streak",
+            options: [
+                { name: "user", description: "The member whose streak to return", type: "user", required: true },
+            ],
         },
         {
             name: "streak-reward",
@@ -114,6 +121,23 @@ export const streakFeature = defineFeature({
                         },
                     ],
                 },
+                {
+                    name: "return-role",
+                    description: "Roles that may return a streak, besides administrators",
+                    subcommands: [
+                        {
+                            name: "add",
+                            description: "Let a role return streaks",
+                            options: [{ name: "role", description: "Role to allow", type: "role", required: true }],
+                        },
+                        {
+                            name: "remove",
+                            description: "Stop a role returning streaks",
+                            options: [{ name: "role", description: "Role to remove", type: "role", required: true }],
+                        },
+                        { name: "list", description: "Show the roles that may return streaks" },
+                    ],
+                },
             ],
             subcommands: [
                 {
@@ -124,10 +148,38 @@ export const streakFeature = defineFeature({
                     ],
                 },
                 {
-                    name: "return",
-                    description: "Restore an expired streak (must be within the recovery window)",
+                    name: "windows",
+                    description: "How long a streak lasts, and how long staff can give it back",
                     options: [
-                        { name: "user", description: "The user to restore", type: "user", required: true },
+                        {
+                            name: "claim-days",
+                            description: "Days between claims — 1 means daily",
+                            type: "integer",
+                            minValue: STREAK_LIMITS.claimDays.min,
+                            maxValue: STREAK_LIMITS.claimDays.max,
+                        },
+                        {
+                            name: "expire-days",
+                            description: "Days without a claim before the streak dies — must exceed claim-days",
+                            type: "integer",
+                            minValue: STREAK_LIMITS.expireDays.min,
+                            maxValue: STREAK_LIMITS.expireDays.max,
+                        },
+                        {
+                            name: "return-hours",
+                            description: "Hours after expiry that staff can still return it",
+                            type: "integer",
+                            minValue: STREAK_LIMITS.returnWindowHours.min,
+                            maxValue: STREAK_LIMITS.returnWindowHours.max,
+                        },
+                    ],
+                },
+                {
+                    name: "break-on",
+                    description: "Which punishments end a streak",
+                    options: [
+                        { name: "timeout", description: "A timeout ends it — this covers /mute, /jail and warn auto-mutes", type: "boolean" },
+                        { name: "kick", description: "Being kicked ends it", type: "boolean" },
                     ],
                 },
                 {

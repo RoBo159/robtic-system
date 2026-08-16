@@ -2,6 +2,7 @@ import type { Message } from "discord.js";
 import { StreakRepository, StreakSettingsRepository } from "@database/repositories";
 import { Logger } from "@logger";
 import { awardStreakPoint } from "@core/points";
+import { publishMetric } from "@core/metrics";
 import { isClaimable, isStreakExpired } from "../lib";
 import { applyStreakRole } from "../utils/streak-role";
 import { isValidStreakMessage } from "./is-valid-streak-message";
@@ -29,13 +30,18 @@ export async function processStreakMessage(message: Message): Promise<void> {
 
     const record = await StreakRepository.findOrCreate(message.author.id, guildId, message.author.username);
 
+    // Frozen while staff can still give the old streak back. Deliberately silent — the member is
+    // told nothing here; `?streak` is where they see the pending state. Replying would turn every
+    // message during the window into spam, and announcing it invites arguing in the channel.
+    if (record.pendingReturnUntil && record.pendingReturnUntil.getTime() > Date.now()) return;
+
     if (!isValidStreakMessage(message, settings, record)) return;
 
     const isFreshStart = record.currentStreak === 0;
 
-    if (!isFreshStart && !isClaimable(record.lastIncrement)) return;
+    if (!isFreshStart && !isClaimable(record.lastIncrement, settings.claimDays)) return;
 
-    const broken = !isFreshStart && isStreakExpired(record.lastIncrement);
+    const broken = !isFreshStart && isStreakExpired(record.lastIncrement, settings.expireDays);
     const newCurrent = isFreshStart || broken ? 1 : record.currentStreak + 1;
     const newBest = Math.max(record.bestStreak, newCurrent);
 
@@ -57,10 +63,31 @@ export async function processStreakMessage(message: Message): Promise<void> {
         );
     }
 
+    // The streak reached, not the increment — a streak is a level, so its missions use `max`.
+    publishMetric({
+        guildId,
+        discordId: message.author.id,
+        username: message.author.username,
+        metric: "streak",
+        value: updated.currentStreak,
+    });
+
     await sendStreakReply(message, updated, settings);
     await sendStreakDM(message.author, updated);
     await announceStreakRewards(message.guild, message.author, guildId, updated.currentStreak);
-    await awardStreakPoint(guildId, message.author.id, message.author.username, updated.currentStreak).catch(err =>
-        Logger.warn(`Failed to award streak points for ${message.author.id} in ${guildId}: ${err}`, CTX)
-    );
+
+    try {
+        const earned = await awardStreakPoint(guildId, message.author.id, message.author.username, updated.currentStreak);
+        if (earned > 0) {
+            publishMetric({
+                guildId,
+                discordId: message.author.id,
+                username: message.author.username,
+                metric: "pointsEarned",
+                value: earned,
+            });
+        }
+    } catch (err) {
+        Logger.warn(`Failed to award streak points for ${message.author.id} in ${guildId}: ${err}`, CTX);
+    }
 }

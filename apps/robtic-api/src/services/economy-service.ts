@@ -9,9 +9,13 @@ import { getItemPrices } from "@core/minecraft";
 /**
  * The shared coin economy.
  *
- * Balances live in the same `coins` collection Discord awards from, so a coin earned in chat and a
- * coin earned mining are the same coin. Every mutation is an `$inc`, never a read-modify-write,
- * which is what lets Discord and several game servers credit the same member concurrently.
+ * Balances are **global** — one wallet per Discord id, spendable from any server on the network.
+ * Every mutation is an `$inc`, never a read-modify-write, which is what lets several game servers
+ * credit the same member concurrently.
+ *
+ * `guildId` stays in the wire contract and is still required, because `MinecraftLink` is per-guild
+ * and a UUID can only be resolved to a Discord id through it. It no longer scopes the balance that
+ * resolution lands on. Keeping the parameter is what let coins go global without a plugin release.
  */
 export class EconomyService {
     /** Resolves a player reference to the Discord id the balance is keyed by. */
@@ -37,7 +41,7 @@ export class EconomyService {
         const link = await MinecraftLinkRepository.getByUuid(guildId, normalised);
         if (!link) throw ApiError.notLinked();
 
-        const record = await CoinsRepository.get(guildId, link.discordId);
+        const record = await CoinsRepository.get(link.discordId);
         return { uuid: normalised, discordId: link.discordId, coins: record?.coins ?? 0 };
     }
 
@@ -49,7 +53,7 @@ export class EconomyService {
         if (amount <= 0) throw ApiError.validation({ amount: "must be greater than zero" });
 
         const { discordId, username } = await this.resolveDiscordId(guildId, ref);
-        const updated = await CoinsRepository.addCoins(guildId, discordId, username, amount);
+        const updated = await CoinsRepository.addCoins(discordId, username, amount);
 
         return { discordId, coins: updated.coins, applied: amount };
     }
@@ -68,10 +72,10 @@ export class EconomyService {
 
         const { discordId, username } = await this.resolveDiscordId(guildId, ref);
 
-        const current = await CoinsRepository.get(guildId, discordId);
+        const current = await CoinsRepository.get(discordId);
         if ((current?.coins ?? 0) < amount) throw ApiError.insufficientFunds();
 
-        const updated = await CoinsRepository.addCoins(guildId, discordId, username, -amount);
+        const updated = await CoinsRepository.addCoins(discordId, username, -amount);
         return { discordId, coins: updated.coins, applied: -amount };
     }
 
@@ -108,7 +112,7 @@ export class EconomyService {
         });
 
         const credited = priced.reduce((total, line) => total + line.coins, 0);
-        const updated = await CoinsRepository.addCoins(input.guildId, link.discordId, link.minecraftUsername, credited);
+        const updated = await CoinsRepository.addCoins(link.discordId, link.minecraftUsername, credited);
 
         for (const line of priced) {
             await MinecraftTransactionRepository.record({
@@ -136,11 +140,10 @@ export class EconomyService {
     /**
      * The coin leaderboard, resolved to Minecraft names.
      *
-     * Balances are keyed by Discord id, but the callers that want a ranking — TAB, a holographic
-     * scoreboard, the in-game placeholders — can only display a Minecraft name, so the links are
-     * resolved here in one query rather than leaving each caller to make N of them. An entry whose
-     * holder has never linked keeps its Discord username, because dropping it would silently
-     * renumber everyone below it.
+     * The ranking itself is global, since the balances are. `guildId` only decides which link table
+     * is consulted for display names, so an entry whose holder has not linked *in this guild* keeps
+     * its Discord username — the same fallback as never having linked at all, and for the same
+     * reason: dropping the row would silently renumber everyone below it.
      */
     static async leaderboard(
         guildId: string,
@@ -150,7 +153,7 @@ export class EconomyService {
         entries: Array<{ position: number; discordId: string; username: string; uuid: string | null; coins: number }>;
         player: { position: number; coins: number } | null;
     }> {
-        const top = await CoinsRepository.getTop(guildId, limit);
+        const top = await CoinsRepository.getTop(limit);
 
         const links = await MinecraftLinkRepository.listByDiscordIds(
             guildId,
@@ -175,8 +178,8 @@ export class EconomyService {
         if (!link) return { entries, player: null };
 
         const [position, record] = await Promise.all([
-            CoinsRepository.getRank(guildId, link.discordId),
-            CoinsRepository.get(guildId, link.discordId),
+            CoinsRepository.getRank(link.discordId),
+            CoinsRepository.get(link.discordId),
         ]);
 
         return { entries, player: { position, coins: record?.coins ?? 0 } };

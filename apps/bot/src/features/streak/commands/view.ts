@@ -12,7 +12,8 @@ export const view: FeatureSubcommandHandler = async (interaction, _client) => {
     const guildId = interaction.guildId!;
     const lang = await getUserLang(interaction.member as GuildMember | null);
 
-    const { record, rank, expiresInMs, nextClaimMs } = await getStreakSummary(target.id, guildId, target.username);
+    const { record, rank, expiresInMs, nextClaimMs, pendingReturnMs, pendingStreak } =
+        await getStreakSummary(target.id, guildId, target.username);
 
     const unranked = t("streak.unranked", lang);
     const notAvailable = t("streak.not_available", lang);
@@ -30,6 +31,18 @@ export const view: FeatureSubcommandHandler = async (interaction, _client) => {
             { name: t("streak.reminder_status", lang), value: record.active ? (record.reminderSent ? t("streak.reminder_sent", lang) : t("streak.reminder_pending", lang)) : notAvailable, inline: true },
         )
         .setTimestamp();
+
+    // Nothing is said when the streak breaks, and messages sent during the window are ignored in
+    // silence — so this is the one place the member finds out they are frozen and for how long.
+    if (pendingReturnMs !== null) {
+        embed.addFields({
+            name: t("streak.pending_return", lang),
+            value: t("streak.pending_return_value", lang, {
+                streak: `${pendingStreak}`,
+                duration: formatDuration(pendingReturnMs),
+            }),
+        });
+    }
 
     await interaction.editReply({ embeds: [embed] });
 };

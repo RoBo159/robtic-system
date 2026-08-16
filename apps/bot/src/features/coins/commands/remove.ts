@@ -22,7 +22,7 @@ export const remove: FeatureSubcommandHandler = async (interaction, _client) => 
     const target = await resolveTarget(interaction, true);
     const amount = interaction.options.getInteger("amount", true);
 
-    const { applied, total } = await adjustBalance(interaction.guildId, target.user.id, target.user.username, -amount);
+    const { applied, total } = await adjustBalance(target.user.id, target.user.username, -amount);
 
     await interaction.editReply({
         content: applied === 0

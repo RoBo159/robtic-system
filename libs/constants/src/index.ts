@@ -32,4 +32,5 @@ export * from "./support";
 export * from "./time";
 export * from "./top";
 export * from "./voice";
+export * from "./quests";
 export * from "./xp";

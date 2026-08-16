@@ -13,6 +13,9 @@
     "tunnel": "cloudflared tunnel --url http://localhost:5173",
     "build": "bun build ./apps/bot/src/index.ts --outfile ./dist/index.js --target bun",
     "typecheck": "tsc --noEmit",
+    "test:quests": "bun --preload ./libs/shared/src/preload.ts scripts/quest-checks.ts",
+    "test:quests:wiring": "bun --preload ./libs/shared/src/preload.ts scripts/quest-wiring-check.ts",
+    "migrate:coins-global": "bun --preload ./libs/shared/src/preload.ts scripts/migrate-coins-global.ts",
     "start": "NODE_ENV=production bun dist/index.js"
   },
   "devDependencies": {

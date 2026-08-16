@@ -67,4 +67,42 @@ export class StreakSettingsRepository {
             { upsert: true, returnDocument: "after" }
         ) as Promise<IStreakSettings>;
     }
+
+    /** Written together because expireDays only makes sense relative to claimDays. */
+    static async setWindows(
+        guildId: string,
+        claimDays: number,
+        expireDays: number,
+        returnWindowHours: number,
+    ): Promise<IStreakSettings> {
+        return StreakSettings.findOneAndUpdate(
+            { guildId },
+            { claimDays, expireDays, returnWindowHours },
+            { upsert: true, returnDocument: "after" }
+        ) as Promise<IStreakSettings>;
+    }
+
+    static async setBreakTriggers(guildId: string, breakOnTimeout: boolean, breakOnKick: boolean): Promise<IStreakSettings> {
+        return StreakSettings.findOneAndUpdate(
+            { guildId },
+            { breakOnTimeout, breakOnKick },
+            { upsert: true, returnDocument: "after" }
+        ) as Promise<IStreakSettings>;
+    }
+
+    static async setReturnRoles(guildId: string, returnRoleIds: string[]): Promise<IStreakSettings> {
+        return StreakSettings.findOneAndUpdate(
+            { guildId },
+            { returnRoleIds },
+            { upsert: true, returnDocument: "after" }
+        ) as Promise<IStreakSettings>;
+    }
+
+    static async editReturnRole(guildId: string, roleId: string, action: "add" | "remove"): Promise<IStreakSettings> {
+        return StreakSettings.findOneAndUpdate(
+            { guildId },
+            action === "add" ? { $addToSet: { returnRoleIds: roleId } } : { $pull: { returnRoleIds: roleId } },
+            { upsert: true, returnDocument: "after" }
+        ) as Promise<IStreakSettings>;
+    }
 }

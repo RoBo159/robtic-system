@@ -38,6 +38,15 @@ export interface IPointHistory extends Document {
     balanceAfter: number;
     /** Who caused it, when that is someone other than the member. */
     actorId: string | null;
+    /**
+     * Optional caller-supplied key making a movement replayable exactly once.
+     *
+     * A payer that can retry — anything driven by a lease, a buffer or a scheduler — can crash
+     * between deciding to pay and recording it, and would otherwise pay twice on resume. The
+     * partial unique index below turns the second attempt into an E11000 that `move` treats as
+     * "already done". Absent for the interactive paths, which cannot replay.
+     */
+    idempotencyKey: string | null;
     createdAt: Date;
 }
 
@@ -50,11 +59,18 @@ const pointHistorySchema = new Schema<IPointHistory>(
         detail: { type: String, default: "" },
         balanceAfter: { type: Number, required: true },
         actorId: { type: String, default: null },
+        idempotencyKey: { type: String, default: null },
     },
     { timestamps: { createdAt: true, updatedAt: false } }
 );
 
 pointHistorySchema.index({ guildId: 1, discordId: 1, createdAt: -1 });
 pointHistorySchema.index({ guildId: 1, source: 1, createdAt: -1 });
+
+// Partial, so the millions of rows without a key do not collide on null.
+pointHistorySchema.index(
+    { idempotencyKey: 1 },
+    { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } }
+);
 
 export const PointHistory = model<IPointHistory>("PointHistory", pointHistorySchema);

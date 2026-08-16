@@ -1,11 +1,14 @@
 import { defineFeature } from "@typings/feature";
 
 /**
- * The coin economy.
+ * The coin economy — the Minecraft wallet.
  *
- * `default-on`: coins accrue from messages, combos and streaks the moment the bot joins, matching
- * how message-stats and the combo service already behave. There is nothing to opt into — a guild
- * that wants it off says so with `/feature disable coins`.
+ * `scope: "global"`: one balance per person, shared across every server and every game server on
+ * the network. Coins are not earned from Discord activity at all any more (that is Points); they
+ * move over /api/economy and through the admin subcommands below.
+ *
+ * `default-on` still, and the per-guild feature switch still applies — it governs whether the
+ * *commands* work here, not whose money it is.
  *
  * `add` and `remove` declare `access: "admin"` per-subcommand at the handler level rather than on
  * the command, since Discord gates whole commands and `/coins balance` must stay open to everyone.
@@ -17,14 +20,14 @@ export const coinsFeature = defineFeature({
     commands: [
         {
             name: "coins",
-            description: "View and manage server coins",
-            scope: "guild",
+            description: "View and manage coins — one shared balance across every server",
+            scope: "global",
             access: "general",
             category: "Economy",
             subcommands: [
                 {
                     name: "balance",
-                    description: "See how many coins you (or another member) have earned",
+                    description: "See your global coin balance (or another member's)",
                     options: [
                         { name: "user", description: "The member to check (defaults to yourself)", type: "user" },
                     ],

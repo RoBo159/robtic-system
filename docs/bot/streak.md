@@ -1,401 +1,128 @@
-# Discord Streak Bot - Development Specification
+# Streaks
 
-## Objective
+`apps/bot/src/features/streak/` — **opt-in**, turn on with `/feature enable streak`.
 
-Build a production-ready Discord Streak Bot using **discord.js**, **TypeScript**, and **Redis**.
+A streak counts consecutive days on which a member posted a qualifying message in a channel the
+server nominated. Everything below is per guild.
 
-The bot encourages members to chat daily in designated channels. A streak increases once every 24 hours when the user sends a valid message.
+> This file replaced a pre-implementation spec that described a Redis/TTL design. The system is
+> MongoDB-backed and has never used Redis; if you find a doc mentioning `RecoveryService.ts` or
+> `streakReturn:{userId}` keys, it predates the build.
 
-The bot must be scalable, modular, and suitable for large public Discord servers.
+## Earning
 
----
+`functions/process-streak-message.ts`, on every message:
 
-# Core Rules
+1. The guild has streak channels configured, and this is one of them. **An empty list means
+   nowhere** — unlike XP or message stats, a streak channel is a deliberate choice, so no
+   configuration means the feature does nothing rather than counting everywhere.
+2. The member is not frozen (see below).
+3. The message qualifies: not a bot, long enough (`minMessageLength`, default 5), and not a repeat
+   of their last one inside 10s.
+4. The claim window has passed since their last increment.
 
-## Streak Window
+Then the streak advances by one, the streak role is re-applied, milestones are announced, and
+points are awarded from the streak reward table.
 
-```text
-Day 1
-User sends message
-→ Streak = 1
+## Windows
 
-24 hours later
-↓
-User becomes eligible for the next streak.
+Claim and expiry are reckoned in whole **UTC calendar days**, not rolling hours: a claim at 23:00 is
+claimable again at 00:00, which is what "daily" means to the person doing it.
 
-24h–48h
-↓
-If the user sends another valid message
-→ Streak++
+| | Default | Bounds | Set with |
+|---|---|---|---|
+| Claim every | 1 day | 1–30 | `/streak-config windows claim-days` |
+| Expires after | 2 days without a claim | 2–60 | `/streak-config windows expire-days` |
+| Return window | 24 hours | 1–168 | `/streak-config windows return-hours` |
 
-48 hours with no valid message
-↓
-Streak expires
-```
+Expiry is always forced above the claim window. A streak that died before it could next be claimed
+could never be continued, so both the command and the admin panel raise it rather than rejecting the
+input — the intent is clear either way.
 
-### Rules
+The scheduler (`functions/scheduler/`) sweeps every 15 minutes, expiring what is due and DMing an
+expiry warning 2 hours before, once, if reminders are on.
 
-- One streak increase every 24 hours.
-- User has an additional 24-hour grace period.
-- Redis TTL is always reset to **48 hours** after each successful streak.
+## Losing a streak, and getting it back
 
----
+When a streak dies — from expiry or a punishment — three things happen: a `StreakRecovery` row is
+written with what was lost, the streak is zeroed, and `pendingReturnUntil` is set to the end of the
+return window.
 
-# Guild Configuration
+**While that timestamp is in the future the member is frozen.** Qualifying messages are ignored
+entirely, so posting cannot quietly replace a 200-day streak with a 1-day one before anyone has had
+the chance to restore it.
 
-Each server can configure one or more streak channels.
+The freeze is **silent**: nothing is posted in the channel and no DM is sent about it. `/streak` is
+the only place the member sees it, where the embed shows what is pending and how long is left.
+Replying to every message during the window would be spam, and announcing it invites arguing in the
+channel.
+
+Once the window lapses the freeze stops applying and the next qualifying message starts a fresh
+streak at 1. Recovery rows are pruned on the same clock, since past that point they can never be
+used.
+
+### Returning
+
+`/streak-return <user>` — **staff only**: administrators and the guild operator, plus any roles
+added with `/streak-config return-role add`.
+
+The permission check lives in the handler rather than in the command's `access` field. Discord gates
+a whole command, and declaring `access: "admin"` would lock out the assigned roles before any of the
+bot's own code ran — which is the entire point of having them.
+
+There is deliberately **no self-service return**. A streak a member can restore themselves is not a
+streak, it is a button.
+
+## Punishments
+
+Off a per-guild switch, `/streak-config break-on`:
+
+| Trigger | Default | |
+|---|---|---|
+| `timeout` | on | Covers `/mute`, `/jail` and warn auto-mutes — all three call `member.timeout()`, so the single `guildMemberUpdate` listener catches every one. Only the transition *into* timeout counts |
+| `kick` | off | `guildMemberRemove` cannot tell a kick from someone leaving, so the audit log is consulted |
+
+Kick detection **fails open**. If the audit entry is missing or the bot lacks View Audit Log, the
+departure is treated as voluntary and the streak survives: wrongly destroying a long streak is far
+worse than missing one kick.
+
+A punishment-broken streak writes the same recovery row as a natural expiry, so staff can still
+return it. This is a change from the original behaviour, which skipped that step and so made
+punishment-broken streaks — the ones most likely to be disputed — the only unrecoverable kind.
 
 ## Commands
 
-```text
-/streak channel add #general
-/streak channel remove #general
-/streak channel list
-```
-
-Only configured channels count toward streaks.
-
----
-
-# Valid Message Rules
-
-A message counts only if it:
-
-- Is not sent by a bot
-- Is not sent by a webhook
-- Has at least the minimum configured length (default: 5)
-- Is not emoji-only
-- Is not attachment-only
-- Is not spam
-- Is not duplicate content
-
----
-
-# Redis Structure
-
-## Active Streak
-
-Key
-
-```text
-guild:{guildId}:streak:{userId}
-```
-
-Fields
-
-```text
-currentStreak
-bestStreak
-lastIncrement
-lastMessage
-reminderSent
-```
-
-TTL
-
-```text
-48 hours
-```
-
----
-
-## Recovery Record
-
-When a streak expires:
-
-```text
-guild:{guildId}:streakReturn:{userId}
-```
-
-Fields
-
-```text
-currentStreak
-bestStreak
-expiredAt
-```
-
-TTL
-
-```text
-3 days
-```
-
-Only administrators can restore from this record.
-
----
-
-# Message Flow
-
-1. User sends a message.
-2. Check whether the channel is configured.
-3. Validate the message.
-4. Check whether 24 hours have passed since the previous streak increment.
-5. If not eligible, ignore.
-6. If eligible:
-   - Increment streak.
-   - Update best streak.
-   - Reset Redis TTL to 48 hours.
-   - Reset reminder flag.
-7. Reply publicly.
-8. Send a DM.
-
----
-
-# Public Reply
-
-Reply to the triggering message.
-
-Example
-
-```text
-🔥 Streak 17!
-
-Come back tomorrow to continue your streak.
-```
-
-Automatically delete after 10 seconds (configurable).
-
----
-
-# Private DM
-
-```text
-🔥 Daily streak updated!
-
-Current Streak: 17
-Best Streak: 42
-
-Next streak available tomorrow.
-```
-
-If DMs are disabled, ignore the error.
-
----
-
-# Reminder System
-
-Run every 15 minutes.
-
-Conditions:
-
-- Remaining TTL ≤ 2 hours
-- reminderSent == false
-
-Send
-
-```text
-⚠️ Your streak will expire in less than 2 hours.
-
-Send one message in the streak channel to keep your streak alive.
-```
-
-Then set
-
-```text
-reminderSent = true
-```
-
----
-
-# Expired Notification
-
-When Redis expires the key:
-
-- Send DM
-
-```text
-💔 Your streak has expired.
-
-Lost streak: 37
-
-An administrator can restore it within 3 days.
-```
-
-- Create the recovery record.
-
-Prefer Redis Keyspace Notifications.
-
----
-
-# Recovery Command
-
-Administrator only.
-
-```text
-/streak return @user
-```
-
-Rules
-
-- Recovery record exists.
-- Recovery is less than 3 days old.
-
-Restore
-
-- Current streak
-- Best streak
-- lastIncrement = now
-- TTL = 48 hours
-
-Delete the recovery record after restoration.
-
----
-
-# User Commands
-
-## /streak
-
-Display
-
-- Current streak
-- Best streak
-- Time until next streak
-- Time until expiration
-- Current leaderboard rank
-- Reminder status
-
-Example
-
-```text
-🔥 Current Streak: 17
-🏆 Best Streak: 41
-⏳ Next Streak: 13h 24m
-💔 Expires In: 37h
-📈 Rank: #4
-```
-
----
-
-## /streak top
-
-Display the Top 5 current streaks.
-
-Buttons
-
-- Current
-- Best Ever
-
-Switch between:
-
-- Current leaderboard
-- Historical best leaderboard
-
----
-
-# Configuration Commands
-
-```text
-/streak channel add
-/streak channel remove
-/streak channel list
-
-/streak reminder default on
-/streak reminder default off
-
-/streak settings
-```
-
----
-
-# Permissions
-
-## Administrator
-
-- Channel configuration
-- Recovery command
-- Settings
-
-## Everyone
-
-- /streak
-- /streak top
-
----
-
-# Anti-Abuse
-
-Ignore
-
-- Bots
-- Webhooks
-- Duplicate messages
-- Spam bursts
-- Messages below minimum length
-
-Optional
-
-- Ignore multiple messages within 10 seconds.
-
----
-
-# Project Structure
-
-```text
-src/
-├── commands/
-│   └── streak/
-├── events/
-│   └── messageCreate.ts
-├── services/
-│   ├── StreakService.ts
-│   ├── ReminderService.ts
-│   ├── LeaderboardService.ts
-│   └── RecoveryService.ts
-├── repositories/
-│   └── RedisRepository.ts
-├── jobs/
-│   └── ReminderJob.ts
-├── components/
-│   └── LeaderboardButtons.ts
-└── utils/
-    └── Time.ts
-```
-
----
-
-# Service Responsibilities
-
-## StreakService
-
-- Validate messages
-- Handle the 24-hour rule
-- Increment streaks
-- Reset TTL
-- Send public replies
-- Send DMs
-
-## ReminderService
-
-- Process reminder queue
-- Send reminder DMs
-- Reset reminder flags
-
-## RecoveryService
-
-- Create recovery records
-- Restore streaks
-- Delete recovery records
-
-## LeaderboardService
-
-- Current leaderboard
-- Best-ever leaderboard
-- User ranking
-
----
-
-# Scalability Requirements
-
-- Support millions of users.
-- O(1) Redis operations during message processing.
-- Avoid scanning Redis keys by maintaining a reminder schedule using Redis Sorted Sets.
-- Use Redis TTL for automatic expiration.
-- Use Redis Keyspace Notifications for expiration events.
-- Background jobs must be restart-safe.
-- Guild data must remain isolated.
-- Fully typed TypeScript.
-- Ready for Discord sharding.
-- Ready for horizontal scaling.
-- All timing values (24h claim, 48h expiration, 2h reminder, 3-day recovery) must be configurable.
-- Embed colors, emojis, messages, and auto-delete duration should be configurable.
+| Command | Access |
+|---|---|
+| `/streak [user]` | anyone |
+| `/streak-top` | anyone |
+| `/streak-return <user>` | staff |
+| `/streak-reward add · remove · list` | admin |
+| `/streak-config channel add · remove · list · announce` | admin |
+| `/streak-config reminder default` | admin |
+| `/streak-config settings` | admin |
+| `/streak-config windows` | admin |
+| `/streak-config break-on` | admin |
+| `/streak-config return-role add · remove · list` | admin |
+| `/streak-config sync <source-guild-id>` | admin |
+
+`/streak-reward` and `/streak-config settings` still reply in Arabic. They were moved verbatim
+during the feature refactor rather than converted to `t()` inside a large diff, where a behaviour
+change would have been invisible.
+
+Everything except the reward table is also editable from the Activity admin panel's **Streaks**
+section.
+
+## Data
+
+| Collection | |
+|---|---|
+| `Streak` | Per member: current, best, `lastIncrement`, `active`, `pendingReturnUntil` |
+| `StreakSettings` | Per guild: channels, windows, break triggers, return roles, reminders |
+| `StreakRecovery` | What was lost, and when — the source for a return |
+| `StreakReward` / `StreakRewardClaim` | The milestone reward table and who has claimed what |
+
+## Related
+
+- [economy.md](./economy.md) — streak milestones pay Points from a configurable table
+- [../architecture.md](../architecture.md) — the feature layout and deletability contract

@@ -20,6 +20,8 @@ import { getPointSummary } from "@core/points";
 import { VoiceRepository, PeriodicStatRepository } from "@database/repositories";
 import { formatVoiceDuration } from "@bot/features/voice/utils/format-duration";
 import { getProfileBadges } from "@core/profile";
+import { getQuestSummary } from "@core/quests";
+import { isFeatureEnabled } from "@core/features";
 import { getUserLang, t } from "@bot/utils/lang";
 import { BRANCH_EMOJIS as emoji } from "@config";
 
@@ -89,7 +91,7 @@ export default {
 
         const displayName = await UserRepository.getDisplayName(target.id) ?? target.username;
         const customization = await UserRepository.getCustomization(target.id);
-        const coinSummary = await getCoinSummary(guildId, target.id);
+        const coinSummary = await getCoinSummary(target.id);
 
         // Voice and points sit alongside the other activity figures rather than in their own
         // command, so a profile answers "how active is this member" in one place.
@@ -98,6 +100,11 @@ export default {
             VoiceRepository.getStat(guildId, target.id),
             PeriodicStatRepository.getValue(guildId, "weekly", "voiceTime", target.id),
         ]);
+
+        // Quests are opt-in, so a server that has never switched them on gets neither the field nor
+        // the menu entry — an empty "0 completed" row on every profile would be worse than silence.
+        const questsEnabled = await isFeatureEnabled(guildId, "quests");
+        const questSummary = questsEnabled ? await getQuestSummary(guildId, target.id) : null;
 
         // The user's chosen accent color styles their profile unless a punishment tier overrides it.
         const profileColor = customization.profileColor && /^#[0-9a-f]{6}$/i.test(customization.profileColor)
@@ -136,6 +143,15 @@ export default {
                         : "No voice activity yet",
                     inline: true,
                 },
+                ...(questSummary ? [{
+                    name: "🗺️ Quests",
+                    value: questSummary.claimed > 0
+                        ? `${questSummary.completed} completed${questSummary.rank > 0 ? ` (#${questSummary.rank})` : ""}` +
+                          ` · ${questSummary.completionRate}% rate · 🎯 ${questSummary.pointsEarned}` +
+                          (questSummary.activeClaims > 0 ? `\nOn ${questSummary.activeClaims} right now` : "")
+                        : "No quests claimed yet",
+                    inline: true,
+                }] : []),
                 ...(!isPrivate ? [{ name: t("profile.field_roles", lang), value: roles }] : []),
             );
 
@@ -178,6 +194,9 @@ export default {
             { label: t("profile.menu_activity", lang), description: t("profile.menu_activity_desc", lang), value: "activity", emoji: emoji.status },
             { label: t("profile.menu_streak", lang), description: t("profile.menu_streak_desc", lang), value: "streak", emoji: "🔥" },
             { label: t("profile.menu_combo", lang), description: t("profile.menu_combo_desc", lang), value: "combo", emoji: "💬" },
+            // Registered by features/quests/quests.component.ts; the menu entry is what makes it
+            // reachable, and it only appears where the feature is on.
+            ...(questsEnabled ? [{ label: "Quests", description: "Quest record, difficulties and community share", value: "quests", emoji: "🗺️" }] : []),
             ...(memberIsStaff ? [{ label: t("profile.menu_staff_activity", lang), description: t("profile.menu_staff_activity_desc", lang), value: "staff_activity", emoji: emoji.trophy }] : []),
             { label: t("profile.menu_projects", lang), description: t("profile.menu_projects_desc", lang), value: "projects", emoji: emoji.computer },
             { label: t("profile.menu_notes", lang), description: t("profile.menu_notes_desc", lang), value: "notes", emoji: emoji.info },

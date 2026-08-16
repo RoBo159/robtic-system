@@ -26,7 +26,7 @@ export async function getMinecraftProfile(
 ): Promise<MinecraftProfile> {
     const [link, coinRecord, totals, recentSales] = await Promise.all([
         MinecraftLinkRepository.getByDiscordId(guildId, discordId),
-        CoinsRepository.get(guildId, discordId),
+        CoinsRepository.get(discordId),
         MinecraftTransactionRepository.totals(guildId, discordId),
         MinecraftTransactionRepository.listByUser(guildId, discordId, recentLimit),
     ]);

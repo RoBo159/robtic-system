@@ -106,10 +106,8 @@
             "not_available": "N/A",
             "reminder_sent": "Sent",
             "reminder_pending": "Pending",
-            "return_nothing": "You have no recoverable streak.",
-            "return_expired": "Your streak recovery window has expired.",
-            "return_not_needed": "Your current streak (**{current}**) is already at or above your last streak (**{last}**) — nothing to restore.",
-            "return_success": "✅ Your streak has been restored to **{streak}**."
+            "pending_return": "⏸️ Streak on hold",
+            "pending_return_value": "Your **{streak}**-day streak has ended. Staff can give it back for another **{duration}** — messages will not start a new streak until then."
         },
         "streakTop": {
             "title_current": "🔥 Current Streak Leaderboard — {guild}",
@@ -153,7 +151,9 @@
             "category_voice": "Voice",
             "category_points": "Points",
             "unit_voice": "",
-            "unit_points": "points"
+            "unit_points": "points",
+            "category_quests": "Quests",
+            "unit_quests": "completed"
         }
     },
     "ar": {
@@ -263,10 +263,8 @@
             "not_available": "غير متاح",
             "reminder_sent": "تم الإرسال",
             "reminder_pending": "قيد الانتظار",
-            "return_nothing": "لا يوجد لديك تتابع قابل للاسترجاع.",
-            "return_expired": "انتهت مدة استرجاع تتابعك.",
-            "return_not_needed": "تتابعك الحالي (**{current}**) بالفعل مساوٍ أو أعلى من تتابعك الأخير (**{last}**) — لا حاجة للاسترجاع.",
-            "return_success": "✅ تم استرجاع تتابعك إلى **{streak}**."
+            "pending_return": "⏸️ التتابع معلّق",
+            "pending_return_value": "انتهى تتابعك البالغ **{streak}** يوم. يمكن للإدارة إرجاعه خلال **{duration}** — ولن تبدأ رسائلك تتابعًا جديدًا قبل ذلك."
         },
         "streakTop": {
             "title_current": "🔥 قائمة أفضل التتابعات الحالية — {guild}",
@@ -310,7 +308,9 @@
             "category_voice": "الصوت",
             "category_points": "النقاط",
             "unit_voice": "",
-            "unit_points": "نقطة"
+            "unit_points": "نقطة",
+            "category_quests": "المهام",
+            "unit_quests": "مهمة"
         }
     }
 }

@@ -14,7 +14,7 @@ import {
 } from "@database/repositories";
 import {
     LOG_REGISTRY, ADMIN_CONFIG_LIMITS, SERVER_ROLE_SLOTS, POINT_RATE_LIMITS, RC_RATE_LIMITS,
-    POINT_STREAK_REWARDS_MAX, VOICE_LIMITS, REJOIN_ROLES_LIMITS, type LogKey,
+    POINT_STREAK_REWARDS_MAX, VOICE_LIMITS, STREAK_LIMITS, REJOIN_ROLES_LIMITS, type LogKey,
 } from "@constants";
 
 const clampInt = (value: number, { min, max }: { min: number; max: number }): number =>
@@ -77,6 +77,20 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
             await StreakSettingsRepository.setRemindersEnabled(guildId, Boolean(v.remindersEnabled));
             await StreakSettingsRepository.setMinMessageLength(guildId, clampInt(v.minMessageLength, ADMIN_CONFIG_LIMITS.streakMinMessageLength));
             await StreakSettingsRepository.setAnnounceChannel(guildId, idOrEmpty(v.announceChannelId) || null);
+
+            // Expiry is forced above the claim window rather than rejected — a streak that dies
+            // before it can next be claimed could never be continued.
+            const claimDays = clampInt(v.claimDays, STREAK_LIMITS.claimDays);
+            const expireDays = Math.max(claimDays + 1, clampInt(v.expireDays, STREAK_LIMITS.expireDays));
+            await StreakSettingsRepository.setWindows(
+                guildId,
+                claimDays,
+                expireDays,
+                clampInt(v.returnWindowHours, STREAK_LIMITS.returnWindowHours),
+            );
+
+            await StreakSettingsRepository.setReturnRoles(guildId, cleanIds(v.returnRoleIds, ADMIN_CONFIG_LIMITS.maxRolesPerField));
+            await StreakSettingsRepository.setBreakTriggers(guildId, Boolean(v.breakOnTimeout), Boolean(v.breakOnKick));
             return;
         }
 

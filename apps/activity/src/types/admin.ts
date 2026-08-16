@@ -33,6 +33,16 @@ export interface AdminStreakConfig {
     remindersEnabled: boolean;
     minMessageLength: number;
     announceChannelId: string | null;
+    /** Days between claims — 1 is daily. */
+    claimDays: number;
+    /** Days without a claim before the streak dies. Always greater than claimDays. */
+    expireDays: number;
+    /** Hours after expiry during which staff may give the streak back. */
+    returnWindowHours: number;
+    returnRoleIds: string[];
+    /** Covers /mute, /jail and warn auto-mutes — all of which apply a timeout. */
+    breakOnTimeout: boolean;
+    breakOnKick: boolean;
 }
 
 export interface AdminFeatureEntry {

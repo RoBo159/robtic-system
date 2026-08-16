@@ -3,14 +3,14 @@
 Everything the bot does, as it actually loads. Counts and command trees in this document were taken
 from a real `loadModules` run, not written by hand.
 
-**13 features · 65 commands · 50 components · 45 event listeners · 5 prefix-only handlers**
+**12 features · 64 commands · 35 components · 45 event listeners · 5 prefix-only handlers**
 
 | Section | |
 |---|---|
 | [Activation](#activation) | which features are on in a fresh server, and how to change that |
 | [Permissions](#permissions) | scope, access, staff tiers, and the order they are checked in |
 | [Command surfaces](#command-surfaces) | slash, prefix, context menus, shortcuts |
-| [Features](#the-features) | the 13 feature folders |
+| [Features](#the-features) | the 12 feature folders |
 | [Command systems](#command-systems) | moderation, tickets, minecraft, configuration, leveling, operator |
 | [Cross-cutting systems](#cross-cutting-systems) | XP, activity/AFK, statistics, leaderboards, profile, logging |
 | [Admin panel and API](#admin-panel-and-api) | the web surface |
@@ -32,7 +32,7 @@ on or off. Everything else is an ordinary command and is always available.
 | Feature | Activation | What it is |
 |---|---|---|
 | [points](#points) | default-on | Activity points and the RC premium currency |
-| [coins](#coins) | default-on | The Minecraft wallet |
+| [coins](#coins) | default-on | The Minecraft wallet — the one **global** balance |
 | [combo](#combo) | default-on | Two-person conversation scoring |
 | [top](#top) | default-on | Every leaderboard, in one panel |
 | [logging](#logging) | default-on | Log-channel routing |
@@ -40,9 +40,9 @@ on or off. Everything else is an ordinary command and is always available.
 | [shortcuts](#shortcuts) | default-on | Run any command from a custom phrase |
 | [voice](#voice) | opt-in | Voice XP and time tracking |
 | [streak](#streak) | opt-in | Daily message streaks |
+| [quests](#quests) | opt-in | Generated quests, VIP quests and a weekly community challenge |
 | [reply](#reply) | opt-in | Auto-replies to trigger phrases |
 | [rejoin-roles](#rejoin-roles) | opt-in | Give roles back when a member returns |
-| [ads](#ads) | opt-in | Advertisement ordering |
 | [partner](#partner) | opt-in | Partner server directory |
 
 `default-on` is not the same as "always doing something". `shortcuts` is on by default because a
@@ -217,7 +217,7 @@ The activity currency, and the only source of RC.
 | `convert <points>` | anyone | Points → RC |
 | `add <user> <amount> [reason]` | admin | Grant |
 | `remove <user> <amount> [reason]` | admin | Deduct |
-| `migrate-coins <confirm>` | admin | One-time: move legacy coin balances into points |
+| `migrate-coins <confirm>` | admin | One-time: claim this server's pre-global coin balances as points |
 
 **Earning.** Nothing pays out per event. Each source accumulates *progress* and converts whole units
 at the server's rate, carrying the remainder — a member one message short of a point keeps that
@@ -245,20 +245,28 @@ Full detail: [docs/bot/economy.md](docs/bot/economy.md).
 
 ### coins
 
-`default-on` · `/coins` · category `Economy` · access `general`
+`default-on` · **`scope: global`** · `/coins` · category `Economy` · access `general`
 
-The **Minecraft** wallet. Moved over `/api/economy` by the game server; Discord activity no longer
-pays coins.
+The **Minecraft** wallet, and the one **global** balance in the system: the same coins in every
+Discord server and on every game server on the network. Discord activity no longer pays coins.
 
 | Subcommand | Access |
 |---|---|
 | `balance [user]` | anyone |
-| `add <user> <amount>` | admin |
-| `remove <user> <amount>` | admin |
+| `add <user> <amount>` | admin — moves the global wallet, in-game money included |
+| `remove <user> <amount>` | admin — same |
 
-Kept as a separate system from points rather than renamed, because the Minecraft plugin's wire
-contract talks about coins and this way the plugin never had to change. `/points migrate-coins`
-moves legacy Discord balances across once.
+Two things move a balance: the game server over `/api/economy/{add,remove,sell}`, and an admin.
+Every mutation is an `$inc`, so several servers can credit the same member concurrently without
+losing writes. `guildId` is still required by the API, but only to resolve a UUID through the
+per-guild `MinecraftLink` table — it no longer scopes the balance, which is what let coins go global
+with no plugin release.
+
+The `coins` leaderboard is therefore a global ranking, unlike every other board in `/top`.
+
+Kept as a separate system from points rather than renamed, because the plugin's wire contract talks
+about coins. Balances from before the global switch are frozen in `LegacyCoin` and can be claimed
+into that server's points once, with `/points migrate-coins`.
 
 ### voice
 
@@ -308,22 +316,109 @@ Daily message streaks, with rewards and recovery.
 
 | Command | Access | |
 |---|---|---|
-| `/streak [user]` | general | Current streak |
+| `/streak [user]` | general | Current streak, and any pending return |
 | `/streak-top` | general | Top 5 |
-| `/streak-return` | general | Recover a recently broken streak |
+| `/streak-return <user>` | **staff** | Give a member their expired streak back |
 | `/streak-reward add · remove · list` | admin | Reward table |
 | `/streak-config channel add · remove · announce` | admin | Which channels count, where milestones post |
 | `/streak-config reminder default` | admin | Expiry reminders |
-| `/streak-config settings` | admin | View or update |
-| `/streak-config return <user>` | admin | Restore an expired streak |
+| `/streak-config settings` | admin | View everything |
+| `/streak-config windows` | admin | Claim, expiry and return windows |
+| `/streak-config break-on` | admin | Which punishments end a streak |
+| `/streak-config return-role add · remove · list` | admin | Who else may return streaks |
 | `/streak-config sync` | admin | Import streaks from another server the bot is in |
 
-Claim window 24h, expiry 48h, recovery window 3 days, minimum message length 5. Reaching a
-configured milestone announces it in the announcement channel, or replies in the channel that earned
-it when none is set.
+Reaching a configured milestone announces it in the announcement channel, or replies in the channel
+that earned it when none is set.
+
+#### How a streak is lost, and given back
+
+Every window is per guild. Claim and expiry are reckoned in whole **UTC calendar days** — a claim at
+23:00 is claimable again at 00:00, which is what "daily" means to the person doing it.
+
+| | Default | Bounds |
+|---|---|---|
+| Claim every | 1 day | 1–30 |
+| Expires after | 2 days without a claim | 2–60, always forced above the claim window |
+| Return window | 24 hours | 1–168 |
+
+When a streak dies the member is **frozen** for the return window: qualifying messages are ignored,
+so posting cannot quietly replace a 200-day streak with a 1-day one before anyone can restore it.
+Nothing is said in the channel and no DM is sent about the freeze — `/streak` is the one place they
+see it, showing what is pending and how long is left. Once the window lapses the freeze clears and
+the next message starts at 1.
+
+Returning is staff-only: administrators, plus any roles set with `/streak-config return-role add`.
+The check lives in the handler rather than in the command's `access`, because Discord gates a whole
+command and the point is to let a non-administrator role through.
+
+**Punishments** can end a streak too, off a per-guild switch:
+
+| Trigger | Default | |
+|---|---|---|
+| Timeout | on | Covers `/mute`, `/jail` and warn auto-mutes — all three apply a Discord timeout, so one listener catches them |
+| Kick | off | Read from the audit log. If that lookup fails or the bot lacks View Audit Log the departure counts as voluntary and the streak survives — wrongly destroying a long streak is worse than missing one kick |
+
+A punishment-broken streak writes the same recovery row as a natural expiry, so staff can still
+return it. That is a change: the old timeout handler skipped it, which quietly made exactly the
+streaks most likely to be disputed the only unrecoverable ones.
 
 `/streak-reward` still replies in Arabic — it was moved verbatim during the refactor rather than
 converted to `t()` inside a large diff, where a behaviour change would have been invisible.
+
+### quests
+
+`opt-in` · `/quest` · `/quest-config` · categories `Activity` and `Configuration` · 20 subcommands
+
+Generated quests with automatic progress, and a weekly server-wide challenge.
+
+`opt-in` because it *acts*: it posts on its own schedule, pings roles and hands out currency. Points
+and XP only count what was already happening.
+
+| Tier | Missions | Reward | Slots | Duration |
+|---|---|---|---|---|
+| 🟢 Easy | 1 | 10 | 15 | 24h |
+| 🔵 Normal | 2 | 35 | 10 | 24h |
+| 🟣 Hard | 4 | 100 | 4 | 3–7 days |
+| 🌟 Golden | 1 | 1000 | 1 | 7 days |
+| 💎 VIP | 2 | 50 | unlimited | 24h |
+
+Reward and slots are fixed per tier in `QUEST_TIER_SPECS` (`libs/constants/src/quests.ts`) — the one
+table to edit to change what a quest pays or how many may claim it. Only the objectives, and Hard's
+lifetime, vary between quests of the same tier.
+
+| Command | Access | |
+|---|---|---|
+| `/quest board · active · community · stats · top` | general | The board, your claims, the challenge, records |
+| `/quest-config channel daily · community · vip` | admin | Where each kind posts; VIP falls back to daily |
+| `/quest-config mention set · list` | admin | Role pinged per quest type |
+| `/quest-config vip-role add · remove · list` | admin | Any one role is enough to claim VIP |
+| `/quest-config window add · remove · list` | admin | Slices of the local day quests may appear in |
+| `/quest-config tier toggle` | admin | Turn a difficulty off here |
+| `/quest-config offset` | admin | The server's clock, minutes east of UTC |
+| `/quest-config community` | admin | Weekly challenge reward and floor |
+| `/quest-config status` | admin | Everything, with silent-failure states flagged |
+
+Claiming is a button on the quest's own message. Progress needs no command at all: the systems that
+own each number publish to the metric bus and quests subscribe, so messages, XP, voice, combo,
+streak and points all feed missions without a second counter existing anywhere.
+
+**Timing is derived, not rolled.** The minute a quest appears is seeded from guild + tier +
+window occurrence, so it survives restarts, cannot be double-fired by concurrent planners, and
+differs per guild.
+
+**Three concurrent slots** — short (easy, normal), long (hard, golden), vip — so a week-long Golden
+does not lock a member out of every daily.
+
+**Completion** compare-and-swaps the claim out of `active` with every threshold in the filter, pays
+through the Points economy with an idempotency key, then seals. A crash mid-way is resumed; the key
+makes the retry safe. Rewards are Points — RC only exists through `/points convert`.
+
+The weekly challenge posts one embed and edits it all week, throttled, with milestone bypasses; it
+never posts a second message for progress. Settlement edits it a final time with the outcome and
+top five, then pays contributors above the floor with rank multipliers.
+
+Full detail: [docs/bot/quests.md](docs/bot/quests.md).
 
 ### combo
 
@@ -352,14 +447,15 @@ Contributes a profile tab. A champion role can be synced to the server's top sco
 
 Every leaderboard, one panel.
 
-- **`?top`** — all seven categories in one embed, top 5 each, laid out in columns.
+- **`?top`** — all eight categories in one embed, top 5 each, laid out in columns.
 - **`?top <category>`** — that board in depth, top 10, plus the caller's own rank even when far
   below. A gap separator is inserted when they are.
 
-Categories: 🔥 streak · 💬 combo · ⭐ xp · 📨 messages · 🎙️ voice · 🎯 points · 🪙 coins.
+Categories: 🔥 streak · 💬 combo · ⭐ xp · 📨 messages · 🎙️ voice · 🎯 points · 🪙 coins · 🗺️ quests.
 Periods: daily · weekly · monthly · all-time, on a select menu.
 
-Voice ranks on seconds of active time and is formatted as a duration.
+Voice ranks on seconds of active time and is formatted as a duration. Points, coins and quests are
+standings rather than per-period deltas, so they read the same in every period.
 
 ### shortcuts
 
@@ -416,22 +512,6 @@ Gives roles back when a member returns after leaving.
 Saved roles are deleted once their window expires. The staff window being shorter is enforced, not
 advisory: a staff role that comes back after a long absence is a security problem in a way an
 ordinary role is not.
-
-### ads
-
-`opt-in` · `/setup-ads` · category `Configuration` · access `admin`
-
-Advertisement ordering with a cart, approval flow and per-order tickets.
-
-| Subcommand | |
-|---|---|
-| `channel` | Where orders go for approval |
-| `panel` | Post the ordering panel here |
-| `config` | Prices, details, exchange rate |
-| `manager <role>` | Who manages orders |
-
-Members build a cart from packs and add-ons, confirm, and the order lands in the approval channel
-where a manager accepts or rejects it. Accepted orders open a ticket that can be claimed and closed.
 
 ### partner
 
@@ -668,10 +748,11 @@ Full detail: [docs/api/README.md](docs/api/README.md).
 
 | Group | Collections |
 |---|---|
-| Economy | `Point` `PointHistory` `PointSettings` `RcConversion` `Coin` |
+| Economy | `Point` `PointHistory` `PointSettings` `RcConversion` `Coin` (global) `LegacyCoin` |
 | Voice | `VoiceSession` `VoiceStat` `VoiceSettings` |
 | XP and activity | `ActivityXP` `ActivityLog` `XPSettings` `LevelReward` `PeriodicStat` |
 | Streak | `Streak` `StreakSettings` `StreakReward` `StreakRewardClaim` `StreakRecovery` |
+| Quests | `Quest` `QuestClaim` `QuestSettings` `QuestStats` `QuestGenerationHistory` `CommunityChallenge` `CommunityContribution` |
 | Combo | `Combo` `ComboHistory` `ComboSettings` `ComboUserStats` `ComboLeaderboardEntry` `ComboServerRecords` |
 | Moderation | `Punishment` `PunishConfig` `Reason` `AuditLog` `Note` |
 | Tickets | `Ticket` `SupportSession` |
@@ -679,13 +760,12 @@ Full detail: [docs/api/README.md](docs/api/README.md).
 | Features and config | `GuildFeature` `FeatureCatalog` `ServerConfig` `GlobalConfig` `BotConfig` `CommandAccess` `LogConfig` |
 | Shortcuts and replies | `Shortcut` `Reply` |
 | Rejoin roles | `RejoinRolesConfig` `SavedRoles` |
-| Ads | `AdOrder` `AdsConfig` |
 | Minecraft | `MinecraftLink` `MinecraftLinkCode` `MinecraftServer` `MinecraftApiKey` `MinecraftTransaction` `MinecraftItemPrice` `MinecraftConfig` `MinecraftBridgeEvent` `MinecraftJail` `MinecraftWarning` `MinecraftNote` `MinecraftReport` `MinecraftFreeze` `MinecraftRoleState` |
 | Platform | `User` `SuperUser` `AllowedGuild` `Partner` `ProjectShare` `PendingProjectShare` `Membership` `ServiceTier` `ApiRequestLog` |
 
 Repositories that sit on a hot path are cached with a 60-second TTL and invalidated on write:
 `StaffTier` · `PunishConfig` · `ServerConfig` · `GuildFeature` · `PointSettings` · `VoiceSettings` ·
-`Shortcut` · `Reply`.
+`Shortcut` · `Reply` · `QuestSettings`.
 
 ---
 
@@ -712,7 +792,9 @@ Repositories that sit on a hot path are cached with a 60-second TTL and invalida
 | Members for full rate | 2 | 1–99 |
 | AFK timeout | 5 min | 1–240 |
 | Session persist / stale | 5 min / 10 min | |
-| Streak claim / expiry / recovery | 24h / 48h / 3 days | |
+| Streak claim / expiry | 1 day / 2 days | 1–30 / 2–60 |
+| Streak return window | 24h | 1–168h |
+| Streak breaks on timeout / kick | on / off | |
 | Combo expiry | 2 min | |
 | Combo score per message | 2–7 | 1–100 |
 | Channels or roles per field | — | 50 |
@@ -751,7 +833,6 @@ Player-facing categories are confined to the commands channel when one is set.
 | [docs/bot/streak.md](docs/bot/streak.md) | Streaks |
 | [docs/bot/combo.md](docs/bot/combo.md) | Combo scoring |
 | [docs/bot/shortcuts.md](docs/bot/shortcuts.md) | Shortcut triggers and cleanup modes |
-| [docs/bot/ads.md](docs/bot/ads.md) | Ad ordering |
 | [docs/bot/minecraft.md](docs/bot/minecraft.md) | Minecraft architecture |
 | [docs/bot/minecraft-setup.md](docs/bot/minecraft-setup.md) | Minecraft operator guide |
 | [docs/api/README.md](docs/api/README.md) | The Activity API |

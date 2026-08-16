@@ -1,4 +1,4 @@
-import { CoinsRepository, ComboLeaderboardRepository, PeriodicStatRepository, PointsRepository } from "@database/repositories";
+import { CoinsRepository, ComboLeaderboardRepository, PeriodicStatRepository, PointsRepository, QuestStatsRepository } from "@database/repositories";
 import { TOP_DISPLAY_LIMIT, type ComboLeaderboardPeriod, type TopCategory } from "@constants";
 import { periodKeyFor } from "@utils";
 import type { TopEntry } from "@typings/top";
@@ -31,9 +31,16 @@ export async function getTopEntries(
         const rows = await PointsRepository.getTop(guildId, limit);
         return rows.map(r => ({ discordId: r.discordId, value: r.points }));
     }
+    if (category === "quests") {
+        // Lifetime completions, like points and coins — a quest can take a week to finish, so a
+        // daily board would rank almost nobody and a monthly one would still cut Golden runs in half.
+        const rows = await QuestStatsRepository.getTop(guildId, limit);
+        return rows.map(r => ({ discordId: r.discordId, value: r.completed }));
+    }
     if (category === "coins") {
-        // Coin balances are cumulative — every period shows the all-time standings.
-        const rows = await CoinsRepository.getTop(guildId, limit);
+        // The only global board here: coins are one wallet per person, so this ranking is the same
+        // in every server and ignores both the guild and the period.
+        const rows = await CoinsRepository.getTop(limit);
         return rows.map(r => ({ discordId: r.discordId, value: r.coins }));
     }
     return getStreakTopEntries(guildId, period, limit);

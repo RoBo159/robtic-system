@@ -2,15 +2,16 @@ import { EmbedBuilder, type GuildMember } from "discord.js";
 import type { FeatureSubcommandHandler } from "@typings/feature";
 import { COLORS, POINT_MESSAGES } from "@constants";
 import { hasGuildBotAdmin } from "@bot/utils/access";
-import { migrateCoinsToPoints } from "@core/points";
+import { migrateCoinsToPoints, previewCoinMigration } from "@core/points";
 
 /**
- * Moves legacy coin balances into points, once, on request.
+ * Claims this server's frozen pre-global coin balances as points, once.
  *
- * Behind an explicit confirm flag and never run automatically: it zeroes the coin balances it
- * moves, and coins are also the Minecraft in-game wallet, so this is an operator's decision rather
- * than something a restart should do. Every move lands in PointHistory under `coin-migration`,
- * so it can be audited or undone.
+ * Reads the `LegacyCoin` archive, never the live wallet — coins are global now, so the live balance
+ * is nobody's server's to convert and is also the Minecraft in-game money. Nothing in-game moves.
+ *
+ * Still behind an explicit confirm flag, because it is one-way for the server that runs it. Every
+ * move lands in PointHistory under `coin-migration`.
  */
 export const migrateCoins: FeatureSubcommandHandler = async (interaction, _client) => {
     const member = interaction.member as GuildMember | null;
@@ -24,25 +25,50 @@ export const migrateCoins: FeatureSubcommandHandler = async (interaction, _clien
         return;
     }
 
+    const guildId = interaction.guildId!;
+
     if (!interaction.options.getBoolean("confirm", true)) {
+        const preview = await previewCoinMigration(guildId);
+
+        if (preview.members === 0) {
+            await interaction.editReply({
+                embeds: [new EmbedBuilder().setColor(COLORS.warning).setDescription(
+                    "There is nothing left to claim — this server has either already run the migration, " +
+                    "or had no coin balances when coins went global."
+                )],
+            });
+            return;
+        }
+
         await interaction.editReply({
             embeds: [new EmbedBuilder().setColor(COLORS.warning).setDescription(
-                "This copies every member's coin balance into points and then **sets their coin balance to zero**.\n" +
-                "Coins are also the Minecraft in-game wallet, so run it only if that is what you want.\n\n" +
-                "Re-run with `confirm: true` to proceed."
+                `This grants **${preview.pointsGranted}** points across **${preview.members}** member(s), ` +
+                "from the coin balances this server had before coins became global.\n\n" +
+                "Live coin balances and in-game money are **not** touched — those are global now and " +
+                "start from zero.\n\nRe-run with `confirm: true` to proceed. It can only be done once."
             )],
         });
         return;
     }
 
-    const result = await migrateCoinsToPoints(interaction.guildId!, interaction.user.id);
+    const result = await migrateCoinsToPoints(guildId, interaction.user.id);
+
+    if (result.members === 0) {
+        await interaction.editReply({
+            embeds: [new EmbedBuilder().setColor(COLORS.warning).setDescription(
+                "Nothing to claim — this server has already run the migration."
+            )],
+        });
+        return;
+    }
 
     await interaction.editReply({
         embeds: [new EmbedBuilder()
             .setColor(COLORS.success)
             .setDescription(
-                `Moved **${result.pointsGranted}** coins into points across **${result.members}** member(s).\n` +
-                "Each move is recorded in point history as `coin-migration`."
+                `Granted **${result.pointsGranted}** points across **${result.members}** member(s) ` +
+                "from this server's legacy coin balances.\n" +
+                "Each grant is recorded in point history as `coin-migration`."
             )],
     });
 };

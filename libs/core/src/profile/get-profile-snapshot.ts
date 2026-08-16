@@ -3,6 +3,7 @@ import {
     ActivityRepository,
     CoinsRepository,
     StreakRepository,
+    StreakSettingsRepository,
     ComboRepository,
     ComboUserStatsRepository,
     UserRepository,
@@ -13,7 +14,9 @@ import { calculateLevel, xpForLevel } from "@core/xp";
 import { levelForScore } from "@core/combo/level-for-score";
 import { favoritePartnerWeight } from "@core/combo/favorite-partner-weight";
 import { nextClaimAt } from "@core/streak/next-claim-at";
+import { resolveStreakWindows } from "@core/streak/resolve-streak-windows";
 import { streakExpiresAt } from "@core/streak/streak-expires-at";
+import { getQuestSummary } from "@core/quests";
 import { getProfileBadges } from "./get-profile-badges";
 
 interface SnapshotInput {
@@ -37,7 +40,8 @@ export async function getProfileSnapshot(input: SnapshotInput): Promise<ProfileS
     const isPrivate = !isSelf && await UserRepository.getPrivateProfile(targetId);
     const displayName = await UserRepository.getDisplayName(targetId) ?? username;
     const customization = await UserRepository.getCustomization(targetId);
-    const coinRecord = await CoinsRepository.get(guildId, targetId);
+    // Global — the same balance whichever server this profile is viewed from.
+    const coinRecord = await CoinsRepository.get(targetId);
 
     const xpRecord = await ActivityRepository.findOrCreate(targetId, guildId, username);
     const level = calculateLevel(xpRecord.totalXP);
@@ -49,6 +53,7 @@ export async function getProfileSnapshot(input: SnapshotInput): Promise<ProfileS
     const streakRecord = await StreakRepository.findOrCreate(targetId, guildId, username);
     const streakRank = await StreakRepository.getRank(targetId, guildId);
     const streakBestRank = await StreakRepository.getBestRank(targetId, guildId);
+    const streakWindows = resolveStreakWindows(await StreakSettingsRepository.get(guildId));
 
     const activePairs = await ComboRepository.findActiveForUser(guildId, targetId);
     const bestActive = activePairs.length
@@ -64,6 +69,10 @@ export async function getProfileSnapshot(input: SnapshotInput): Promise<ProfileS
 
     const pointRecord = await PointsRepository.get(guildId, targetId);
     const pointRank = pointRecord ? await PointsRepository.getRank(guildId, targetId) : 0;
+
+    // Reads the same summary the bot's profile field and quest tab use, so no surface can compute
+    // a completion rate its own way.
+    const quests = await getQuestSummary(guildId, targetId);
 
     const comboStats = await ComboUserStatsRepository.get(guildId, targetId);
     const favorite = comboStats?.partners?.length
@@ -101,10 +110,10 @@ export async function getProfileSnapshot(input: SnapshotInput): Promise<ProfileS
             rank: streakRank,
             bestRank: streakBestRank,
             nextClaimMs: streakRecord.active
-                ? Math.max(0, nextClaimAt(streakRecord.lastIncrement).getTime() - Date.now())
+                ? Math.max(0, nextClaimAt(streakRecord.lastIncrement, streakWindows.claimDays).getTime() - Date.now())
                 : 0,
             expiresInMs: streakRecord.active
-                ? Math.max(0, streakExpiresAt(streakRecord.lastIncrement).getTime() - Date.now())
+                ? Math.max(0, streakExpiresAt(streakRecord.lastIncrement, streakWindows.expireDays).getTime() - Date.now())
                 : null,
         },
         combo: {
@@ -133,5 +142,6 @@ export async function getProfileSnapshot(input: SnapshotInput): Promise<ProfileS
             rc: pointRecord?.rc ?? 0,
             rank: pointRank,
         },
+        quests,
     };
 }

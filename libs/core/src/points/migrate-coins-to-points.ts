@@ -1,5 +1,4 @@
-import { Coin } from "@database/models";
-import { PointsRepository } from "@database/repositories";
+import { PointsRepository, LegacyCoinRepository } from "@database/repositories";
 import { Logger } from "@logger";
 
 const CTX = "points";
@@ -10,19 +9,21 @@ export interface CoinMigrationResult {
 }
 
 /**
- * Moves a guild's legacy Coin balances into Points, once.
+ * Claims this guild's frozen pre-global coin balances as Points, once.
  *
- * Deliberately *not* run at boot. It zeroes the Coin balance it moves, and Coin is also the
- * Minecraft in-game wallet — so this is a decision an operator makes per guild with the
- * consequences in front of them, not something that happens because the process restarted.
+ * Reads `LegacyCoin` — the snapshot taken when coins went global — not the live wallet. The live
+ * wallet is global and starts everyone at zero, so there is nothing there that belongs to one
+ * server; claiming from it would let one guild spend a balance earned on another, or drain a
+ * player's in-game money. Reading the archive instead keeps the two apart entirely.
  *
- * Nothing is destroyed silently: every move is written to PointHistory under the `coin-migration`
- * source with the original amount, so the transfer can be audited and reversed by hand.
+ * Each row is marked consumed rather than deleted, so re-running is a no-op and the transfer stays
+ * reconcilable against the `coin-migration` rows it wrote to PointHistory.
  *
- * Re-running is safe. A member whose Coin balance is already zero has nothing left to move.
+ * Points are credited before the row is marked, so a crash in the middle leaves a claimable row to
+ * reconcile rather than points that silently vanished.
  */
 export async function migrateCoinsToPoints(guildId: string, actorId: string): Promise<CoinMigrationResult> {
-    const wallets = await Coin.find({ guildId, coins: { $gt: 0 } });
+    const wallets = await LegacyCoinRepository.findClaimable(guildId);
 
     let members = 0;
     let pointsGranted = 0;
@@ -41,14 +42,18 @@ export async function migrateCoinsToPoints(guildId: string, actorId: string): Pr
             actorId,
         });
 
-        // Zeroed only after the Points are credited and the ledger row exists, so a crash in the
-        // middle leaves a duplicate to reconcile rather than a balance that vanished.
-        await Coin.updateOne({ _id: wallet._id }, { $set: { coins: 0 } });
+        await LegacyCoinRepository.markMigrated(guildId, wallet.discordId);
 
         members++;
         pointsGranted += amount;
     }
 
-    Logger.info(`Migrated ${pointsGranted} coins into points across ${members} member(s) in ${guildId}`, CTX);
+    Logger.info(`Claimed ${pointsGranted} legacy coins as points across ${members} member(s) in ${guildId}`, CTX);
     return { members, pointsGranted };
+}
+
+/** What `migrateCoinsToPoints` would grant, without granting it. Backs the command's confirmation. */
+export async function previewCoinMigration(guildId: string): Promise<CoinMigrationResult> {
+    const { members, coins } = await LegacyCoinRepository.summarise(guildId);
+    return { members, pointsGranted: coins };
 }

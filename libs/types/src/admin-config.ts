@@ -34,6 +34,17 @@ export interface AdminStreakConfig {
     minMessageLength: number;
     /** Where milestones are announced. Null falls back to replying in the channel that earned it. */
     announceChannelId: string | null;
+    /** Days between claims — 1 is daily. */
+    claimDays: number;
+    /** Days without a claim before the streak dies. Always greater than claimDays. */
+    expireDays: number;
+    /** Hours after expiry during which staff may give the streak back. */
+    returnWindowHours: number;
+    /** Roles that may run /streak-return, on top of administrators. */
+    returnRoleIds: string[];
+    /** A timeout ends the streak — which covers /mute, /jail and warn auto-mutes. */
+    breakOnTimeout: boolean;
+    breakOnKick: boolean;
 }
 
 export interface AdminComboConfig {

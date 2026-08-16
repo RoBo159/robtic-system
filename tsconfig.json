@@ -36,6 +36,6 @@
       "@sdk/*": ["libs/sdk/src/*"]
     }
   },
-  "include": ["apps", "libs"],
+  "include": ["apps", "libs", "scripts"],
   "exclude": ["node_modules", "dist", "apps/activity", "apps/dashboard"]
 }

@@ -1,0 +1,27 @@
+import type { FeatureSubcommandHandler } from "@typings/feature";
+import { QuestSettingsRepository } from "@database/repositories";
+
+/**
+ * The clock the generation windows are read against.
+ *
+ * Minutes east of UTC rather than a timezone name: +05:30 and +05:45 exist, and nothing else in the
+ * bot models timezones. A fixed offset drifts by an hour across DST for observing servers — the
+ * cost of not taking on a full IANA dependency for a feature that only needs "roughly evening".
+ */
+export const offset: FeatureSubcommandHandler = async (interaction, _client) => {
+    const minutes = interaction.options.getInteger("minutes", true);
+    await QuestSettingsRepository.setUtcOffset(interaction.guildId!, minutes);
+
+    const sign = minutes < 0 ? "-" : "+";
+    const abs = Math.abs(minutes);
+    const clock = `UTC${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+
+    // The bot's own idea of "now" in the new offset, so an admin can sanity-check it against a wall
+    // clock instead of trusting the arithmetic.
+    const localNow = new Date(Date.now() + minutes * 60_000).toISOString().slice(11, 16);
+
+    await interaction.editReply({
+        content: `Quest windows are now read in **${clock}** — that makes it **${localNow}** here.\n` +
+            "Existing windows keep their hours; they just land at different real times.",
+    });
+};

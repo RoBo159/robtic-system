@@ -54,8 +54,8 @@ export const pointsFeature = defineFeature({
                 },
                 {
                     name: "migrate-coins",
-                    description: "One-time: move legacy coin balances into points (admins only)",
-                    options: [{ name: "confirm", description: "Type true to run it — this zeroes coin balances", type: "boolean", required: true }],
+                    description: "One-time: claim this server's pre-global coin balances as points (admins only)",
+                    options: [{ name: "confirm", description: "False previews it, true runs it", type: "boolean", required: true }],
                 },
             ],
         },

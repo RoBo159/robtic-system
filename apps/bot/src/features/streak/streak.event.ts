@@ -2,6 +2,7 @@ import { Events } from "discord.js";
 import type { EventConfig } from "@typings/event";
 import { onStreakMessage } from "./functions/on-streak-message";
 import { onTimeoutReset } from "./functions/on-timeout-reset";
+import { onKickReset } from "./functions/on-kick-reset";
 import { startStreakScheduler } from "./functions/scheduler/start-streak-scheduler";
 
 /**
@@ -22,6 +23,11 @@ export default [
         name: Events.GuildMemberUpdate,
         execute: (oldMember, newMember) => onTimeoutReset(oldMember as never, newMember as never),
     } satisfies EventConfig<Events.GuildMemberUpdate>,
+
+    {
+        name: Events.GuildMemberRemove,
+        execute: member => onKickReset(member as never),
+    } satisfies EventConfig<Events.GuildMemberRemove>,
 
     {
         name: Events.ClientReady,

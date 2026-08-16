@@ -23,6 +23,7 @@ export { Streak, type IStreak } from "./Streak";
 export { StreakSettings, type IStreakSettings } from "./StreakSettings";
 export { StreakRecovery, type IStreakRecovery } from "./StreakRecovery";
 export { Coin, type ICoin } from "./Coin";
+export { LegacyCoin, type ILegacyCoin } from "./LegacyCoin";
 export { Point, type IPoint } from "./Point";
 export { PointSettings, type IPointSettings, type IPointStreakReward } from "./PointSettings";
 export { PointHistory, type IPointHistory, type PointSource, POINT_SOURCES } from "./PointHistory";
@@ -89,3 +90,10 @@ export {
     MINECRAFT_BRIDGE_EVENT_TYPES,
 } from "./MinecraftBridgeEvent";
 export { AllowedGuild, type IAllowedGuild } from "./AllowedGuild";
+export { Quest, type IQuest, type IQuestMission, type QuestStatus } from "./Quest";
+export { QuestClaim, type IQuestClaim, type IQuestClaimMission, type QuestClaimStatus, type QuestOutcome } from "./QuestClaim";
+export { QuestGenerationHistory, type IQuestGenerationHistory, type QuestGenerationStatus } from "./QuestGenerationHistory";
+export { QuestSettings, type IQuestSettings, type IQuestWindow, mentionRoleFor, tierEnabled } from "./QuestSettings";
+export { QuestStats, type IQuestStats } from "./QuestStats";
+export { CommunityChallenge, type ICommunityChallenge, type IChallengeMission, type ChallengeStatus } from "./CommunityChallenge";
+export { CommunityContribution, type ICommunityContribution } from "./CommunityContribution";

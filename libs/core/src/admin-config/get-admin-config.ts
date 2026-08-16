@@ -12,7 +12,8 @@ import {
     GuildFeatureRepository,
     RejoinRolesConfigRepository,
 } from "@database/repositories";
-import { LOG_REGISTRY, STREAK_CONFIG } from "@constants";
+import { LOG_REGISTRY, STREAK_CONFIG, STREAK_DEFAULTS } from "@constants";
+import { resolveStreakWindows } from "@core/streak";
 
 /** Reads every editable config section for a guild into one snapshot for the admin panel. */
 export async function getAdminConfig(guildId: string): Promise<AdminConfigSnapshot> {
@@ -63,6 +64,10 @@ export async function getAdminConfig(guildId: string): Promise<AdminConfigSnapsh
             remindersEnabled: streak?.remindersEnabled ?? false,
             minMessageLength: streak?.minMessageLength ?? STREAK_CONFIG.minMessageLength,
             announceChannelId: streak?.announceChannelId ?? null,
+            ...resolveStreakWindows(streak),
+            returnRoleIds: streak?.returnRoleIds ?? [],
+            breakOnTimeout: streak?.breakOnTimeout ?? STREAK_DEFAULTS.breakOnTimeout,
+            breakOnKick: streak?.breakOnKick ?? STREAK_DEFAULTS.breakOnKick,
         },
         combo: {
             championRoleId: combo?.championRoleId ?? null,

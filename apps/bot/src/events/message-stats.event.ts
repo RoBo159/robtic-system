@@ -4,6 +4,7 @@ import { isAcceptableMessage } from "@utils";
 import { MESSAGE_STATS_CONFIG } from "@constants";
 import { handleError, BotError } from "@core/handlers";
 import { awardMessagePoint } from "@core/points";
+import { publishMetric } from "@core/metrics";
 
 /**
  * Counts every "real" message a user sends, guild-wide — unlike XP, this has no channel/role
@@ -23,7 +24,25 @@ export default {
         try {
             await ActivityRepository.incrementRealMessageCount(message.author.id, message.guild.id, message.author.username);
             await PeriodicStatRepository.incrementAllPeriods(message.guild.id, "messages", message.author.id, 1);
-            await awardMessagePoint(message.guild.id, message.author.id, message.author.username);
+
+            publishMetric({
+                guildId: message.guild.id,
+                discordId: message.author.id,
+                username: message.author.username,
+                metric: "messages",
+                value: 1,
+            });
+
+            const earned = await awardMessagePoint(message.guild.id, message.author.id, message.author.username);
+            if (earned > 0) {
+                publishMetric({
+                    guildId: message.guild.id,
+                    discordId: message.author.id,
+                    username: message.author.username,
+                    metric: "pointsEarned",
+                    value: earned,
+                });
+            }
         } catch (err) {
             handleError(new BotError(`Failed to process message stats: ${err}`, "EVENT"), "main/message-stats");
         }

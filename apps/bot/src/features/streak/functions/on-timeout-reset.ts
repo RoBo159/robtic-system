@@ -1,13 +1,17 @@
 import type { GuildMember } from "discord.js";
-import { StreakRepository } from "@database/repositories";
+import { StreakSettingsRepository } from "@database/repositories";
 import { handleError, BotError } from "@core/handlers";
 import { isFeatureEnabled } from "@core/features";
-import { applyStreakRole } from "../utils/streak-role";
+import { breakStreak } from "./break-streak";
 
 /**
- * A timeout ends the streak: it marks a member who cannot participate, and letting the streak
- * survive would reward waiting the punishment out. Only the transition into timeout counts, so a
- * role change on an already-muted member is ignored.
+ * A timeout ends the streak, when the guild has asked for that.
+ *
+ * This one listener covers every punishment that silences someone: `/mute`, `/jail` and the warn
+ * auto-mute are all implemented as Discord timeouts, so there is nothing separate to hook for them.
+ *
+ * Only the transition *into* timeout counts, so re-applying a role to an already-muted member does
+ * not re-break a streak they no longer have.
  */
 export async function onTimeoutReset(oldMember: GuildMember, newMember: GuildMember): Promise<void> {
     const wasTimedOut = (oldMember.communicationDisabledUntilTimestamp ?? 0) > Date.now();
@@ -17,11 +21,10 @@ export async function onTimeoutReset(oldMember: GuildMember, newMember: GuildMem
     if (!(await isFeatureEnabled(newMember.guild.id, "streak"))) return;
 
     try {
-        const record = await StreakRepository.find(newMember.id, newMember.guild.id);
-        if (!record || !record.active) return;
+        const settings = await StreakSettingsRepository.get(newMember.guild.id);
+        if (!(settings?.breakOnTimeout ?? true)) return;
 
-        await StreakRepository.expire(newMember.id, newMember.guild.id);
-        await applyStreakRole(newMember, 0);
+        await breakStreak(newMember, "timeout");
     } catch (err) {
         handleError(new BotError(`Failed to reset streak on timeout: ${err}`, "EVENT"), "main/streak-timeout-reset");
     }

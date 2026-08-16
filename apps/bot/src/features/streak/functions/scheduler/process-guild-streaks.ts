@@ -4,19 +4,21 @@ import { COLORS, STREAK_CONFIG, STREAK_DM_MESSAGES } from "@constants";
 import { Logger } from "@logger";
 import { isStreakExpired } from "@core/streak/is-streak-expired";
 import { streakExpiresAt } from "@core/streak/streak-expires-at";
+import { resolveStreakWindows } from "@core/streak/resolve-streak-windows";
 import { applyStreakRole } from "../../utils/streak-role";
 
 const CTX = "main:streak-scheduler";
 
 export async function processGuildStreaks(client: Client, guild: Guild): Promise<void> {
     const settings = await StreakSettingsRepository.get(guild.id);
+    const windows = resolveStreakWindows(settings);
     const now = new Date();
     const active = await StreakRepository.findAllActive(guild.id);
 
     for (const streak of active) {
-        if (isStreakExpired(streak.lastIncrement, now)) {
+        if (isStreakExpired(streak.lastIncrement, windows.expireDays, now)) {
             await StreakRecoveryRepository.create(streak.discordId, guild.id, streak.currentStreak, streak.bestStreak);
-            await StreakRepository.expire(streak.discordId, guild.id);
+            await StreakRepository.expire(streak.discordId, guild.id, windows.returnWindowHours);
 
             const member = await guild.members.fetch(streak.discordId).catch(() => null);
             if (member) await applyStreakRole(member, 0);
@@ -37,7 +39,7 @@ export async function processGuildStreaks(client: Client, guild: Guild): Promise
 
         if (!settings?.remindersEnabled || streak.reminderSent) continue;
 
-        const msUntilExpire = streakExpiresAt(streak.lastIncrement).getTime() - now.getTime();
+        const msUntilExpire = streakExpiresAt(streak.lastIncrement, windows.expireDays).getTime() - now.getTime();
         if (msUntilExpire > STREAK_CONFIG.reminderThresholdMs) continue;
 
         const user = await client.users.fetch(streak.discordId).catch(() => null);
@@ -54,6 +56,8 @@ export async function processGuildStreaks(client: Client, guild: Guild): Promise
         Logger.debug(`Sent expiry reminder to ${streak.discordId} in ${guild.id}`, CTX);
     }
 
-    const recoveryCutoff = new Date(now.getTime() - STREAK_CONFIG.recoveryWindowMs);
+    // Recovery rows outlive nothing: once the guild's return window has passed they can never be
+    // used again, so they are pruned on the same clock the window runs on.
+    const recoveryCutoff = new Date(now.getTime() - windows.returnWindowHours * 3_600_000);
     await StreakRecoveryRepository.deleteOlderThan(guild.id, recoveryCutoff);
 }

@@ -2,6 +2,7 @@ import type { Guild } from "discord.js";
 import { ActivityRepository, PeriodicStatRepository } from "@database/repositories";
 import { randomXP, applyXpGain } from "@bot/services/community/xp";
 import { awardVoicePoint } from "@core/points";
+import { publishMetric } from "@core/metrics";
 import { Logger } from "@logger";
 
 const CTX = "voice";
@@ -40,10 +41,16 @@ export async function grantVoiceXp(
     // Voice XP is also tracked on its own metric, so "voice XP earned" is answerable without
     // unpicking it from chat XP on the shared counter.
     await PeriodicStatRepository.incrementAllPeriods(guild.id, "voiceXp", discordId, xp);
+    publishMetric({ guildId: guild.id, discordId, username, metric: "voiceXp", value: xp });
 
-    await awardVoicePoint(guild.id, discordId, username, activeMinutes).catch(err =>
-        Logger.warn(`Could not award voice points to ${discordId} in ${guild.id}: ${err}`, CTX)
-    );
+    try {
+        const earned = await awardVoicePoint(guild.id, discordId, username, activeMinutes);
+        if (earned > 0) {
+            publishMetric({ guildId: guild.id, discordId, username, metric: "pointsEarned", value: earned });
+        }
+    } catch (err) {
+        Logger.warn(`Could not award voice points to ${discordId} in ${guild.id}: ${err}`, CTX);
+    }
 
     return xp;
 }
