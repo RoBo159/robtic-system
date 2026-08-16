@@ -1,0 +1,88 @@
+name: Deploy bot
+
+# Chained to the platform API's *workflow* rather than to a job, because the two now live in
+# separate files. `workflow_run` fires once that one finishes, whatever it decided — including when
+# it skipped its deploy as unchanged, which must not stop the bot going out.
+#
+# A failed platform API run is the one case that does stop it: the bot is a client of that service,
+# and restarting it against a half-deployed API is worse than not restarting it at all.
+on:
+  workflow_run:
+    workflows: ["Deploy platform API"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Redeploy even when nothing changed
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+# Shared with the platform API workflow, so a manual run of one queues behind the other instead of
+# running `docker compose` on the same server at the same time.
+concurrency:
+  group: deploy-compose
+  cancel-in-progress: false
+
+jobs:
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+      || github.event.workflow_run.conclusion != 'failure' }}
+    outputs:
+      deploy: ${{ steps.decision.outputs.deploy }}
+      signature: ${{ steps.decision.outputs.signature }}
+    steps:
+      # The commit the upstream run was built from, not whatever main points at now: a push landing
+      # mid-deploy would otherwise make this run sign a different tree than the one being deployed.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - id: decision
+        uses: ./.github/actions/deploy-decision
+        with:
+          service: bot
+          force: ${{ inputs.force || false }}
+
+  # No dockerfile or image name: the bot is the default target of the shared deploy workflow, and
+  # its final `compose pull` + `up -d` brings up everything, by which point every image is in GHCR.
+  deploy:
+    needs: changes
+    if: ${{ needs.changes.outputs.deploy == 'true' }}
+    uses: robticorg/robtic-actions/.github/workflows/deploy.yml@main
+    with:
+      deploy-type: docker
+      runner-labels: '["self-hosted", "robtic-deploy"]'
+      environment-name: 'Robtic Server'
+      environment-url: 'https://robtic.org'
+      server-label: 'core.robtic.org'
+      compose-project-name: 'robtic-system'
+      compose-env-file: '/home/robtic/robtic-system/.env'
+    secrets:
+      DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
+
+  seal:
+    name: Record what was deployed
+    needs: [changes, deploy]
+    if: ${{ needs.deploy.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write marker
+        run: |
+          mkdir -p .deploy-signatures
+          printf '%s %s %s\n' "${{ github.event.workflow_run.head_sha || github.sha }}" \
+            "$(date -u +%FT%TZ)" "${{ github.run_id }}" > .deploy-signatures/bot
+
+      # continue-on-error: a concurrent run may have claimed the same key first. That is a
+      # duplicate, not a failure — the deploy already happened either way.
+      - uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: .deploy-signatures/bot
+          key: deploy-v1-bot-${{ needs.changes.outputs.signature }}

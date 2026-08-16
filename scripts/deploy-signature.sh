@@ -17,15 +17,17 @@ if [ -z "$service" ]; then
     exit 2
 fi
 
-# Everything the dependency stage of every Dockerfile copies before `bun install`, plus the
-# workflow itself — changing an image name or a compose command has to redeploy, even when no
-# source file moved.
+# Everything the dependency stage of every Dockerfile copies before `bun install`, plus the deploy
+# workflows and the action they share — changing an image name or a compose command has to
+# redeploy, even when no source file moved. The glob is deliberate: a workflow added for a third
+# service is picked up without anyone remembering to edit this list.
 common=(
     package.json
     bun.lock
     tsconfig.json
     .dockerignore
-    .github/workflows/deploy.yml
+    .github/workflows/deploy-*.yml
+    .github/actions/deploy-decision/action.yml
     scripts/deploy-signature.sh
     apps/*/package.json
     libs/*/package.json

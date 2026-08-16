@@ -1,0 +1,68 @@
+name: Deploy decision
+description: >-
+  Works out whether one service needs deploying, by hashing everything that can change its image and
+  looking that signature up in the Actions cache.
+
+inputs:
+  service:
+    description: Service key, as understood by scripts/deploy-signature.sh
+    required: true
+  force:
+    description: Deploy even when the signature is already cached
+    required: false
+    default: "false"
+
+outputs:
+  deploy:
+    description: '"true" when this service should be built and deployed'
+    value: ${{ steps.decide.outputs.deploy }}
+  signature:
+    description: The signature that was computed, for the seal step to claim afterwards
+    value: ${{ steps.sign.outputs.signature }}
+
+# Shared by every per-service workflow so the caching rule has exactly one implementation. The
+# workflows themselves stay readable: each one owns its own trigger, its own deploy call, and
+# nothing else.
+runs:
+  using: composite
+  steps:
+    - name: Compute build signature
+      id: sign
+      shell: bash
+      run: |
+        signature=$(bash scripts/deploy-signature.sh "${{ inputs.service }}")
+        echo "signature=$signature" >> "$GITHUB_OUTPUT"
+        echo "${{ inputs.service }} $signature"
+
+    # lookup-only: the marker's contents are irrelevant, only whether the key exists.
+    - id: cache
+      uses: actions/cache/restore@v4
+      with:
+        path: .deploy-signatures/${{ inputs.service }}
+        key: deploy-v1-${{ inputs.service }}-${{ steps.sign.outputs.signature }}
+        lookup-only: true
+
+    - name: Decide
+      id: decide
+      shell: bash
+      env:
+        SERVICE: ${{ inputs.service }}
+        FORCE: ${{ inputs.force }}
+        HIT: ${{ steps.cache.outputs.cache-hit }}
+        SIGNATURE: ${{ steps.sign.outputs.signature }}
+      run: |
+        if [ "$FORCE" = "true" ]; then
+          deploy=true; why="forced"
+        elif [ "$HIT" = "true" ]; then
+          deploy=false; why="unchanged — already deployed"
+        else
+          deploy=true; why="changed"
+        fi
+
+        echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
+
+        {
+          echo "| Service | Signature | Decision |"
+          echo "|---|---|---|"
+          echo "| $SERVICE | \`${SIGNATURE:0:12}\` | $why |"
+        } >> "$GITHUB_STEP_SUMMARY"

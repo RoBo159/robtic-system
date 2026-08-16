@@ -2,28 +2,48 @@
 
 ## Pipeline
 
-Pushes to `main` trigger `.github/workflows/deploy.yml`. Each service job delegates to the shared `robticorg/robtic-actions` Docker deploy workflow on the self-hosted runner (`robtic-deploy`, `core.robtic.org`):
+Each service has its own workflow. Both delegate to the shared `robticorg/robtic-actions` Docker
+deploy workflow on the self-hosted runner (`robtic-deploy`, `core.robtic.org`):
 
-| Job | Image | Dockerfile | Compose service |
-|---|---|---|---|
-| `deploy-platform-api` | `ghcr.io/robticorg/robtic-platform-api` | `apps/robtic-api/Dockerfile` | `robtic-platform-api` |
-| `deploy-bot` | `ghcr.io/robticorg/robtic-system` | `Dockerfile` | `robtic-system` |
+| Workflow | Trigger | Image | Dockerfile | Compose service |
+|---|---|---|---|---|
+| `deploy-platform-api.yml` | push to `main` | `ghcr.io/robticorg/robtic-platform-api` | `apps/robtic-api/Dockerfile` | `robtic-platform-api` |
+| `deploy-bot.yml` | the platform API workflow finishing | `ghcr.io/robticorg/robtic-system` | `Dockerfile` | `robtic-system` |
 
-The platform-api job pulls/ups **only its own service** (full-command overrides, since the shared workflow does not append project args to overridden commands); the bot job runs the default full `compose pull` + `up -d`, by which point every image exists in GHCR. The chain, plus a `concurrency` group, prevents concurrent compose runs on the server.
+The platform API workflow pulls/ups **only its own service** (full-command overrides, since the
+shared workflow does not append project args to overridden commands); the bot workflow runs the
+default full `compose pull` + `up -d`, by which point every image exists in GHCR.
+
+### Why two workflows, and how they stay in order
+
+The bot is a client of the platform API, so the API has to be up first. With the two jobs in one
+file that was a `needs:`; split across files it is a `workflow_run` trigger — `deploy-bot.yml`
+fires when **Deploy platform API** finishes, whatever it decided.
+
+- The API workflow **skipping** its deploy as unchanged still releases the bot. Only a *failed*
+  API run stops it, because restarting the bot against a half-deployed API is worse than not
+  restarting it.
+- Both workflows share one `concurrency` group (`deploy-compose`), named after the server rather
+  than the workflow, so a manual run of one queues behind the other instead of racing on
+  `docker compose`.
+- The bot workflow checks out `github.event.workflow_run.head_sha`, not whatever `main` points at
+  now: a push landing mid-deploy would otherwise sign a different tree than the one deploying.
+- The decision logic lives once, in the local composite action
+  `.github/actions/deploy-decision`, so the caching rule cannot drift between the two files.
 
 ## Only what changed gets rebuilt
 
 A push touching one service used to rebuild and redeploy everything. Now each service is
 **content-addressed**.
 
-1. The `changes` job runs `scripts/deploy-signature.sh <service>`, which hashes every tracked file
-   that can affect that image — its own source, the libs it actually uses, the Dockerfile, the
-   workspace manifests, the lockfile, the shared tsconfig, and this workflow.
+1. Each workflow's `changes` job runs `scripts/deploy-signature.sh <service>`, which hashes every
+   tracked file that can affect that image — its own source, the libs it actually uses, the
+   Dockerfile, the workspace manifests, the lockfile, the shared tsconfig, and the workflows.
 2. That signature is looked up in the Actions cache (`deploy-v1-<service>-<signature>`,
    `lookup-only`). **A hit means this exact content was built and deployed before**, so the job is
    skipped. A miss means it is new.
 3. Services that miss build and deploy as before.
-4. The `seal` job writes the marker into the cache — but only for services whose deploy job
+4. The `seal` job writes the marker into the cache — but only when that workflow's deploy job
    **succeeded**. A failed deploy leaves its signature unclaimed, so the next push retries it
    instead of skipping a service that never shipped.
 
@@ -33,7 +53,7 @@ A push touching one service used to rebuild and redeploy everything. Now each se
 | `platform-api` | `apps/robtic-api` (incl. its Dockerfile) · `libs` |
 
 Plus, for both: `package.json` · `bun.lock` · `tsconfig.json` · `.dockerignore` ·
-`apps/*/package.json` · `libs/*/package.json` · `.github/workflows/deploy.yml` ·
+`apps/*/package.json` · `libs/*/package.json` · `.github/workflows/deploy-*.yml` ·
 `scripts/deploy-signature.sh`.
 
 The bot image copies `apps/bot` rather than all of `apps`, so a change confined to another app
@@ -47,8 +67,8 @@ Properties worth knowing:
   which costs one rebuild. There is no path where a real change reads as unchanged.
 - **Skipped is not failed.** Downstream jobs check `result != 'failure'` rather than relying on
   plain `needs`, which would treat a skipped upstream as a reason to skip everything after it.
-- **Force a deploy** with the workflow's **Run workflow** button: `force` = `all`, or one service
-  name, ignores the cache for that run.
+- **Force a deploy** with the **Run workflow** button on whichever workflow you want, ticking
+  `force` to ignore the cache for that run.
 - Run `bash scripts/deploy-signature.sh bot` locally to see the same hash the workflow computes.
 
 ## Images
