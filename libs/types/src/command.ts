@@ -30,6 +30,15 @@ export interface CommandConfig {
     category?: string;
     /** Opens a modal as its primary flow — can't be driven by a prefix text command, so the prefix router skips it. */
     modalOnly?: boolean;
+    /**
+     * Subcommands that open a modal, on a command whose other subcommands do not.
+     *
+     * `modalOnly` is all-or-nothing, which is wrong for a command like `reason`: `add` needs a form
+     * while `remove` and `list` are perfectly usable from chat. Marking `reason` modal-only would
+     * take the working ones away; leaving it unmarked let `!reason add` reach `showModal()`, which
+     * the prefix stand-in does not have — a crash rather than an explanation.
+     */
+    modalOnlySubcommands?: readonly string[];
     /** Key of the feature that owns this command. Set by the feature dispatcher; drives the per-guild activation gate. */
     feature?: string;
     run: (interaction: any, client: BotClient) => Promise<void>;

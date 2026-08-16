@@ -1,5 +1,6 @@
 import { PointsRepository } from "@database/repositories";
 import { getPointRates } from "./get-point-rates";
+import { awardPremiumPointBonus } from "./award-premium-bonus";
 
 /**
  * Pays out when a streak reaches a rewarded day-count.
@@ -20,5 +21,5 @@ export async function awardStreakPoint(guildId: string, discordId: string, usern
         detail: `${currentStreak} day streak`,
     });
 
-    return reward.points;
+    return reward.points + await awardPremiumPointBonus(guildId, discordId, username, reward.points, "streak");
 }

@@ -7,15 +7,13 @@ Pushes to `main` trigger `.github/workflows/deploy.yml`. Each service job delega
 | Job | Image | Dockerfile | Compose service |
 |---|---|---|---|
 | `deploy-platform-api` | `ghcr.io/robticorg/robtic-platform-api` | `apps/robtic-api/Dockerfile` | `robtic-platform-api` |
-| `deploy-api` | `ghcr.io/robticorg/robtic-api` | `apps/api/Dockerfile` | `robtic-api` |
-| `deploy-activity` | `ghcr.io/robticorg/robtic-activity` | `apps/activity/Dockerfile` | `robtic-activity` |
 | `deploy-bot` | `ghcr.io/robticorg/robtic-system` | `Dockerfile` | `robtic-system` |
 
-The platform-api, api and activity jobs pull/up **only their own service** (full-command overrides, since the shared workflow does not append project args to overridden commands); the final bot job runs the default full `compose pull` + `up -d`, by which point every image exists in GHCR. The chain, plus a `concurrency` group, prevents concurrent compose runs on the server.
+The platform-api job pulls/ups **only its own service** (full-command overrides, since the shared workflow does not append project args to overridden commands); the bot job runs the default full `compose pull` + `up -d`, by which point every image exists in GHCR. The chain, plus a `concurrency` group, prevents concurrent compose runs on the server.
 
 ## Only what changed gets rebuilt
 
-A push touching one service used to rebuild and redeploy all four. Now each service is
+A push touching one service used to rebuild and redeploy everything. Now each service is
 **content-addressed**.
 
 1. The `changes` job runs `scripts/deploy-signature.sh <service>`, which hashes every tracked file
@@ -32,18 +30,14 @@ A push touching one service used to rebuild and redeploy all four. Now each serv
 | Service | Signature covers |
 |---|---|
 | `bot` | `Dockerfile` · `apps/bot` · `libs` · `images` |
-| `api` | `apps/api` (incl. its Dockerfile) · `libs` |
 | `platform-api` | `apps/robtic-api` (incl. its Dockerfile) · `libs` |
-| `activity` | `apps/activity` (incl. its Dockerfile) · `libs/sdk` · the `VITE_DISCORD_CLIENT_ID` build arg |
 
-Plus, for all four: `package.json` · `bun.lock` · `tsconfig.json` · `.dockerignore` ·
+Plus, for both: `package.json` · `bun.lock` · `tsconfig.json` · `.dockerignore` ·
 `apps/*/package.json` · `libs/*/package.json` · `.github/workflows/deploy.yml` ·
 `scripts/deploy-signature.sh`.
 
-The Activity deliberately does not depend on all of `libs` — its only workspace dependency is
-`@robtic/sdk`, and Vite bundles what is imported, so a `libs/core` change cannot alter the static
-bundle. The bot image copies `apps/bot` rather than all of `apps` for the same reason: otherwise an
-Activity-only change would produce a different bot image.
+The bot image copies `apps/bot` rather than all of `apps`, so a change confined to another app
+cannot produce a different bot image and force a pointless redeploy of it.
 
 Properties worth knowing:
 
@@ -60,8 +54,6 @@ Properties worth knowing:
 ## Images
 
 - **robtic-system** — Bun runtime, runs the bot from source with the root tsconfig (path aliases resolved at runtime). Needs `images/` and repo-root `WORKDIR`. Copies `apps/bot` only — it imports nothing from the other apps.
-- **robtic-api** — Bun runtime, runs `apps/api/src/index.ts` (token exchange + health). Copies `libs/` so future `libs/core` imports work.
-- **robtic-activity** — two stages: Bun installs the workspace and runs `tsc && vite build` (the Discord client id is inlined at build time via the `VITE_DISCORD_CLIENT_ID` build arg), then `nginx:1.27-alpine` serves the static bundle. Its nginx config proxies `/api/*` to `robtic-api:3001` over the compose network, so one public origin serves the whole Activity.
 
 `.dockerignore` must keep `**/node_modules` — bun installs workspace deps into per-app `node_modules`, and copying host installs into the image breaks the Linux-installed packages.
 
@@ -69,31 +61,24 @@ Properties worth knowing:
 
 ```
 robtic-system         (no ports — outbound Discord gateway only)
-robtic-platform-api   127.0.0.1:3002 -> 3002   (owns MongoDB; bot + Minecraft servers are clients)
-robtic-api            127.0.0.1:3001 -> 3001
-robtic-activity       127.0.0.1:8080 -> 80     (depends_on robtic-api)
+robtic-platform-api   0.0.0.0:3002 -> 3002     (owns MongoDB; bot + Minecraft servers are clients)
 ```
 
-Every service binds to host loopback; Nginx runs **on the host** and is the only public entry
-point. It must publish the activity origin (e.g. `activity.robtic.org` → `127.0.0.1:8080`) and the
-platform API origin (`minecraft.api.robtic.org` → `127.0.0.1:3002`) with TLS. In the Discord
-Developer Portal, set the Activity URL mapping `/` → the activity origin.
+Nginx runs **on the host** and is the public entry point, publishing the platform API origin
+(`minecraft.api.robtic.org` → `127.0.0.1:3002`) with TLS.
 
-The `127.0.0.1:` prefixes are deliberate and should not be removed. A connection refused from
-another machine on the LAN is that binding working correctly — if a public URL fails, the fault is
-in the Nginx vhost or DNS, not the port mapping.
+Where a service binds to `127.0.0.1:`, that prefix is deliberate and should not be removed. A
+connection refused from another machine on the LAN is that binding working correctly — if a
+public URL fails, the fault is in the Nginx vhost or DNS, not the port mapping.
 
 → **[deployment-nginx.md](./deployment-nginx.md)** — vhost configuration, the full diagnostic
 ladder, and how to localise a failure to the container, Nginx or DNS.
 
 ## Required Configuration
 
-**GitHub repository variable** (Settings → Secrets and variables → Actions → Variables):
-- `VITE_DISCORD_CLIENT_ID` — the Discord application client id, consumed as a build arg by `deploy-activity`.
-
 **Server env file** (`/home/robtic/robtic-system/.env`), in addition to the bot variables:
-- `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET` — OAuth2 code exchange in `robtic-api`.
-- `API_PORT` — optional, defaults to 3001. If changed, the port mapping in `docker-compose.yml` and the `proxy_pass` in `apps/activity/nginx.conf` must change with it.
+- `ROBTIC_API_PORT` — optional, defaults to 3002. If changed, the port mapping in
+  `docker-compose.yml` and the Nginx `proxy_pass` must change with it.
 
 **GitHub secret**: `DISCORD_WEBHOOK_DEPLOY` (already configured) — deploy notifications for each job.
 

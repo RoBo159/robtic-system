@@ -17,8 +17,6 @@ Host 192.168.1.127  ── Nginx (host, ports 80/443)
                                       ▼
                         Docker containers, published to 127.0.0.1 only
                           robtic-platform-api → 127.0.0.1:3002
-                          robtic-api          → 127.0.0.1:3001
-                          robtic-activity     → 127.0.0.1:9452
 ```
 
 ## Why the port binding looks "wrong" and isn't

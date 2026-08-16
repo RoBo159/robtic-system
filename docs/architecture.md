@@ -1,6 +1,6 @@
 # Architecture
 
-Robtic System is a Bun-workspaces monorepo that today runs a Discord bot and is structured to grow into the backend foundation of the Robtic Platform (bot, embedded activity, dashboard, REST API, websocket, and future desktop/mobile/CLI clients).
+Robtic System is a Bun-workspaces monorepo that today runs a Discord bot and a platform API, and is structured to grow into the backend foundation of the Robtic Platform (bot, dashboard, REST API, and future desktop/mobile/CLI clients).
 
 ## Layout
 
@@ -17,9 +17,7 @@ images/     Static image assets served/attached by the bot
 | App | Status | Purpose |
 |---|---|---|
 | `apps/bot` | **Live** | The Discord bot — one client running every system (admin, moderation, community, dev, minecraft) |
-| `apps/activity` | Scaffold | Discord Embedded Activity (React + Vite + Discord Embedded App SDK) |
 | `apps/dashboard` | Scaffold | Web dashboard |
-| `apps/api` | Scaffold | REST + WebSocket backend exposing `libs/core` services |
 | `apps/minecraft-plugin` | **Live** | Paper plugin (Java/Maven) — a Minecraft client for the same MongoDB, see [bot/minecraft.md](bot/minecraft.md) |
 
 ## Libraries

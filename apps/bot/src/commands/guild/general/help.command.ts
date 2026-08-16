@@ -1,19 +1,25 @@
 import {
     SlashCommandBuilder,
-    ComponentType,
     MessageFlags,
     type ChatInputCommandInteraction,
     type Message,
-    type StringSelectMenuInteraction,
+    type MessageComponentInteraction,
+    type ActionRowBuilder,
+    type ButtonBuilder,
+    type StringSelectMenuBuilder,
 } from "discord.js";
 import type { BotClient } from "@core/bot-client";
 import { HELP } from "@constants";
 import {
     buildOverviewEmbed,
     buildCategoryEmbed,
+    buildCommandEmbed,
     buildCategoryRow,
+    buildPagerRow,
+    findCommand,
     groupByCategory,
     sortedCategories,
+    pageCount,
 } from "@bot/utils/help/build-help";
 import { buildHelpContext, type HelpContext } from "@bot/utils/help/help-context";
 
@@ -26,6 +32,8 @@ function resolveCategory(client: BotClient, context: HelpContext, input: string 
     return sortedCategories(groupByCategory(client, context)).find(c => c.toLowerCase() === target) ?? null;
 }
 
+type Rows = (ActionRowBuilder<StringSelectMenuBuilder> | ActionRowBuilder<ButtonBuilder>)[];
+
 /**
  * `!help` / `/help`.
  *
@@ -34,6 +42,11 @@ function resolveCategory(client: BotClient, context: HelpContext, input: string 
  * from anyone who cannot run them, since they are only registered to the admin guild, and commands
  * from a switched-off feature are listed but marked — hiding those would leave an admin no way to
  * find out what enabling the feature would bring.
+ *
+ * Three views, deliberately separated: an overview of categories, a paged list of one category, and
+ * one command in full. They used to be two, with the category view carrying every subcommand of
+ * every command in it — which pushed Configuration past Discord's 6000-character embed limit, so
+ * the API rejected the render and selecting that category did nothing at all.
  */
 export default {
     scope: "guild",
@@ -43,43 +56,74 @@ export default {
         .setName("help")
         .setDescription("List every command, its usage and category")
         .addStringOption(opt =>
-            opt.setName("category").setDescription("Jump straight to a category (e.g. moderation)").setRequired(false)
+            opt.setName("query").setDescription("A category (e.g. moderation) or a command name (e.g. coins)").setRequired(false)
         ),
 
     async run(interaction: ChatInputCommandInteraction, client: BotClient) {
         const context = await buildHelpContext(client, interaction.guildId, interaction.user.id);
+        const query = interaction.options.getString("query");
 
-        const initial = resolveCategory(client, context, interaction.options.getString("category"));
-        const embed = initial ? buildCategoryEmbed(client, context, initial) : buildOverviewEmbed(client, context);
+        // A category wins over a command of the same name — categories are the coarser answer, and
+        // no category currently shares a name with a command.
+        const category = resolveCategory(client, context, query);
+        const command = category ? null : query ? findCommand(client, context, query) : null;
 
-        await interaction.reply({
-            embeds: [embed],
-            components: [buildCategoryRow(client, context, initial ?? HELP.overviewSelectValue)],
-        });
+        if (query && !category && !command) {
+            await interaction.reply({
+                content: HELP.unknownCommand(query, context.prefix),
+                flags: MessageFlags.Ephemeral,
+            });
+            return;
+        }
+
+        let view: string = category ?? HELP.overviewSelectValue;
+        let page = 1;
+
+        const render = (): { embeds: [ReturnType<typeof buildOverviewEmbed>]; components: Rows } => {
+            const embed = view === HELP.overviewSelectValue
+                ? buildOverviewEmbed(client, context)
+                : buildCategoryEmbed(client, context, view, page);
+
+            const rows: Rows = [buildCategoryRow(client, context, view)];
+            const pager = view === HELP.overviewSelectValue ? null : buildPagerRow(client, context, view, page);
+            if (pager) rows.push(pager);
+
+            return { embeds: [embed], components: rows };
+        };
+
+        // A named command answers directly. There is nothing to browse from there, so it gets no
+        // menu — the reader asked a closed question.
+        if (command) {
+            await interaction.reply({ embeds: [buildCommandEmbed(client, context, command)] });
+            return;
+        }
+
+        await interaction.reply(render());
 
         const message = (await interaction.fetchReply()) as Message | null;
         if (!message) return;
 
-        const collector = message.createMessageComponentCollector({
-            componentType: ComponentType.StringSelect,
-            idle: COLLECTOR_IDLE_MS,
-        });
+        const collector = message.createMessageComponentCollector({ idle: COLLECTOR_IDLE_MS });
 
-        collector.on("collect", async (select: StringSelectMenuInteraction) => {
+        collector.on("collect", async (component: MessageComponentInteraction) => {
             // Only the person who opened the menu drives it — the context was resolved for them.
-            if (select.user.id !== interaction.user.id) {
-                await select.reply({ content: HELP.pickPrompt, flags: MessageFlags.Ephemeral }).catch(() => null);
+            if (component.user.id !== interaction.user.id) {
+                await component.reply({ content: HELP.pickPrompt, flags: MessageFlags.Ephemeral }).catch(() => null);
                 return;
             }
 
-            const choice = select.values[0]!;
-            const next = choice === HELP.overviewSelectValue
-                ? buildOverviewEmbed(client, context)
-                : buildCategoryEmbed(client, context, choice);
+            if (component.isStringSelectMenu()) {
+                view = component.values[0]!;
+                page = 1;
+            } else if (component.customId === HELP.nextCustomId) {
+                page = Math.min(page + 1, pageCount(groupByCategory(client, context).get(view) ?? []));
+            } else if (component.customId === HELP.prevCustomId) {
+                page = Math.max(1, page - 1);
+            } else {
+                return;
+            }
 
-            await select
-                .update({ embeds: [next], components: [buildCategoryRow(client, context, choice)] })
-                .catch(() => null);
+            await component.update(render()).catch(() => null);
         });
 
         collector.on("end", async () => {

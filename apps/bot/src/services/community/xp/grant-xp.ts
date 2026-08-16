@@ -3,6 +3,7 @@ import { ActivityRepository } from "@database/repositories/ActivityRepository";
 import { AI_MEANINGFUL_SKIP_CONFIDENCE } from "@constants";
 import { Logger } from "@logger";
 import { analyzeActivity } from "@core/ai";
+import { getFeatureValue, getMultiplier, PremiumFeature } from "@core/premium";
 import { applyXpGain } from "./apply-xp-gain";
 import { randomXP } from "./random-xp";
 import { isOnXPCooldown } from "./is-on-xp-cooldown";
@@ -29,12 +30,19 @@ export async function grantXP(
 
     const record = await ActivityRepository.findOrCreate(discordId, guildId, username);
 
-    if (isOnXPCooldown(record.lastXPGrant)) {
+    // Both perks come from the Premium Engine, never from a role: a member with no tier gets a
+    // reduction of 0 and a multiplier of 1, which is the arithmetic this path always had.
+    const [cooldownCut, xpBonus] = await Promise.all([
+        getFeatureValue(guildId, discordId, PremiumFeature.XP_COOLDOWN_REDUCTION),
+        getMultiplier(guildId, discordId, PremiumFeature.MESSAGE_XP_BONUS),
+    ]);
+
+    if (isOnXPCooldown(record.lastXPGrant, cooldownCut)) {
         Logger.debug(`${username} (${discordId}) on XP cooldown, skipping`, CTX);
         return null;
     }
 
-    const xp = randomXP();
+    const xp = Math.max(1, Math.round(randomXP() * xpBonus));
     Logger.debug(`Granting ${xp} XP to ${username} (${discordId})`, CTX);
     const updated = await ActivityRepository.addXP(discordId, guildId, xp);
     if (!updated) {

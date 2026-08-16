@@ -1,9 +1,10 @@
 import type { Client } from "discord.js";
 import { QUEST_CONFIG } from "@constants";
-import { startQuestProgress, stopQuestProgress } from "@core/quests";
+import { startQuestProgress, stopQuestProgress, setQuestNotifier } from "@core/quests";
 import { Logger } from "@logger";
 import { runQuestCycle } from "./run-quest-cycle";
 import { resumeCommunityPanels } from "../community/resume-community-panels";
+import { registerQuestNotifier } from "../notify-member";
 
 const CTX = "quests";
 
@@ -21,6 +22,10 @@ export function startQuestScheduler(client: Client): void {
     if (timer) return;
 
     startQuestProgress();
+
+    // Before the first cycle: expiry runs inside it, and a claim that resolves on that pass should
+    // reach the member rather than fall into an unregistered notifier.
+    registerQuestNotifier(client);
 
     // Re-attach to live challenge embeds before the first cycle, so a restart mid-week keeps
     // editing the same message rather than posting a second one.
@@ -51,4 +56,6 @@ export function stopQuestScheduler(): void {
     if (timer) clearInterval(timer);
     timer = null;
     stopQuestProgress();
+    // Dropped with the client it was bound to, so a reload cannot DM through a dead one.
+    setQuestNotifier(null);
 }

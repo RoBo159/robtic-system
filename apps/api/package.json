@@ -1,6 +1,0 @@
-{
-  "name": "@robtic/api",
-  "private": true,
-  "type": "module",
-  "description": "REST + WebSocket API for the Robtic Platform. Currently: Embedded Activity token exchange."
-}

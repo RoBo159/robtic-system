@@ -88,3 +88,12 @@ export {
 } from "./community/track-contributions";
 
 export { getQuestSummary, type QuestSummary } from "./stats/get-quest-summary";
+
+export {
+    setQuestNotifier,
+    announceCompleted,
+    announceExpired,
+    type QuestNotifier,
+    type QuestCompleted,
+    type QuestExpired,
+} from "./notify";

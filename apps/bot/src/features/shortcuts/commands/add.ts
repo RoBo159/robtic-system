@@ -6,10 +6,25 @@ import { isReachableTarget } from "../functions/report-orphan-shortcuts";
 import { targetLabel } from "../utils/build-shortcut-embed";
 
 export const add: FeatureSubcommandHandler = async (interaction, client) => {
-    const command = interaction.options.getString("command", true).trim().replace(/\s+/g, " ");
-    const trigger = interaction.options.getString("trigger", true).trim();
+    // Read without `required: true`. Discord *should* enforce both, but a client showing a stale
+    // copy of this command — a leftover global registration alongside the guild one — submits
+    // whatever options that older copy declared, and the required getter throws a raw
+    // `Required option "trigger" not found` at the member instead of saying anything useful.
+    const command = interaction.options.getString("command")?.trim().replace(/\s+/g, " ") ?? "";
+    const trigger = interaction.options.getString("trigger")?.trim() ?? "";
     const argsTemplate = interaction.options.getString("args")?.trim() ?? "";
     const deleteMode = interaction.options.getString("delete") ?? "none";
+
+    if (!command || !trigger) {
+        await interaction.editReply({
+            embeds: [new EmbedBuilder().setColor(COLORS.error).setDescription(
+                "❌ That came through without " + (!command ? "`command`" : "`trigger`") + ".\n" +
+                "Discord is showing an outdated copy of `/shortcut` — dismiss it and pick the entry again, " +
+                "or use the prefix form: `shortcut add \"coins balance\" c`."
+            )],
+        });
+        return;
+    }
 
     if (!isReachableTarget(client, command)) {
         await interaction.editReply({

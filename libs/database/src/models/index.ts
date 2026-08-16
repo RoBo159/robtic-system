@@ -97,3 +97,6 @@ export { QuestSettings, type IQuestSettings, type IQuestWindow, mentionRoleFor, 
 export { QuestStats, type IQuestStats } from "./QuestStats";
 export { CommunityChallenge, type ICommunityChallenge, type IChallengeMission, type ChallengeStatus } from "./CommunityChallenge";
 export { CommunityContribution, type ICommunityContribution } from "./CommunityContribution";
+export { PremiumTier, type IPremiumTier } from "./PremiumTier";
+export { PremiumFeatureValue, type IPremiumFeatureValue } from "./PremiumFeatureValue";
+export { PremiumSettings, type IPremiumSettings } from "./PremiumSettings";

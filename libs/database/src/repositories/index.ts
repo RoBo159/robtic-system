@@ -71,3 +71,4 @@ export * from "./QuestGenerationRepository";
 export * from "./QuestSettingsRepository";
 export * from "./QuestStatsRepository";
 export * from "./CommunityChallengeRepository";
+export * from "./PremiumRepository";

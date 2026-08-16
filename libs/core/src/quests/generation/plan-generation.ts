@@ -106,7 +106,14 @@ async function weeklyChosenOccurrences(
     }
 
     const random = occasionRandom(guildId, tier, weekKey);
-    const count = Math.min(thisWeek.length, randomInt(random, spec.weeklyCount.min, spec.weeklyCount.max));
+
+    // Rarity first, count second. Drawn from the same stream and written into the week's plan row
+    // either way, so a week that rolled "no Golden" stays that way across restarts rather than
+    // rolling again on the next tick until it succeeds.
+    const appears = random() < spec.spawnChance;
+    const count = appears
+        ? Math.min(thisWeek.length, randomInt(random, spec.weeklyCount.min, spec.weeklyCount.max))
+        : 0;
 
     // Shuffle deterministically, then take the first `count`.
     const shuffled = [...thisWeek];
@@ -122,7 +129,7 @@ async function weeklyChosenOccurrences(
         windowKey: weekKey,
         scheduledAt: new Date(thisWeek[0]!.startMs),
         status: "generated",
-        reason: "week-plan",
+        reason: appears ? "week-plan" : "week-plan-skipped",
         plannedCount: count,
         chosenWindowKeys: chosen.map(o => o.windowKey),
     });
@@ -134,6 +141,11 @@ async function weeklyChosenOccurrences(
         return thisWeek.filter(o => keys.has(o.windowKey));
     }
 
-    Logger.debug(`Planned ${count} ${tier} quest(s) for ${guildId} in ${weekKey}`, CTX);
+    Logger.debug(
+        appears
+            ? `Planned ${count} ${tier} quest(s) for ${guildId} in ${weekKey}`
+            : `No ${tier} quest for ${guildId} in ${weekKey} — did not make its ${spec.spawnChance} spawn roll`,
+        CTX,
+    );
     return chosen;
 }

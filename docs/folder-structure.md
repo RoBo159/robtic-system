@@ -36,9 +36,7 @@ apps/
                 functions/           Domain orchestration and event bodies
                 utils/               Embeds and feature-local helpers
                 lib/                 Re-export barrel over the matching libs/core domain
-    activity/                    Discord Embedded Activity scaffold (React/Vite/SDK)
     dashboard/                   Web dashboard scaffold
-    api/                         REST + WebSocket scaffold
     minecraft-plugin/            Paper plugin (Java/Maven) — Minecraft client for the shared MongoDB
         src/main/java/org/robtic/minecraft/
             config/              Immutable config.yml snapshot
@@ -70,8 +68,8 @@ libs/
             models/              Mongoose schemas
             repositories/        Static-class repositories, one per aggregate
     types/                       Shared ambient types (bot.d.ts)
-    sdk/                         Discord Embedded App SDK layer (structure only)
-        src/{authentication,client,commands,events,utilities,types}/
+    sdk/                         Robtic API client + DTOs, plus the Discord Embedded App layer
+        src/{api-client,dto,validation,errors,authentication,client,types}/
     config/                      Scaffold — future home of configuration
     constants/                   Scaffold — future home of all static values
     utils/                       Scaffold — future home of pure utilities
@@ -83,8 +81,6 @@ libs/
 docs/
     architecture.md, folder-structure.md, coding-style.md, contributing.md,
     deployment.md, development.md, roadmap.md
-    sdk/                         Activity + SDK architecture docs
-    api/                         API docs
     database/                    Database docs
     bot/                         Feature docs (combo, economy, streak, voice, ...)
 

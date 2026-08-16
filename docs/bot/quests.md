@@ -28,9 +28,15 @@ slots are fixed values there — edit them and the next generated quest uses the
 |---|---|---|---|---|---|
 | 🟢 Easy | 1 | 10 | 15 | 24h | up to one per window |
 | 🔵 Normal | 2 | 35 | 10 | 24h | up to one per window |
-| 🟣 Hard | 4 | 100 | 4 | 3–7 days | 1–2 per week |
-| 🌟 Golden | 1 | 1000 | 1 | 7 days | ~1 per week |
+| 🟣 Hard | 4 | 100 | 4 | 3–7 days | 1–2 per week, **60% of weeks** |
+| 🌟 Golden | 1 | 1000 | 1 | 7 days | 1 per week, **25% of weeks** |
 | 💎 VIP | 2 | 50 | unlimited | 24h | one per day, VIP roles only |
+
+`spawnChance` is what makes the top two rare rather than merely scheduled. `weeklyCount` alone
+means "exactly one Golden every single week", which is a rota; the chance is drawn first, from the
+same seeded weekly stream, and persisted with the week's plan — so a week that rolled no Golden
+stays that way instead of re-rolling on the next tick until it succeeds. Golden lands roughly once
+a month, Hard about three weeks in five. Daily tiers are never gated.
 
 Every quest of a tier is worth the same and offers the same number of slots, so a member can learn
 what an Easy is worth rather than finding out after they finish one. Only the missions and (for
@@ -147,6 +153,30 @@ the key makes the retry safe.
 
 For metrics that already have a durable total, progress is *derived* as `current - baseline` on
 reconcile rather than only accumulated — so a flush lost to a crash self-heals.
+
+## What a member sees
+
+**In the channel.** Every quest tier posts its own card to the **daily quest channel** — one
+message per quest, each with its own Claim button. The community challenge is the only thing that
+goes anywhere else. The card shows the objectives, the reward, and how many places are left, with a
+`▰▰▰▱▱` meter; the button label carries the same count (`Claim · 4 left`) and both are edited
+together on every claim, through the throttle, so they cannot disagree. When the last place goes
+the button turns into a disabled **Full**.
+
+**Their own quests.** `?quest` or `?quests` with nothing after it shows what that member is on and
+how far along, per objective. `/quest active` is the same view. Nothing else is needed — claiming
+happens on the card, and progress needs no command at all.
+
+**By DM.** A quest resolves quietly hours or days after it was claimed, so the engine says so:
+
+| | |
+|---|---|
+| Finished in time | ✅ objectives, reward paid, finishing position, how long it took |
+| Ran out of time | ⌛ per-objective progress bars, how far they got, and that nothing was lost |
+
+Both are best-effort — closed DMs are normal and never turn a paid reward into an error. An expiry
+resolves **that member's claim only**: the quest itself keeps its remaining places and its message
+until its own deadline passes, so everyone else carries on.
 
 ## Community challenge
 

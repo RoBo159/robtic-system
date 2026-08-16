@@ -3,9 +3,7 @@ WORKDIR /app
 
 COPY package.json bun.lock ./
 COPY apps/bot/package.json ./apps/bot/
-COPY apps/activity/package.json ./apps/activity/
 COPY apps/dashboard/package.json ./apps/dashboard/
-COPY apps/api/package.json ./apps/api/
 COPY apps/robtic-api/package.json ./apps/robtic-api/
 COPY libs/core/package.json ./libs/core/
 COPY libs/database/package.json ./libs/database/

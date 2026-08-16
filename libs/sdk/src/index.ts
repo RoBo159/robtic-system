@@ -3,8 +3,10 @@
  *
  * Two independent surfaces live here.
  *
- * - The **Discord Embedded App** layer (`client`, `authentication`), used by `apps/activity` and
- *   exported only from this entry point because it depends on a browser-only package.
+ * - The **Discord Embedded App** layer (`client`, `authentication`), exported only from this entry
+ *   point because it depends on a browser-only package. Its consumer — the Embedded Activity —
+ *   has been removed; the layer is kept because it is the whole contract for that surface and
+ *   deleting it would mean rewriting it from scratch to bring one back.
  * - The **Robtic API** layer (`api-client`, `dto`, `errors`, `constants`, `validation`, `auth`),
  *   re-exported here for the browser and available on its own from `./api` for server code. The
  *   Java plugin cannot import TypeScript, but mirrors those routes and DTO shapes exactly.

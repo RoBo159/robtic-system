@@ -9,6 +9,8 @@ export interface CreateClaimInput {
     username: string;
     tier: QuestTier;
     slot: QuestSlot;
+    /** Which copy of that slot. 0 for everyone; higher only with a premium extra slot. */
+    slotIndex?: number;
     missions: IQuestClaimMission[];
     baseline: Record<string, number>;
     expiresAt: Date;

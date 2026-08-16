@@ -25,6 +25,22 @@ export const HELP = {
     /** Appended to a command whose feature is switched off in this server. */
     disabledNote: "⚪ Its feature is off in this server.",
     adminOnlyCategory: "Admin",
+
+    categoryCount: (name: string, count: number) => `${name} \`${count}\``,
+    detailHint: (prefix: string) => `Want one command in full? \`${prefix}help <command>\` lists every form of it.`,
+    /** Shown under a command that has subcommands, instead of listing all of them. */
+    subcommandCount: (count: number) => `${count} subcommand${count === 1 ? "" : "s"}`,
+    commandTitle: (botName: string, name: string) => `📖 ${botName} — /${name}`,
+    unknownCommand: (input: string, prefix: string) =>
+        `No command called \`${input}\`. Use \`${prefix}help\` to browse what exists.`,
+    pageFooter: (page: number, pages: number, count: number) =>
+        `Page ${page}/${pages} • ${count} command${count === 1 ? "" : "s"} • ! or / both work`,
+    prevButton: "◀ Prev",
+    nextButton: "Next ▶",
+    prevCustomId: "help:prev",
+    nextCustomId: "help:next",
+    /** A category whose commands could not all fit even after paging. */
+    truncatedNote: (dropped: number) => `…and ${dropped} more — narrow it down with \`help <command>\`.`,
 } as const;
 
 /** Per-category emoji for the help dropdown/embeds; falls back to 📁. */

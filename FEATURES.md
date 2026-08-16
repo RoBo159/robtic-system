@@ -3,7 +3,7 @@
 Everything the bot does, as it actually loads. Counts and command trees in this document were taken
 from a real `loadModules` run, not written by hand.
 
-**12 features · 64 commands · 35 components · 45 event listeners · 5 prefix-only handlers**
+**13 features · 67 commands · 35 components · 45 event listeners · 5 prefix-only handlers**
 
 | Section | |
 |---|---|
@@ -13,7 +13,6 @@ from a real `loadModules` run, not written by hand.
 | [Features](#the-features) | the 12 feature folders |
 | [Command systems](#command-systems) | moderation, tickets, minecraft, configuration, leveling, operator |
 | [Cross-cutting systems](#cross-cutting-systems) | XP, activity/AFK, statistics, leaderboards, profile, logging |
-| [Admin panel and API](#admin-panel-and-api) | the web surface |
 | [Data](#data) | collections, grouped by system |
 | [Reference](#reference) | defaults, limits, categories |
 
@@ -40,6 +39,7 @@ on or off. Everything else is an ordinary command and is always available.
 | [shortcuts](#shortcuts) | default-on | Run any command from a custom phrase |
 | [voice](#voice) | opt-in | Voice XP and time tracking |
 | [streak](#streak) | opt-in | Daily message streaks |
+| [premium](#premium) | default-on | Global premium tiers and the perks they grant |
 | [quests](#quests) | opt-in | Generated quests, VIP quests and a weekly community challenge |
 | [reply](#reply) | opt-in | Auto-replies to trigger phrases |
 | [rejoin-roles](#rejoin-roles) | opt-in | Give roles back when a member returns |
@@ -366,6 +366,50 @@ streaks most likely to be disputed the only unrecoverable ones.
 `/streak-reward` still replies in Arabic — it was moved verbatim during the refactor rather than
 converted to `t()` inside a large diff, where a behaviour change would have been invisible.
 
+### premium
+
+`default-on` · `/premium` · `/premium-config` · `/premium-admin` · 20 subcommands
+
+The single source of truth for premium benefits. Nothing else in the bot reads a Discord role to
+decide a perk — systems ask the engine for a *benefit*, and how it was granted stays inside.
+
+**The ladder is global.** Prime means the same rank and the same numbers in every server, because a
+membership has to be worth the same wherever it is used. A server decides one thing: which of its
+own roles grant a tier.
+
+| Who | Decides |
+|---|---|
+| Bot operator | Which tiers exist, what each perk is worth, and memberships that follow a member everywhere |
+| Server admin | Which of this server's roles grant a tier, and whether perks apply here at all |
+
+| Command | Access | |
+|---|---|---|
+| `/premium view · tiers` | general | What you hold, and what each tier gives |
+| `/premium-config role add · remove · list` | admin | Map this server's roles onto tiers |
+| `/premium-config toggle · status` | admin | The local switch, and anything misconfigured |
+| `/premium-admin tier · feature · membership` | **operator** | The global ladder, its values, and memberships |
+
+A benefit is a definition — `flag`, `percent`, `count` or `duration`, with a baseline that is always
+"what happened before premium existed". Values live in the database, never in code. Stacking is per
+feature: `highest` by default, because Prime Pro replaces Prime rather than adding to it, with `sum`
+opt-in for genuinely additive perks like an extra quest slot. A top tier that leaves a perk unset
+falls through to a lower one held, so a half-configured tier never takes anything away.
+
+**Consumers multiply, they do not branch.** A member with no tier multiplies by exactly 1, so every
+integration is arithmetically identical to what it was before — which is what makes this safe on the
+message and voice paths.
+
+Wired today: VIP quest access, quest reward bonus, extra quest slots, quest time extension, message
+and voice XP bonuses, XP cooldown reduction, point bonus, points-to-RC discount, streak recovery
+window, profile badge. Another dozen are registered and configurable, waiting on the systems that
+will read them.
+
+Three caches with three lifetimes — the global ladder, a guild's role map, a member's resolved
+benefits — each dropped by the scope of the write that invalidates it. Role changes come from
+`guildMemberUpdate`, compared rather than assumed, since nicknames and timeouts fire it too.
+
+Full detail: [docs/bot/premium.md](docs/bot/premium.md).
+
 ### quests
 
 `opt-in` · `/quest` · `/quest-config` · categories `Activity` and `Configuration` · 20 subcommands
@@ -379,8 +423,8 @@ and XP only count what was already happening.
 |---|---|---|---|---|
 | 🟢 Easy | 1 | 10 | 15 | 24h |
 | 🔵 Normal | 2 | 35 | 10 | 24h |
-| 🟣 Hard | 4 | 100 | 4 | 3–7 days |
-| 🌟 Golden | 1 | 1000 | 1 | 7 days |
+| 🟣 Hard | 4 | 100 | 4 | 3–7 days · 60% of weeks |
+| 🌟 Golden | 1 | 1000 | 1 | 7 days · 25% of weeks |
 | 💎 VIP | 2 | 50 | unlimited | 24h |
 
 Reward and slots are fixed per tier in `QUEST_TIER_SPECS` (`libs/constants/src/quests.ts`) — the one
@@ -398,6 +442,12 @@ lifetime, vary between quests of the same tier.
 | `/quest-config offset` | admin | The server's clock, minutes east of UTC |
 | `/quest-config community` | admin | Weekly challenge reward and floor |
 | `/quest-config status` | admin | Everything, with silent-failure states flagged |
+
+Every tier posts its own card to the one daily quest channel, each with a Claim button whose label
+carries the places left (`Claim · 4 left`); card and button are re-edited together on each claim.
+A bare `?quest` shows a member their own claims and progress. When a claim resolves the member is
+DMed — the reward and finishing position if they made it, per-objective progress if time ran out —
+and an expiry ends only that claim, never the quest.
 
 Claiming is a button on the quest's own message. Progress needs no command at all: the systems that
 own each number publish to the metric bus and quests subscribe, so messages, XP, voice, combo,
@@ -643,7 +693,7 @@ Grouped by what they do, not by category — see the [category table](#command-c
 | `/send` | Post an embed to a channel (access admin) |
 | `/feature enable · disable · list` | Feature switches |
 | `/command-access …` | Per-command grants and bot-admin roles |
-| `/help` | Every command, its usage and category |
+| `/help [query]` | Categories, one category paged, or one command in full |
 
 ### Bot operator
 
@@ -722,28 +772,6 @@ The bot leaves any server not on the `AllowedGuild` list.
 
 ---
 
-## Admin panel and API
-
-`apps/activity` is a Discord Embedded Activity; `apps/api` backs it.
-
-Panel sections, all per-server: **Server** · **XP** · **Streak** · **Combo** · **Punish** ·
-**Logs** · **Points & RC** · **Voice activity** · **Features** · **Rejoin roles**, plus a bot
-profile section and a super-user-only bot admin page.
-
-Every value is re-validated server-side — ids are snowflake-checked and capped, numbers clamped to
-the constants in `libs/constants`. Nothing from the client is trusted, including values the panel's
-own inputs already bound. A write returns the re-read snapshot, so the panel renders what was
-actually persisted after clamping.
-
-Access is the guild owner, a role with Administrator, a role in `ServerConfig.adminPanelRoles`, or a
-super user — resolved through the bot token and cached 60s.
-
-The Activity also renders the profile (with voice and points cards) and the full leaderboard.
-
-Full detail: [docs/api/README.md](docs/api/README.md).
-
----
-
 ## Data
 
 | Group | Collections |
@@ -752,6 +780,7 @@ Full detail: [docs/api/README.md](docs/api/README.md).
 | Voice | `VoiceSession` `VoiceStat` `VoiceSettings` |
 | XP and activity | `ActivityXP` `ActivityLog` `XPSettings` `LevelReward` `PeriodicStat` |
 | Streak | `Streak` `StreakSettings` `StreakReward` `StreakRewardClaim` `StreakRecovery` |
+| Premium | `PremiumTier` `PremiumFeatureValue` `PremiumRoleMap` `PremiumMembership` `PremiumSettings` |
 | Quests | `Quest` `QuestClaim` `QuestSettings` `QuestStats` `QuestGenerationHistory` `CommunityChallenge` `CommunityContribution` |
 | Combo | `Combo` `ComboHistory` `ComboSettings` `ComboUserStats` `ComboLeaderboardEntry` `ComboServerRecords` |
 | Moderation | `Punishment` `PunishConfig` `Reason` `AuditLog` `Note` |
@@ -835,4 +864,3 @@ Player-facing categories are confined to the commands channel when one is set.
 | [docs/bot/shortcuts.md](docs/bot/shortcuts.md) | Shortcut triggers and cleanup modes |
 | [docs/bot/minecraft.md](docs/bot/minecraft.md) | Minecraft architecture |
 | [docs/bot/minecraft-setup.md](docs/bot/minecraft-setup.md) | Minecraft operator guide |
-| [docs/api/README.md](docs/api/README.md) | The Activity API |

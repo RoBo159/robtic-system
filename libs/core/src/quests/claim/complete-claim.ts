@@ -8,6 +8,8 @@ import type { IQuestClaim } from "@database/models";
 import { Logger } from "@logger";
 import { invalidateMemberClaims } from "../progress/claim-cache";
 import { thresholdsOf, type ClaimRuntime } from "../progress/runtime";
+import { announceCompleted } from "../notify";
+import { getMultiplier, PremiumFeature } from "@core/premium";
 
 const CTX = "quests";
 
@@ -58,7 +60,13 @@ export async function completeClaim(runtime: ClaimRuntime): Promise<CompletionRe
  */
 export async function finishLeasedClaim(claim: IQuestClaim): Promise<CompletionResult> {
     const quest = await QuestRepository.findById(claim.questId);
-    const reward = quest?.reward ?? 0;
+    const base = quest?.reward ?? 0;
+
+    // The premium bonus is applied at payout rather than baked into the quest, so a member who
+    // upgrades mid-quest is paid at the tier they hold when they finish — and the posted card can
+    // keep advertising one honest number to everybody.
+    const bonus = await getMultiplier(claim.guildId, claim.discordId, PremiumFeature.QUEST_REWARD_BONUS);
+    const reward = Math.round(base * bonus);
 
     const rank = await QuestRepository.nextCompletionRank(claim.questId);
 
@@ -95,6 +103,25 @@ export async function finishLeasedClaim(claim: IQuestClaim): Promise<CompletionR
     }).catch(err => Logger.warn(`Could not record quest completion stat: ${err}`, CTX));
 
     invalidateMemberClaims(claim.guildId, claim.discordId);
+
+    // After the payment and the seal, never before: a member told they finished must actually have
+    // been paid by the time they read it.
+    announceCompleted({
+        guildId: claim.guildId,
+        discordId: claim.discordId,
+        username: claim.username,
+        tier: claim.tier,
+        questId: String(claim.questId),
+        claimId: String(claim._id),
+        missions: claim.missions.map(mission => ({
+            label: mission.label,
+            target: mission.target,
+            progress: claim.progress?.[mission.missionId] ?? mission.target,
+        })),
+        reward,
+        rank,
+        durationMs,
+    });
 
     Logger.debug(`${claim.discordId} completed a ${claim.tier} quest (rank ${rank}, ${reward} points)`, CTX);
     return { completed: true, reward, rank };

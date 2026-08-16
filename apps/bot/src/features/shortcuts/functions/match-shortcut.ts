@@ -15,14 +15,26 @@ export interface ShortcutHit {
  * would always claim the message and the longer could never fire. A trigger matches the whole
  * message or the message up to a space, never mid-word: `redirect` must not trigger `red`.
  *
+ * The trigger is matched bare (`c`) and, via `prefixStripped`, with the guild prefix in front
+ * (`?c`). People who learned the bot through `?coins balance` type the prefix out of habit, and a
+ * shortcut that answers one form but silently ignores the other reads as broken.
+ *
  * Restrictions are applied here rather than after running, so a member who cannot use a trigger
  * gets silence rather than a permission error for a command they never named.
  */
-export async function matchShortcut(message: Message, member: GuildMember): Promise<ShortcutHit | null> {
+export async function matchShortcut(
+    message: Message,
+    member: GuildMember,
+    /**
+     * Content with the guild prefix already stripped, when the caller determined the message was
+     * prefixed and named no real command. Null when the message was not prefixed.
+     */
+    prefixStripped: string | null = null,
+): Promise<ShortcutHit | null> {
     const shortcuts = await ShortcutRepository.listCached(message.guild!.id);
     if (!shortcuts.length) return null;
 
-    const content = message.content.trim();
+    const content = (prefixStripped ?? message.content).trim();
     const lowered = content.toLowerCase();
 
     const candidates = [...shortcuts].sort((a, b) => b.trigger.length - a.trigger.length);

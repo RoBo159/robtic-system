@@ -9,7 +9,7 @@ on:
         description: Redeploy even when nothing changed
         type: choice
         default: none
-        options: [none, all, bot, api, platform-api, activity]
+        options: [none, all, bot, platform-api]
 
 permissions:
   contents: read
@@ -34,29 +34,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       bot: ${{ steps.decide.outputs.bot }}
-      api: ${{ steps.decide.outputs.api }}
       platform_api: ${{ steps.decide.outputs.platform_api }}
-      activity: ${{ steps.decide.outputs.activity }}
       sig_bot: ${{ steps.sign.outputs.bot }}
-      sig_api: ${{ steps.sign.outputs.api }}
       sig_platform_api: ${{ steps.sign.outputs.platform_api }}
-      sig_activity: ${{ steps.sign.outputs.activity }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Compute build signatures
         id: sign
-        env:
-          # Inlined into the Activity bundle at build time, so it is part of that image even though
-          # it is not part of the tree.
-          ACTIVITY_CLIENT_ID: ${{ vars.VITE_DISCORD_CLIENT_ID }}
         run: |
-          for service in bot api platform-api activity; do
-            if [ "$service" = activity ]; then
-              signature=$(EXTRA_SIGNATURE_INPUT="$ACTIVITY_CLIENT_ID" bash scripts/deploy-signature.sh "$service")
-            else
-              signature=$(bash scripts/deploy-signature.sh "$service")
-            fi
+          for service in bot platform-api; do
+            signature=$(bash scripts/deploy-signature.sh "$service")
             echo "${service//-/_}=$signature" >> "$GITHUB_OUTPUT"
             echo "$service $signature"
           done
@@ -69,13 +57,6 @@ jobs:
           key: deploy-v1-bot-${{ steps.sign.outputs.bot }}
           lookup-only: true
 
-      - id: cache-api
-        uses: actions/cache/restore@v4
-        with:
-          path: .deploy-signatures/api
-          key: deploy-v1-api-${{ steps.sign.outputs.api }}
-          lookup-only: true
-
       - id: cache-platform-api
         uses: actions/cache/restore@v4
         with:
@@ -83,21 +64,12 @@ jobs:
           key: deploy-v1-platform-api-${{ steps.sign.outputs.platform_api }}
           lookup-only: true
 
-      - id: cache-activity
-        uses: actions/cache/restore@v4
-        with:
-          path: .deploy-signatures/activity
-          key: deploy-v1-activity-${{ steps.sign.outputs.activity }}
-          lookup-only: true
-
       - name: Decide what to deploy
         id: decide
         env:
           FORCE: ${{ inputs.force || 'none' }}
           HIT_BOT: ${{ steps.cache-bot.outputs.cache-hit }}
-          HIT_API: ${{ steps.cache-api.outputs.cache-hit }}
           HIT_PLATFORM_API: ${{ steps.cache-platform-api.outputs.cache-hit }}
-          HIT_ACTIVITY: ${{ steps.cache-activity.outputs.cache-hit }}
         run: |
           echo "| Service | Signature | Decision |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
@@ -118,9 +90,7 @@ jobs:
           }
 
           decide bot          bot          "$HIT_BOT"          '${{ steps.sign.outputs.bot }}'
-          decide api          api          "$HIT_API"          '${{ steps.sign.outputs.api }}'
           decide platform-api platform_api "$HIT_PLATFORM_API" '${{ steps.sign.outputs.platform_api }}'
-          decide activity     activity     "$HIT_ACTIVITY"     '${{ steps.sign.outputs.activity }}'
 
   # Deployed first: the bot and every Minecraft server are clients of it, so it must be up before
   # anything that depends on it restarts.
@@ -146,60 +116,11 @@ jobs:
   # The chain is kept so compose never runs twice at once, but a skipped upstream must not skip
   # everything after it — hence `!cancelled()` and an explicit failure check rather than plain
   # `needs`, which treats "skipped" as a reason to skip.
-  deploy-api:
+  deploy-bot:
     needs: [changes, deploy-platform-api]
     if: >-
       ${{ !cancelled()
       && needs.deploy-platform-api.result != 'failure'
-      && needs.changes.outputs.api == 'true' }}
-    uses: robticorg/robtic-actions/.github/workflows/deploy.yml@main
-    with:
-      deploy-type: docker
-      runner-labels: '["self-hosted", "robtic-deploy"]'
-      environment-name: 'Robtic Server'
-      environment-url: 'https://robtic.org'
-      server-label: 'core.robtic.org'
-      dockerfile: 'apps/api/Dockerfile'
-      image-name: 'ghcr.io/robticorg/robtic-api'
-      compose-project-name: 'robtic-system'
-      compose-env-file: '/home/robtic/robtic-system/.env'
-      compose-pull-command: 'docker compose -p robtic-system --env-file /home/robtic/robtic-system/.env pull robtic-api'
-      compose-up-command: 'docker compose -p robtic-system --env-file /home/robtic/robtic-system/.env up -d robtic-api'
-    secrets:
-      DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
-
-  deploy-activity:
-    needs: [changes, deploy-platform-api, deploy-api]
-    if: >-
-      ${{ !cancelled()
-      && needs.deploy-platform-api.result != 'failure'
-      && needs.deploy-api.result != 'failure'
-      && needs.changes.outputs.activity == 'true' }}
-    uses: robticorg/robtic-actions/.github/workflows/deploy.yml@main
-    with:
-      deploy-type: docker
-      runner-labels: '["self-hosted", "robtic-deploy"]'
-      environment-name: 'Robtic Server'
-      environment-url: 'https://robtic.org'
-      server-label: 'core.robtic.org'
-      dockerfile: 'apps/activity/Dockerfile'
-      image-name: 'ghcr.io/robticorg/robtic-activity'
-      build-args: |
-        VITE_DISCORD_CLIENT_ID=${{ vars.VITE_DISCORD_CLIENT_ID }}
-      compose-project-name: 'robtic-system'
-      compose-env-file: '/home/robtic/robtic-system/.env'
-      compose-pull-command: 'docker compose -p robtic-system --env-file /home/robtic/robtic-system/.env pull robtic-activity'
-      compose-up-command: 'docker compose -p robtic-system --env-file /home/robtic/robtic-system/.env up -d robtic-activity'
-    secrets:
-      DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
-
-  deploy-bot:
-    needs: [changes, deploy-platform-api, deploy-api, deploy-activity]
-    if: >-
-      ${{ !cancelled()
-      && needs.deploy-platform-api.result != 'failure'
-      && needs.deploy-api.result != 'failure'
-      && needs.deploy-activity.result != 'failure'
       && needs.changes.outputs.bot == 'true' }}
     uses: robticorg/robtic-actions/.github/workflows/deploy.yml@main
     with:
@@ -217,7 +138,7 @@ jobs:
   # failed or was skipped, which is what keeps "cached" and "deployed" the same statement.
   seal:
     name: Record what was deployed
-    needs: [changes, deploy-platform-api, deploy-api, deploy-activity, deploy-bot]
+    needs: [changes, deploy-platform-api, deploy-bot]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -225,8 +146,7 @@ jobs:
         run: |
           mkdir -p .deploy-signatures
           printf '%s %s %s\n' "${{ github.sha }}" "$(date -u +%FT%TZ)" "${{ github.run_id }}" \
-            | tee .deploy-signatures/bot .deploy-signatures/api \
-                  .deploy-signatures/platform-api .deploy-signatures/activity > /dev/null
+            | tee .deploy-signatures/bot .deploy-signatures/platform-api > /dev/null
 
       # continue-on-error: a concurrent run may have claimed the same key first. That is a
       # duplicate, not a failure — the deploy already happened either way.
@@ -236,20 +156,6 @@ jobs:
         with:
           path: .deploy-signatures/platform-api
           key: deploy-v1-platform-api-${{ needs.changes.outputs.sig_platform_api }}
-
-      - if: ${{ needs.deploy-api.result == 'success' }}
-        uses: actions/cache/save@v4
-        continue-on-error: true
-        with:
-          path: .deploy-signatures/api
-          key: deploy-v1-api-${{ needs.changes.outputs.sig_api }}
-
-      - if: ${{ needs.deploy-activity.result == 'success' }}
-        uses: actions/cache/save@v4
-        continue-on-error: true
-        with:
-          path: .deploy-signatures/activity
-          key: deploy-v1-activity-${{ needs.changes.outputs.sig_activity }}
 
       - if: ${{ needs.deploy-bot.result == 'success' }}
         uses: actions/cache/save@v4

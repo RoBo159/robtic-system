@@ -102,6 +102,7 @@ export class BotClient extends Client {
                 `guild ${adminGuildId}`,
                 this.botName,
             );
+            await this.pruneGlobalCommands(rest, commandGuildId);
             return;
         }
 
@@ -111,6 +112,7 @@ export class BotClient extends Client {
         const mainLabel = commandGuildId ? `guild ${commandGuildId} (instant)` : "global (up to 1h to appear)";
 
         await putCommandRoute(rest, mainRoute, main, mainLabel, this.botName);
+        await this.pruneGlobalCommands(rest, commandGuildId);
 
         if (!admin.length) return;
 
@@ -130,5 +132,36 @@ export class BotClient extends Client {
             `admin guild ${adminGuildId}`,
             this.botName,
         );
+    }
+
+    /**
+     * Clears globally-registered commands while a command guild is configured.
+     *
+     * Guild and global commands are separate registries and Discord shows **both** in the picker.
+     * A bot that once ran without COMMAND_GUILD_ID leaves its global copies behind forever, so the
+     * test server ends up with two identical `/shortcut` entries: one current, one frozen at
+     * whatever the options looked like the day it was published. Picking the stale one sends the
+     * bot an interaction missing options its handler requires — `Required option "trigger" not
+     * found`, from a command that is demonstrably correct in source.
+     *
+     * Nothing is pruned when no command guild is set: that is the production shape, where the
+     * global registry is the real one.
+     */
+    private async pruneGlobalCommands(rest: REST, commandGuildId: string | undefined): Promise<void> {
+        if (!commandGuildId || !this.user) return;
+
+        const existing = await rest
+            .get(Routes.applicationCommands(this.user.id))
+            .catch(() => null) as unknown[] | null;
+
+        if (!existing?.length) return;
+
+        Logger.warn(
+            `Removing ${existing.length} stale global command(s) — COMMAND_GUILD_ID is set, so guild ` +
+            "registrations are authoritative and the global copies only shadow them in the picker.",
+            this.botName,
+        );
+
+        await putCommandRoute(rest, Routes.applicationCommands(this.user.id), [], "global (pruned)", this.botName);
     }
 }

@@ -34,6 +34,17 @@ export interface QuestTierSpec {
     graceHours: number;
     /** Rolled once a week by a planner row instead of per window. Null means every window. */
     weeklyCount: { min: number; max: number } | null;
+    /**
+     * Odds that a weekly tier appears at all in a given week, 0-1.
+     *
+     * `weeklyCount` decides how many times a tier shows up *once it is showing up at all*; without
+     * a separate chance, "1 per week" means exactly one every single week, which is a schedule
+     * rather than a rarity. Rolled from the same seeded stream and persisted with the week's plan,
+     * so a restart cannot re-roll a Golden into existence.
+     *
+     * Ignored by tiers with no `weeklyCount` — a daily is expected daily.
+     */
+    spawnChance: number;
     /** Refuse to generate while one of this tier is still open. */
     exclusive: boolean;
 }
@@ -59,6 +70,7 @@ export const QUEST_TIER_SPECS: Record<QuestTier, QuestTierSpec> = {
         durationHours: { min: 24, max: 24 },
         graceHours: 0,
         weeklyCount: null,
+        spawnChance: 1,
         exclusive: true,
     },
     normal: {
@@ -68,6 +80,7 @@ export const QUEST_TIER_SPECS: Record<QuestTier, QuestTierSpec> = {
         durationHours: { min: 24, max: 24 },
         graceHours: 0,
         weeklyCount: null,
+        spawnChance: 1,
         exclusive: true,
     },
     hard: {
@@ -77,6 +90,8 @@ export const QUEST_TIER_SPECS: Record<QuestTier, QuestTierSpec> = {
         durationHours: { min: 72, max: 168 },
         graceHours: 24,
         weeklyCount: { min: 1, max: 2 },
+        // Roughly three weeks in five carry one.
+        spawnChance: 0.6,
         exclusive: true,
     },
     golden: {
@@ -86,6 +101,8 @@ export const QUEST_TIER_SPECS: Record<QuestTier, QuestTierSpec> = {
         durationHours: { min: 168, max: 168 },
         graceHours: 24,
         weeklyCount: { min: 1, max: 1 },
+        // About one month in three. The rarest thing the engine can post, and it should feel it.
+        spawnChance: 0.25,
         exclusive: true,
     },
     vip: {
@@ -96,6 +113,7 @@ export const QUEST_TIER_SPECS: Record<QuestTier, QuestTierSpec> = {
         durationHours: { min: 24, max: 24 },
         graceHours: 0,
         weeklyCount: null,
+        spawnChance: 1,
         exclusive: true,
     },
 };

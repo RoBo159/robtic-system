@@ -24,6 +24,14 @@ export interface IQuestClaim extends Document {
     tier: QuestTier;
     /** Which of the member's three concurrent slots this occupies. */
     slot: QuestSlot;
+    /**
+     * Which copy of that slot, 0-based.
+     *
+     * Everyone has copy 0. Premium's `EXTRA_QUEST_SLOT` grants 1, 2, …, so "one live claim per
+     * slot" becomes "one live claim per slot *copy*" — an extra slot is a row with a higher index
+     * rather than a special case threaded through the claim path.
+     */
+    slotIndex: number;
     status: QuestClaimStatus;
     outcome: QuestOutcome;
     /** missionId → progress. Written by `$inc` for sum missions, `$max` for level missions. */
@@ -84,6 +92,7 @@ const questClaimSchema = new Schema<IQuestClaim>(
         username: { type: String, default: "" },
         tier: { type: String, required: true, enum: QUEST_TIERS },
         slot: { type: String, required: true, enum: QUEST_SLOTS },
+        slotIndex: { type: Number, required: true, default: 0 },
         status: { type: String, required: true, enum: QUEST_CLAIM_STATUSES, default: "active" },
         outcome: { type: String, required: true, enum: QUEST_OUTCOMES, default: "pending" },
         progress: { type: Schema.Types.Mixed, default: () => ({}) },
@@ -104,14 +113,17 @@ const questClaimSchema = new Schema<IQuestClaim>(
 );
 
 /**
- * One live claim per slot, enforced by the database rather than by a read.
+ * One live claim per slot copy, enforced by the database rather than by a read.
  *
  * Partial on `status: "active"` so resolved claims never collide — a member can churn through any
- * number of quests, but can never hold two in the same slot. Two simultaneous claim presses resolve
+ * number of quests, but can never hold two in the same copy. Two simultaneous claim presses resolve
  * here: one insert wins, the other gets E11000 and gives its reserved slot back.
+ *
+ * `slotIndex` is part of the key so a premium member with an extra slot inserts at index 1 rather
+ * than colliding. The rule is unchanged; it is simply counted per copy.
  */
 questClaimSchema.index(
-    { guildId: 1, discordId: 1, slot: 1 },
+    { guildId: 1, discordId: 1, slot: 1, slotIndex: 1 },
     { unique: true, partialFilterExpression: { status: "active" } }
 );
 questClaimSchema.index({ guildId: 1, questId: 1, discordId: 1 }, { unique: true });

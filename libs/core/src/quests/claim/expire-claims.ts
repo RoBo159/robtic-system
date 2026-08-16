@@ -7,6 +7,7 @@ import { invalidateMemberClaims } from "../progress/claim-cache";
 import { thresholdsOf, toRuntime } from "../progress/runtime";
 import { reconcileClaim } from "./reconcile-claim";
 import { finishLeasedClaim } from "./complete-claim";
+import { announceExpired } from "../notify";
 
 const CTX = "quests";
 
@@ -94,6 +95,24 @@ async function resolveOne(claim: IQuestClaim, now: Date): Promise<boolean> {
     if (expired) {
         await QuestStatsRepository.recordFailure(refreshed.guildId, refreshed.discordId).catch(() => null);
         invalidateMemberClaims(refreshed.guildId, refreshed.discordId);
+
+        // The claim is over; the quest is not. Only this member's attempt is resolved here — the
+        // quest keeps its slot count and its message until its own `endsAt` passes.
+        announceExpired({
+            guildId: refreshed.guildId,
+            discordId: refreshed.discordId,
+            username: refreshed.username,
+            tier: refreshed.tier,
+            questId: String(refreshed.questId),
+            claimId: String(refreshed._id),
+            missions: refreshed.missions.map(mission => ({
+                label: mission.label,
+                target: mission.target,
+                progress: refreshed.progress?.[mission.missionId] ?? 0,
+            })),
+            missionsCompleted: completedMissions,
+            missionsTotal: refreshed.missions.length,
+        });
     }
 
     return false;

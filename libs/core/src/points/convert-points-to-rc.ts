@@ -1,6 +1,7 @@
 import { PointsRepository } from "@database/repositories";
 import { RcConversion } from "@database/models";
 import { getPointRates } from "./get-point-rates";
+import { getFeatureValue, PremiumFeature } from "@core/premium";
 
 export type ConversionFailure =
     | "disabled"
@@ -56,7 +57,16 @@ export async function convertPointsToRc(
         return { ok: false, reason: "insufficient", detail: wallet.points };
     }
 
-    const rcGranted = pointsToSpend / rates.pointsPerRc;
+    /**
+     * The premium discount buys *more RC for the same points*, rather than charging fewer points.
+     *
+     * Charging less would break the multiple-of-`pointsPerRc` rule the member was just held to and
+     * would leave odd remainders in the ledger. Granting more keeps the spend exactly what they
+     * asked for and the arithmetic whole.
+     */
+    const discount = await getFeatureValue(guildId, discordId, PremiumFeature.POINT_TO_RC_DISCOUNT);
+    const baseRc = pointsToSpend / rates.pointsPerRc;
+    const rcGranted = Math.max(baseRc, Math.floor(baseRc * (1 + Math.max(0, discount) / 100)));
 
     const afterSpend = await PointsRepository.move({
         guildId,

@@ -3,6 +3,7 @@ import { ActivityRepository, PeriodicStatRepository } from "@database/repositori
 import { randomXP, applyXpGain } from "@bot/services/community/xp";
 import { awardVoicePoint } from "@core/points";
 import { publishMetric } from "@core/metrics";
+import { getMultiplier, PremiumFeature } from "@core/premium";
 import { Logger } from "@logger";
 
 const CTX = "voice";

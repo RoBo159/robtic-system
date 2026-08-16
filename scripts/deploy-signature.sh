@@ -5,7 +5,7 @@
 # content was built and deployed before, so the service is skipped.
 #
 #   scripts/deploy-signature.sh bot
-#   EXTRA_SIGNATURE_INPUT="$SOME_BUILD_ARG" scripts/deploy-signature.sh activity
+#   EXTRA_SIGNATURE_INPUT="$SOME_BUILD_ARG" scripts/deploy-signature.sh platform-api
 #
 # Content, not history: two different commits with identical file contents produce the same
 # signature, so a revert or a rebase re-uses what was already deployed instead of rebuilding it.
@@ -13,7 +13,7 @@ set -euo pipefail
 
 service="${1:-}"
 if [ -z "$service" ]; then
-    echo "usage: scripts/deploy-signature.sh <bot|api|platform-api|activity>" >&2
+    echo "usage: scripts/deploy-signature.sh <bot|platform-api>" >&2
     exit 2
 fi
 
@@ -36,17 +36,8 @@ case "$service" in
     bot)
         paths=("${common[@]}" Dockerfile apps/bot libs images)
         ;;
-    api)
-        paths=("${common[@]}" apps/api libs)
-        ;;
     platform-api)
         paths=("${common[@]}" apps/robtic-api libs)
-        ;;
-    activity)
-        # Not all of `libs`: the Activity's only workspace dependency is @robtic/sdk, and Vite
-        # bundles what is imported. A change to libs/core cannot alter the static bundle, so
-        # including it here would rebuild the Activity for every bot-side change.
-        paths=("${common[@]}" apps/activity libs/sdk)
         ;;
     *)
         echo "unknown service: $service" >&2
@@ -73,6 +64,6 @@ mapfile -t files < <(git ls-files -- "${paths[@]}" | LC_ALL=C sort)
 {
     printf '%s\n' "${files[@]}" | git hash-object --stdin-paths
     printf '%s\n' "${files[@]}"
-    # Build args are part of the image but not of the tree — the Activity inlines a client id.
+    # Build args are part of an image but not of the tree, so they are hashed in explicitly.
     printf 'extra:%s\n' "${EXTRA_SIGNATURE_INPUT:-}"
 } | sha256sum | cut -d' ' -f1

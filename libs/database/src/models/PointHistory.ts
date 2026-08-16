@@ -13,6 +13,7 @@ export const POINT_SOURCES = [
     "voice",
     "quest",
     "community",
+    "premium",
     "admin",
     "conversion",
     "coin-migration",

@@ -4,14 +4,14 @@
 
 - Bun workspaces (`apps/*`, `libs/*`)
 - Bot moved to `apps/bot`; core/database/types split into `libs/`
-- Scaffolds for `apps/activity`, `apps/dashboard`, `apps/api`, `libs/sdk`, and future extraction libs
+- Scaffolds for `apps/dashboard`, `libs/sdk`, and future extraction libs
 - Documentation set under `docs/`
 
 ## Phase 2 — Library Extraction
 
 - Move `libs/core/src/config` → `libs/config` (env, discord, database, feature flags) and update the `@core/config` alias consumers.
 - Move `libs/core/src/utils` pure helpers → `libs/utils`; keep business-flavored utilities in `libs/core`.
-- Move `libs/core/src/libs/logger` → `libs/logger` behind an interface so apps/api can reuse it.
+- Move `libs/core/src/libs/logger` → `libs/logger` behind an interface so every app can reuse it.
 - Begin `libs/constants`: migrate `constants.ts`, embed titles/descriptions, button labels, limits, cooldowns, regexes out of feature code.
 - Extract per-feature business logic out of `apps/bot/src/*/services` into `libs/core` feature modules (combo, streak, xp, moderation), leaving thin Discord adapters in the bot.
 
@@ -24,9 +24,7 @@
 
 ## Phase 4 — Platform
 
-- `apps/api`: REST endpoints over `libs/core` services, Discord OAuth2, Activity token exchange (`docs/sdk/authentication.md`).
-- `libs/events` + WebSocket gateway for live data (`docs/sdk/websocket.md`).
-- `apps/activity`: implement the Embedded Activity against `libs/sdk`.
+- `libs/events` + WebSocket gateway for live data.
 - `apps/dashboard`: guild configuration UI replacing config slash-commands.
 - `libs/cache`: Redis for hot-path caches currently held in process memory (combo partner cache, cooldowns) once multiple processes exist.
 

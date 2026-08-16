@@ -37,5 +37,5 @@
     }
   },
   "include": ["apps", "libs", "scripts"],
-  "exclude": ["node_modules", "dist", "apps/activity", "apps/dashboard"]
+  "exclude": ["node_modules", "dist", "apps/dashboard"]
 }

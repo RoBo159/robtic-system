@@ -1,11 +1,12 @@
 import { QuestRepository, QuestClaimRepository, QuestStatsRepository } from "@database/repositories";
 import type { IQuest } from "@database/models";
-import { TIER_SLOT, type QuestTier } from "@constants";
+import { TIER_SLOT, type QuestTier, type QuestSlot } from "@constants";
 import { Logger } from "@logger";
 import type { QuestMetric } from "@core/metrics";
 import { toRuntime } from "../progress/runtime";
 import { primeClaim } from "../progress/claim-cache";
 import { snapshotBaseline } from "./snapshot-baseline";
+import { getFeatureValue, getDurationMs, PremiumFeature } from "@core/premium";
 
 const CTX = "quests";
 
@@ -25,6 +26,33 @@ export interface ClaimResult {
     expiresAt?: Date;
     /** On "full", how many slots the quest offered. */
     slotsTotal?: number | null;
+}
+
+/**
+ * The lowest slot copy this member has free.
+ *
+ * Advisory, not authoritative: the unique index is still what decides, and a losing race comes back
+ * as E11000 exactly as it always did. This only picks a sensible index to *try*, so a member with
+ * an extra slot fills copy 0 before copy 1 rather than leaving gaps.
+ */
+async function firstFreeSlotIndex(
+    guildId: string,
+    discordId: string,
+    slot: QuestSlot,
+    extraSlots: number,
+): Promise<number> {
+    const capacity = 1 + Math.max(0, Math.floor(extraSlots));
+    if (capacity === 1) return 0;
+
+    const active = await QuestClaimRepository.findActiveForMember(guildId, discordId);
+    const taken = new Set(active.filter(claim => claim.slot === slot).map(claim => claim.slotIndex ?? 0));
+
+    for (let index = 0; index < capacity; index++) {
+        if (!taken.has(index)) return index;
+    }
+
+    // Full. Index 0 is the honest attempt: it collides, and the caller reports "already holding".
+    return 0;
 }
 
 /**
@@ -60,6 +88,13 @@ export async function claimQuest(
         const metrics = reserved.missions.map(mission => mission.metric as QuestMetric);
         const baseline = await snapshotBaseline(reserved.guildId, discordId, username, metrics);
 
+        // Both perks come from the engine rather than from a role check, so a tier that grants
+        // neither leaves this path arithmetically identical to what it was before premium existed.
+        const [extraSlots, extensionMs] = await Promise.all([
+            getFeatureValue(reserved.guildId, discordId, PremiumFeature.EXTRA_QUEST_SLOT),
+            getDurationMs(reserved.guildId, discordId, PremiumFeature.QUEST_TIME_EXTENSION),
+        ]);
+
         const claim = await QuestClaimRepository.create({
             guildId: reserved.guildId,
             questId: reserved._id,
@@ -67,10 +102,13 @@ export async function claimQuest(
             username,
             tier: reserved.tier,
             slot: TIER_SLOT[reserved.tier as QuestTier],
+            // The first free copy of the slot. Everyone has copy 0; an extra slot is copy 1.
+            slotIndex: await firstFreeSlotIndex(reserved.guildId, discordId, TIER_SLOT[reserved.tier as QuestTier], extraSlots),
             missions: reserved.missions,
             baseline,
-            // Everyone on a quest finishes together: a claim ends when the quest does.
-            expiresAt: reserved.endsAt,
+            // Everyone on a quest finishes together — except a member whose tier bought them more
+            // time, who keeps working after the quest itself has closed to new claims.
+            expiresAt: new Date(reserved.endsAt.getTime() + extensionMs),
         });
 
         // The caller already has the document, so seed the cache rather than forcing a re-read on

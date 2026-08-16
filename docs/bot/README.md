@@ -19,6 +19,7 @@ become a feature.
 | shortcuts | `features/shortcuts/` | Custom message triggers — on by default |
 | voice | `features/voice/` | Voice XP and time tracking — opt-in per guild |
 | streak | `features/streak/` | Daily message streaks — opt-in per guild |
+| premium | `features/premium/` | Global premium tiers and every perk they grant — on by default |
 | quests | `features/quests/` | Generated quests and the weekly community challenge — opt-in per guild |
 | reply | `features/reply/` | Auto-replies to trigger phrases — opt-in per guild |
 | rejoin-roles | `features/rejoin-roles/` | Restore roles when a member returns — opt-in per guild |
@@ -42,6 +43,7 @@ loader reports a collision rather than letting one silently overwrite the other.
 - [minecraft.md](./minecraft.md) — Minecraft architecture: linking, shared economy, chat bridge, LuckPerms sync
 - [minecraft-setup.md](./minecraft-setup.md) — Operator guide: API keys, chat wiring, logging channels, full command reference
 - [modal.md](./modal.md) — modal patterns
+- [premium.md](./premium.md) — the Premium Engine: global tiers, per-server role mappings, and every perk
 - [quests.md](./quests.md) — quest generation, claiming, automatic progress and the weekly community challenge
 - [shortcuts.md](./shortcuts.md) — `/shortcut` triggers and their cleanup modes
 - [streak.md](./streak.md) — daily streak system
