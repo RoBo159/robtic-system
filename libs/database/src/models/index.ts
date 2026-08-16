@@ -7,7 +7,7 @@ export { ServiceTier, type IServiceTier } from "./ServiceTier";
 export { BotConfig, type IBotConfig } from "./BotConfig";
 export { Send, type ISend } from "./send";
 export { Note, type INote } from "./Note";
-export { Reply, type IReply } from "./Reply";
+export { Reply, toReplyEntries, newReplyId, type IReply, type IReplyEntry } from "./Reply";
 export { Reason, type IReason } from "./Reason";
 export { LevelReward, type ILevelReward } from "./LevelReward";
 export { XPSettings, type IXPSettings } from "./XPSettings";
@@ -16,7 +16,6 @@ export { ActivityLog, type IActivityLog, type ActivityLogType } from "./Activity
 export { AuditLog, type IAuditLog } from "./AuditLog";
 export { ServerConfig, type IServerConfig, type ISentPanel } from "./ServerConfig";
 export { Shortcut, type IShortcutDoc } from "./Shortcut";
-export { Project, type IProject } from "./ProjectShare";
 export { Partner, type IPartner } from "./Partner";
 export { SavedRoles, type ISavedRoles } from "./SavedRoles";
 export { Streak, type IStreak } from "./Streak";

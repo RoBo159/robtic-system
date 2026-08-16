@@ -26,15 +26,25 @@ export const replyFeature = defineFeature({
                     ],
                 },
                 {
+                    name: "remove",
+                    description: "Remove one reply by its id",
+                    options: [
+                        { name: "id", description: "The reply id shown by /reply list", type: "string", required: true, autocomplete: true },
+                    ],
+                },
+                {
                     name: "delete",
-                    description: "Delete a trigger and all of its replies",
+                    description: "Delete a trigger and every reply on it",
                     options: [
                         { name: "msg", description: "The trigger to delete", type: "string", required: true, autocomplete: true },
                     ],
                 },
                 {
                     name: "list",
-                    description: "List every trigger configured in this server",
+                    description: "Every reply, with its id, its trigger and who added it",
+                    options: [
+                        { name: "msg", description: "Only replies for this trigger", type: "string", autocomplete: true },
+                    ],
                 },
                 {
                     name: "show",

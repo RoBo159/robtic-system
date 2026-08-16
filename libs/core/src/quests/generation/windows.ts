@@ -1,5 +1,5 @@
 import type { IQuestWindow } from "@database/models";
-import { occasionRandom } from "./seeded-random";
+import { randomInstant } from "./random";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_MS = 60 * 60 * 1000;
@@ -68,19 +68,14 @@ export function enumerateOccurrences(
 }
 
 /**
- * The instant a tier will appear inside an occurrence.
+ * Picks the instant a quest will appear inside an occurrence.
  *
- * Derived from the occasion rather than rolled, so it is stable across restarts and across
- * concurrent planners. This is the single decision every restart-safety property depends on.
+ * A fresh roll every time it is called, which is why the caller must write the result down: the
+ * generation row stores `scheduledAt`, and re-planning an occasion that already has a row is a
+ * no-op on the unique index. Roll once, persist, never ask again.
  */
-export function scheduledInstantFor(
-    guildId: string,
-    tier: string,
-    occurrence: WindowOccurrence,
-): Date {
-    const random = occasionRandom(guildId, tier, occurrence.windowKey);
-    const span = Math.max(0, occurrence.endMs - occurrence.startMs);
-    return new Date(occurrence.startMs + Math.floor(random() * span));
+export function pickInstantIn(occurrence: WindowOccurrence): Date {
+    return randomInstant(occurrence.startMs, occurrence.endMs);
 }
 
 /** The UTC ISO week key for an instant in the guild's local time, e.g. "2026-W33". */

@@ -3,11 +3,21 @@ import { ReplyRepository } from "@database/repositories";
 
 export const add: FeatureSubcommandHandler = async (interaction, _client) => {
     const trigger = interaction.options.getString("msg", true).trim();
-    const reply = interaction.options.getString("reply", true);
+    const text = interaction.options.getString("reply", true);
 
-    const doc = await ReplyRepository.addReply(interaction.guildId!, trigger, reply);
+    const { doc, entry } = await ReplyRepository.addReply(
+        interaction.guildId!,
+        trigger,
+        text,
+        interaction.user.id,
+    );
+
+    const count = doc.replies.length;
 
     await interaction.editReply({
-        content: `Added a reply for **${trigger}** — it now has **${doc.replies.length}**, one picked at random each time.`,
+        content:
+            `Added reply \`${entry.id}\` for **${trigger}** — it now has **${count}**, ` +
+            `one picked at random each time.\n` +
+            `Remove just this one with \`/reply remove id:${entry.id}\`.`,
     });
 };

@@ -21,9 +21,12 @@ export class QuestGenerationRepository {
     /**
      * Records the intent to generate. False means the occasion was already planned.
      *
-     * Insert-first, catch E11000 — the same idempotency trick the API request log uses. Because the
-     * scheduled instant is derived from a seed rather than rolled freshly, a racing planner
-     * computes an identical row, so losing the race costs nothing.
+     * Insert-first, catch E11000 — the same idempotency trick the API request log uses.
+     *
+     * The row carries decisions that were *rolled*, not derived: the instant a quest appears, and
+     * for a day or week plan how many there will be. A racing planner therefore holds different
+     * numbers, and this insert is what settles which set is real — the winner's row is the schedule,
+     * and the loser reads it back rather than applying its own.
      */
     static async plan(input: PlanInput): Promise<boolean> {
         try {

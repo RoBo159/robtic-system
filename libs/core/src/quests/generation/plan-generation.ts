@@ -2,8 +2,8 @@ import { QuestGenerationRepository, QuestSettingsRepository } from "@database/re
 import { QUEST_TIERS, QUEST_TIER_SPECS, type QuestTier } from "@constants";
 import { tierEnabled } from "@database/models";
 import { Logger } from "@logger";
-import { enumerateOccurrences, scheduledInstantFor, localWeekKey, type WindowOccurrence } from "./windows";
-import { occasionRandom, randomInt } from "./seeded-random";
+import { enumerateOccurrences, pickInstantIn, localWeekKey, localDateKey, type WindowOccurrence } from "./windows";
+import { randomInt, shuffle } from "./random";
 
 const CTX = "quests";
 const HOUR_MS = 60 * 60 * 1000;
@@ -40,9 +40,12 @@ export async function planGeneration(guildId: string, now = new Date()): Promise
         if (!tierEnabled(settings, tier)) continue;
 
         const spec = QUEST_TIER_SPECS[tier];
-        const eligible = spec.weeklyCount
-            ? await weeklyChosenOccurrences(guildId, tier, occurrences, settings.utcOffsetMinutes, nowMs)
-            : occurrences;
+
+        const eligible = spec.dailyCount
+            ? await dailySlots(guildId, tier, occurrences, settings.utcOffsetMinutes)
+            : spec.weeklyCount
+                ? await weeklyChosenOccurrences(guildId, tier, occurrences, settings.utcOffsetMinutes, nowMs)
+                : occurrences;
 
         for (const occurrence of eligible) {
             if (await planOne(guildId, tier, occurrence, nowMs)) planned++;
@@ -59,7 +62,9 @@ async function planOne(
     nowMs: number,
 ): Promise<boolean> {
     const spec = QUEST_TIER_SPECS[tier];
-    const scheduledAt = scheduledInstantFor(guildId, tier, occurrence);
+    // Rolled here and stored on the row. A later tick that reaches the same occasion loses the
+    // insert on the unique index, so the first roll is the one that stands.
+    const scheduledAt = pickInstantIn(occurrence);
 
     // A window that closed while the bot was down, past whatever grace the tier allows, is written
     // straight in as a tombstone. It occupies the unique key so it can never be planned again, and
@@ -74,6 +79,94 @@ async function planOne(
         status: elapsed ? "missed" : "scheduled",
         reason: elapsed ? "window-elapsed-offline" : "",
     });
+}
+
+/**
+ * How many of a daily tier appear today, and when.
+ *
+ * The count is rolled once per local day and the times follow from it: seven Easy quests one day,
+ * four the next, each at its own random minute. Nothing about it is derivable — not from the guild
+ * id, not from the date. Whether today carries a Hard is decided the first time the planner looks
+ * at today, and until then the answer does not exist.
+ *
+ * **Which is exactly why the count is written down.** A fresh roll on every tick would add slots to
+ * a day already under way — a second tick rolling 7 where the first rolled 4 would plan three more
+ * Easy quests, and nothing downstream would notice. The day plan row is claimed through the same
+ * unique index as everything else, so the first writer's number is the day's number, for every
+ * later tick and every other worker.
+ *
+ * Slots are dealt round-robin across the day's windows, so seven quests over three windows land
+ * 3/2/2 rather than piling into one.
+ */
+async function dailySlots(
+    guildId: string,
+    tier: QuestTier,
+    occurrences: WindowOccurrence[],
+    utcOffsetMinutes: number,
+): Promise<WindowOccurrence[]> {
+    const spec = QUEST_TIER_SPECS[tier];
+    if (!spec.dailyCount) return [];
+
+    const byDay = new Map<string, WindowOccurrence[]>();
+    for (const occurrence of occurrences) {
+        const dateKey = localDateKey(occurrence.startMs, utcOffsetMinutes);
+        byDay.set(dateKey, [...(byDay.get(dateKey) ?? []), occurrence]);
+    }
+
+    const slots: WindowOccurrence[] = [];
+
+    for (const [dateKey, inDay] of byDay) {
+        if (inDay.length === 0) continue;
+
+        const count = await dailyCountFor(guildId, tier, dateKey, inDay[0]!.startMs, spec.dailyCount);
+
+        for (let index = 0; index < count; index++) {
+            const window = inDay[index % inDay.length]!;
+
+            // A distinct key per slot: it is the generation row's unique key and the quest's
+            // cycleKey. Without the suffix the second Easy of the day would collide with the first
+            // and silently never exist.
+            slots.push({ ...window, windowKey: `${window.windowKey}#${index}` });
+        }
+    }
+
+    return slots;
+}
+
+/** The day's count, rolled once and remembered — the roll that must never happen twice. */
+async function dailyCountFor(
+    guildId: string,
+    tier: QuestTier,
+    dateKey: string,
+    dayStartMs: number,
+    range: { min: number; max: number },
+): Promise<number> {
+    const existing = await QuestGenerationRepository.findPlan(guildId, tier, dateKey);
+    if (existing) return existing.plannedCount ?? 0;
+
+    const count = randomInt(range.min, range.max);
+
+    const claimed = await QuestGenerationRepository.plan({
+        guildId,
+        tier,
+        windowKey: dateKey,
+        scheduledAt: new Date(dayStartMs),
+        // `generated` rather than `scheduled`: this row records a decision, it is not itself a
+        // quest waiting to fire, and the firing query must never lease it.
+        status: "generated",
+        reason: "day-plan",
+        plannedCount: count,
+    });
+
+    if (claimed) {
+        Logger.debug(`Rolled ${count} ${tier} quest(s) for ${guildId} on ${dateKey}`, CTX);
+        return count;
+    }
+
+    // Another worker rolled it between the read and the write. Theirs is the day's number — the
+    // whole point of persisting it is that there is exactly one answer.
+    const winner = await QuestGenerationRepository.findPlan(guildId, tier, dateKey);
+    return winner?.plannedCount ?? 0;
 }
 
 /**
@@ -105,23 +198,11 @@ async function weeklyChosenOccurrences(
         return thisWeek.filter(o => chosen.has(o.windowKey));
     }
 
-    const random = occasionRandom(guildId, tier, weekKey);
-
-    // Rarity first, count second. Drawn from the same stream and written into the week's plan row
-    // either way, so a week that rolled "no Golden" stays that way across restarts rather than
-    // rolling again on the next tick until it succeeds.
-    const appears = random() < spec.spawnChance;
-    const count = appears
-        ? Math.min(thisWeek.length, randomInt(random, spec.weeklyCount.min, spec.weeklyCount.max))
-        : 0;
-
-    // Shuffle deterministically, then take the first `count`.
-    const shuffled = [...thisWeek];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
-    }
-    const chosen = shuffled.slice(0, count).sort((a, b) => a.startMs - b.startMs);
+    // The count may legitimately roll zero — that is how a weekly tier stays rare. Persisted with
+    // the rest of the plan, so a week that rolled "no Golden" stays that way instead of re-rolling
+    // on the next tick until it succeeds.
+    const count = Math.min(thisWeek.length, randomInt(spec.weeklyCount.min, spec.weeklyCount.max));
+    const chosen = shuffle([...thisWeek]).slice(0, count).sort((a, b) => a.startMs - b.startMs);
 
     const claimed = await QuestGenerationRepository.plan({
         guildId,
@@ -129,7 +210,7 @@ async function weeklyChosenOccurrences(
         windowKey: weekKey,
         scheduledAt: new Date(thisWeek[0]!.startMs),
         status: "generated",
-        reason: appears ? "week-plan" : "week-plan-skipped",
+        reason: count > 0 ? "week-plan" : "week-plan-none",
         plannedCount: count,
         chosenWindowKeys: chosen.map(o => o.windowKey),
     });
@@ -142,9 +223,9 @@ async function weeklyChosenOccurrences(
     }
 
     Logger.debug(
-        appears
+        count > 0
             ? `Planned ${count} ${tier} quest(s) for ${guildId} in ${weekKey}`
-            : `No ${tier} quest for ${guildId} in ${weekKey} — did not make its ${spec.spawnChance} spawn roll`,
+            : `No ${tier} quest for ${guildId} in ${weekKey} — the weekly roll came up zero`,
         CTX,
     );
     return chosen;

@@ -2,6 +2,7 @@ import { EmbedBuilder } from "discord.js";
 import type { FeatureSubcommandHandler } from "@typings/feature";
 import { COLORS } from "@constants";
 import { ShortcutRepository } from "@database/repositories";
+import { resolveTrigger } from "../../utils/resolve-trigger";
 import { buildShortcutInfoEmbed } from "../../utils/build-shortcut-embed";
 
 type Field = "allowedRoleIds" | "channelIds";
@@ -13,7 +14,7 @@ type Field = "allowedRoleIds" | "channelIds";
  */
 const editRestriction = (field: Field, action: "add" | "remove", option: "role" | "channel"): FeatureSubcommandHandler =>
     async (interaction, _client) => {
-        const trigger = interaction.options.getString("trigger", true).trim();
+        const trigger = await resolveTrigger(interaction.guildId!, interaction.options.getString("trigger", true));
         const target = option === "role"
             ? interaction.options.getRole("role", true)
             : interaction.options.getChannel("channel", true);
@@ -36,7 +37,7 @@ export const channelAdd = editRestriction("channelIds", "add", "channel");
 export const channelRemove = editRestriction("channelIds", "remove", "channel");
 
 export const clearRestrictions: FeatureSubcommandHandler = async (interaction, _client) => {
-    const trigger = interaction.options.getString("trigger", true).trim();
+    const trigger = await resolveTrigger(interaction.guildId!, interaction.options.getString("trigger", true));
     const shortcut = await ShortcutRepository.clearRestrictions(interaction.guildId!, trigger);
 
     if (!shortcut) {

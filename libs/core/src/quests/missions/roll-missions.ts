@@ -1,5 +1,6 @@
 import type { QuestTier } from "@constants";
 import { templatesForTier } from "./registry";
+import { shuffle } from "../generation/random";
 import type { GeneratedMission } from "./types";
 
 /**
@@ -10,18 +11,15 @@ import type { GeneratedMission } from "./types";
  * what exists rather than duplicates, so a thin registry degrades to a shorter quest instead of a
  * silly one.
  *
- * `random` is injected so generation can seed it and produce the same quest on a retry.
+ * Genuinely random, and safe to be: the result is written onto the quest document as it is
+ * created, so nobody ever needs to reproduce this roll. Two quests of the same tier on the same day
+ * get different objectives.
  */
-export function rollMissions(tier: QuestTier, count: number, random: () => number): GeneratedMission[] {
+export function rollMissions(tier: QuestTier, count: number): GeneratedMission[] {
     const pool = templatesForTier(tier);
     if (pool.length === 0) return [];
 
-    // Fisher-Yates over a copy, driven by the supplied source.
-    const shuffled = [...pool];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j]!, shuffled[i]!];
-    }
+    const shuffled = shuffle([...pool]);
 
     return shuffled.slice(0, Math.min(count, shuffled.length)).map((template, index) => {
         const target = Math.max(1, Math.round(template.targetFor(tier)));

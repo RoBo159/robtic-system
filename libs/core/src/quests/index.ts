@@ -65,12 +65,12 @@ export { fireDueGenerations, type QuestPoster } from "./generation/fire-generati
 export { buildQuest } from "./generation/build-quest";
 export {
     enumerateOccurrences,
-    scheduledInstantFor,
+    pickInstantIn,
     localDateKey,
     localWeekKey,
     type WindowOccurrence,
 } from "./generation/windows";
-export { hashSeed, seededRandom, occasionRandom, randomInt } from "./generation/seeded-random";
+export { randomInt, randomInstant, shuffle } from "./generation/random";
 
 export {
     recordContribution,

@@ -6,16 +6,20 @@ import {
     type QuestTier,
 } from "@constants";
 import { rollMissions } from "../missions/roll-missions";
-import { occasionRandom, randomInt } from "./seeded-random";
+import { randomInt } from "./random";
 
 const HOUR_MS = 60 * 60 * 1000;
 
 /**
  * Rolls and stores one quest.
  *
- * Everything variable — the missions and the lifetime — comes from the same seeded stream as the
- * scheduled instant, so a retry after a partial failure produces an identical quest rather than a
- * second, different one. The unique `(guildId, tier, cycleKey)` index makes that retry safe.
+ * Everything variable — the missions and the lifetime — is rolled freshly and written onto the
+ * document as it is created. The document *is* the record: nothing ever needs to reproduce the
+ * roll, and two quests of the same tier on the same day differ from each other.
+ *
+ * The unique `(guildId, tier, cycleKey)` index keeps a retry safe. A duplicate key means another
+ * worker already created the quest for this occasion, so this one steps aside rather than adding
+ * a second.
  *
  * Reward and claim slots are not rolled at all: they are whatever `QUEST_TIER_SPECS` says for the
  * tier, which is the one table to edit when those numbers should change.
@@ -30,16 +34,15 @@ export async function buildQuest(
     now = new Date(),
 ): Promise<IQuest | null> {
     const spec = QUEST_TIER_SPECS[tier];
-    const random = occasionRandom(guildId, tier, `${cycleKey}#quest`);
 
-    const missions = rollMissions(tier, spec.missions, random);
+    const missions = rollMissions(tier, spec.missions);
     if (missions.length === 0) return null;
 
     // Reward and slots are fixed per tier; only the missions and the lifetime vary. Both are still
     // copied onto the document, so retuning the table later cannot change a quest already posted.
     const reward = spec.reward;
     const slotsTotal = spec.slots;
-    const durationHours = randomInt(random, spec.durationHours.min, spec.durationHours.max);
+    const durationHours = randomInt(spec.durationHours.min, spec.durationHours.max);
 
     try {
         return await QuestRepository.create({

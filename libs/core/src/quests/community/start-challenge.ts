@@ -2,7 +2,7 @@ import { CommunityChallengeRepository, QuestSettingsRepository } from "@database
 import type { ICommunityChallenge } from "@database/models";
 import { Logger } from "@logger";
 import { communityTemplates } from "../missions";
-import { occasionRandom } from "../generation/seeded-random";
+
 import { localWeekKey } from "../generation/windows";
 
 const CTX = "quests";
@@ -27,9 +27,9 @@ export async function ensureWeeklyChallenge(guildId: string, now = new Date()): 
     const templates = communityTemplates();
     if (templates.length === 0) return null;
 
-    // One objective per week, rolled from the occasion so a retry rebuilds the same challenge.
-    const random = occasionRandom(guildId, "community", weekKey);
-    const template = templates[Math.floor(random() * templates.length)]!;
+    // Rolled freshly. The challenge document is the record of what was chosen, and the unique
+    // (guildId, weekKey) index means a retry either finds the existing week or creates the only one.
+    const template = templates[Math.floor(Math.random() * templates.length)]!;
     const target = Math.max(1, Math.round(template.communityTarget?.() ?? 1000));
 
     const created = await CommunityChallengeRepository.create({

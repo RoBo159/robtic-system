@@ -16,9 +16,11 @@ export const tierToggle: FeatureSubcommandHandler = async (interaction, _client)
     await QuestSettingsRepository.setTierEnabled(interaction.guildId!, tier, enabled);
 
     const spec = QUEST_TIER_SPECS[tier];
-    const cadence = spec.weeklyCount
-        ? `${spec.weeklyCount.min}–${spec.weeklyCount.max} per week`
-        : "up to one per generation window";
+    const cadence = spec.dailyCount
+        ? `${spec.dailyCount.min}–${spec.dailyCount.max} per day`
+        : spec.weeklyCount
+            ? `${spec.weeklyCount.min}–${spec.weeklyCount.max} per week`
+            : "one per generation window";
 
     const slots = spec.slots === null ? "unlimited claims" : `${spec.slots} claim slot(s)`;
 

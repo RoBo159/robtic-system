@@ -32,20 +32,24 @@ export interface QuestTierSpec {
     durationHours: { min: number; max: number };
     /** How long past its window a missed generation is still worth firing. */
     graceHours: number;
-    /** Rolled once a week by a planner row instead of per window. Null means every window. */
+    /**
+     * How many appear per local day, rolled once per day.
+     *
+     * The count comes first and the times follow: the roll picks how many, then spreads them across
+     * the guild's enabled windows at seeded random minutes. That is what makes a day's quests feel
+     * scattered rather than clocked — three windows do not mean three quests.
+     *
+     * Null hands the tier to `weeklyCount` instead.
+     */
+    dailyCount: { min: number; max: number } | null;
+    /** Rolled once a week by a planner row instead of per day. Null means the tier is daily. */
     weeklyCount: { min: number; max: number } | null;
     /**
-     * Odds that a weekly tier appears at all in a given week, 0-1.
+     * Refuse to generate while one of this tier is still open.
      *
-     * `weeklyCount` decides how many times a tier shows up *once it is showing up at all*; without
-     * a separate chance, "1 per week" means exactly one every single week, which is a schedule
-     * rather than a rarity. Rolled from the same seeded stream and persisted with the week's plan,
-     * so a restart cannot re-roll a Golden into existence.
-     *
-     * Ignored by tiers with no `weeklyCount` — a daily is expected daily.
+     * Off for every tier now that counts are per day: several Easy quests are expected to be
+     * live at once, and exclusivity would silently cap a 4–7 roll at one.
      */
-    spawnChance: number;
-    /** Refuse to generate while one of this tier is still open. */
     exclusive: boolean;
 }
 
@@ -69,9 +73,9 @@ export const QUEST_TIER_SPECS: Record<QuestTier, QuestTierSpec> = {
         slots: 15,
         durationHours: { min: 24, max: 24 },
         graceHours: 0,
+        dailyCount: { min: 4, max: 7 },
         weeklyCount: null,
-        spawnChance: 1,
-        exclusive: true,
+        exclusive: false,
     },
     normal: {
         missions: 2,
@@ -79,9 +83,9 @@ export const QUEST_TIER_SPECS: Record<QuestTier, QuestTierSpec> = {
         slots: 10,
         durationHours: { min: 24, max: 24 },
         graceHours: 0,
+        dailyCount: { min: 1, max: 3 },
         weeklyCount: null,
-        spawnChance: 1,
-        exclusive: true,
+        exclusive: false,
     },
     hard: {
         missions: 4,
@@ -89,10 +93,9 @@ export const QUEST_TIER_SPECS: Record<QuestTier, QuestTierSpec> = {
         slots: 4,
         durationHours: { min: 72, max: 168 },
         graceHours: 24,
-        weeklyCount: { min: 1, max: 2 },
-        // Roughly three weeks in five carry one.
-        spawnChance: 0.6,
-        exclusive: true,
+        dailyCount: { min: 0, max: 1 },
+        weeklyCount: null,
+        exclusive: false,
     },
     golden: {
         missions: 1,
@@ -100,10 +103,9 @@ export const QUEST_TIER_SPECS: Record<QuestTier, QuestTierSpec> = {
         slots: 1,
         durationHours: { min: 168, max: 168 },
         graceHours: 24,
-        weeklyCount: { min: 1, max: 1 },
-        // About one month in three. The rarest thing the engine can post, and it should feel it.
-        spawnChance: 0.25,
-        exclusive: true,
+        dailyCount: null,
+        weeklyCount: { min: 0, max: 2 },
+        exclusive: false,
     },
     vip: {
         missions: 2,
@@ -112,9 +114,9 @@ export const QUEST_TIER_SPECS: Record<QuestTier, QuestTierSpec> = {
         slots: null,
         durationHours: { min: 24, max: 24 },
         graceHours: 0,
+        dailyCount: { min: 2, max: 2 },
         weeklyCount: null,
-        spawnChance: 1,
-        exclusive: true,
+        exclusive: false,
     },
 };
 

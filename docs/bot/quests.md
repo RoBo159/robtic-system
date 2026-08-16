@@ -26,17 +26,39 @@ slots are fixed values there — edit them and the next generated quest uses the
 
 | Tier | Missions | Reward (Points) | Slots | Duration | Cadence |
 |---|---|---|---|---|---|
-| 🟢 Easy | 1 | 10 | 15 | 24h | up to one per window |
-| 🔵 Normal | 2 | 35 | 10 | 24h | up to one per window |
-| 🟣 Hard | 4 | 100 | 4 | 3–7 days | 1–2 per week, **60% of weeks** |
-| 🌟 Golden | 1 | 1000 | 1 | 7 days | 1 per week, **25% of weeks** |
-| 💎 VIP | 2 | 50 | unlimited | 24h | one per day, VIP roles only |
+| 🟢 Easy | 1 | 10 | 15 | 24h | **4–7 per day** |
+| 🔵 Normal | 2 | 35 | 10 | 24h | **1–3 per day** |
+| 🟣 Hard | 4 | 100 | 4 | 3–7 days | **0–1 per day** |
+| 🌟 Golden | 1 | 1000 | 1 | 7 days | **0–2 per week** |
+| 💎 VIP | 2 | 50 | unlimited | 24h | **2 per day**, VIP roles only |
 
-`spawnChance` is what makes the top two rare rather than merely scheduled. `weeklyCount` alone
-means "exactly one Golden every single week", which is a rota; the chance is drawn first, from the
-same seeded weekly stream, and persisted with the week's plan — so a week that rolled no Golden
-stays that way instead of re-rolling on the next tick until it succeeds. Golden lands roughly once
-a month, Hard about three weeks in five. Daily tiers are never gated.
+**Genuinely random, and written down as it is decided.** A tier rolls how many it gets for the
+local day, and those are dealt round-robin across the guild's enabled windows, each taking its
+own random minute. Nothing is derivable in advance — not from the guild id, not from the date.
+Whether today carries a Hard is decided the first time the planner looks at today, and until
+then the answer does not exist anywhere.
+
+That is why **every roll is persisted the moment it is made**:
+
+| Decision | Where it is written |
+|---|---|
+| how many of a tier today | a `day-plan` generation row, `plannedCount` |
+| which minute each appears | that occasion's generation row, `scheduledAt` |
+| how many Golden this week | the `week-plan` row, with the chosen windows |
+| missions, lifetime | the quest document itself |
+
+Every one of those writes is claimed through a unique index, so the first roll is the one that
+stands — for the next tick, for a restart, and for a second worker. Re-rolling would be the bug:
+a tick that rolled 7 where the last rolled 4 would quietly plan three extra Easy quests.
+
+Golden is the one weekly tier, rolled `0–2` per week — the zero is what keeps it rare, and the
+week's plan row holds the answer so a week that rolled none stays that way.
+
+No tier is exclusive any more. Several Easy quests are expected to be open at once, and the old
+`one of this tier at a time` rule would have silently capped a 4–7 roll at one. The flip side is
+arithmetic worth knowing: **rate × lifetime = how many sit on the board**. At 0–1 Hard per day
+with a 3–7 day lifetime, four or five Hard quests are open simultaneously; shorten the lifetime
+if that feels crowded.
 
 Every quest of a tier is worth the same and offers the same number of slots, so a member can learn
 what an Easy is worth rather than finding out after they finish one. Only the missions and (for
@@ -45,8 +67,6 @@ Hard) the lifetime vary between quests of the same tier.
 Both numbers are **copied onto the quest document** at generation, so retuning the table never
 changes a quest that is already live — members claimed it on the terms it was posted with.
 
-`exclusive: true` on every tier means a new one is not generated while one of the same tier is
-still open — a server never accumulates six unclaimed Easy quests.
 
 Unlimited slots are stored as `QUEST_UNLIMITED_SLOTS` (1e9) rather than null, so the reservation
 predicate stays `slotsRemaining > 0` with no special case.
@@ -115,8 +135,9 @@ Claiming is reserve-then-insert, never the other way round:
 
 1. `reserveSlot` — a single-document `$inc` guarded by `slotsRemaining > 0`. MongoDB serialises it,
    so overclaiming is impossible without a transaction.
-2. Insert the claim, which meets a partial unique index on `{guildId, discordId, slot}` filtered to
-   `status: "active"`. E11000 there means "already holding one", and the reserved slot goes back.
+2. Insert the claim, which meets a partial unique index on `{guildId, discordId, slot, slotIndex}`
+   filtered to `status: "active"`. E11000 there means "already holding one", and the reserved slot
+   goes back. `slotIndex` is 0 for everyone; premium's `EXTRA_QUEST_SLOT` grants 1, 2, …
 
 A crash between the two orphans one slot; `QuestRepository.reconcileSlots()` repairs it each cycle.
 

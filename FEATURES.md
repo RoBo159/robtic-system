@@ -421,11 +421,11 @@ and XP only count what was already happening.
 
 | Tier | Missions | Reward | Slots | Duration |
 |---|---|---|---|---|
-| 🟢 Easy | 1 | 10 | 15 | 24h |
-| 🔵 Normal | 2 | 35 | 10 | 24h |
-| 🟣 Hard | 4 | 100 | 4 | 3–7 days · 60% of weeks |
-| 🌟 Golden | 1 | 1000 | 1 | 7 days · 25% of weeks |
-| 💎 VIP | 2 | 50 | unlimited | 24h |
+| 🟢 Easy | 1 | 10 | 15 | 24h · 4–7 per day |
+| 🔵 Normal | 2 | 35 | 10 | 24h · 1–3 per day |
+| 🟣 Hard | 4 | 100 | 4 | 3–7 days · 0–1 per day |
+| 🌟 Golden | 1 | 1000 | 1 | 7 days · 0–2 per week |
+| 💎 VIP | 2 | 50 | unlimited | 24h · 2 per day |
 
 Reward and slots are fixed per tier in `QUEST_TIER_SPECS` (`libs/constants/src/quests.ts`) — the one
 table to edit to change what a quest pays or how many may claim it. Only the objectives, and Hard's
@@ -453,7 +453,11 @@ Claiming is a button on the quest's own message. Progress needs no command at al
 own each number publish to the metric bus and quests subscribe, so messages, XP, voice, combo,
 streak and points all feed missions without a second counter existing anywhere.
 
-**Timing is derived, not rolled.** The minute a quest appears is seeded from guild + tier +
+**How many, then when.** Each tier rolls its count for the local day — Easy 4–7, Normal 1–3, Hard
+0–1, VIP 2, with Golden on a 0–2 weekly roll — and those are dealt across the guild's windows at
+seeded random minutes. Three windows do not mean three quests.
+
+**Timing is derived, not rolled.**
 window occurrence, so it survives restarts, cannot be double-fired by concurrent planners, and
 differs per guild.
 
@@ -790,7 +794,7 @@ The bot leaves any server not on the `AllowedGuild` list.
 | Shortcuts and replies | `Shortcut` `Reply` |
 | Rejoin roles | `RejoinRolesConfig` `SavedRoles` |
 | Minecraft | `MinecraftLink` `MinecraftLinkCode` `MinecraftServer` `MinecraftApiKey` `MinecraftTransaction` `MinecraftItemPrice` `MinecraftConfig` `MinecraftBridgeEvent` `MinecraftJail` `MinecraftWarning` `MinecraftNote` `MinecraftReport` `MinecraftFreeze` `MinecraftRoleState` |
-| Platform | `User` `SuperUser` `AllowedGuild` `Partner` `ProjectShare` `PendingProjectShare` `Membership` `ServiceTier` `ApiRequestLog` |
+| Platform | `User` `SuperUser` `AllowedGuild` `Partner` `Membership` `ServiceTier` `ApiRequestLog` |
 
 Repositories that sit on a hot path are cached with a 60-second TTL and invalidated on write:
 `StaffTier` · `PunishConfig` · `ServerConfig` · `GuildFeature` · `PointSettings` · `VoiceSettings` ·
@@ -843,7 +847,6 @@ Player-facing categories are confined to the commands channel when one is set.
 | `Activity` | ✅ | `/combo`, `/voice`, `/check` |
 | `Leveling` | ✅ | `/level`, `/leaderboard` |
 | `Partnership` | ✅ | `/partner` |
-| `Projects` | ✅ | project sharing |
 | `Utility` | ❌ | `/send`, `/note`, `/mod` |
 | `Minecraft` | ❌ | `/minecraft`, `!ip`, `!status`, `!version` |
 | `Tickets` | ❌ | `/claim`, `/close` |

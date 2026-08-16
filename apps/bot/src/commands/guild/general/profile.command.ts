@@ -198,7 +198,6 @@ export default {
             // reachable, and it only appears where the feature is on.
             ...(questsEnabled ? [{ label: "Quests", description: "Quest record, difficulties and community share", value: "quests", emoji: "🗺️" }] : []),
             ...(memberIsStaff ? [{ label: t("profile.menu_staff_activity", lang), description: t("profile.menu_staff_activity_desc", lang), value: "staff_activity", emoji: emoji.trophy }] : []),
-            { label: t("profile.menu_projects", lang), description: t("profile.menu_projects_desc", lang), value: "projects", emoji: emoji.computer },
             { label: t("profile.menu_notes", lang), description: t("profile.menu_notes_desc", lang), value: "notes", emoji: emoji.info },
             { label: t("profile.menu_history", lang), description: t("profile.menu_history_desc", lang), value: "history", emoji: emoji.note },
             ...(isSelf ? [{ label: t("profile.menu_settings", lang), description: t("profile.menu_settings_desc", lang), value: "settings", emoji: "⚙️" }] : []),

@@ -5,7 +5,7 @@ import {
 } from "discord.js";
 import type { BotClient } from "@core/bot-client";
 import { COLORS, INTERACTION_MESSAGES } from "@constants";
-import { PunishmentRepository, NoteRepository, ActivityRepository, ProjectsRepository, UserRepository } from "@database/repositories";
+import { PunishmentRepository, NoteRepository, ActivityRepository, UserRepository } from "@database/repositories";
 import type { ComponentHandler } from "@typings/command";
 import { calculateLevel, xpForLevel } from "../services/community/xp";
 import { getStaffActivity, getSupportStats, getActivityLogs } from "@bot/utils/staff-activity";
@@ -179,32 +179,6 @@ export const profileMenuHandler: ComponentHandler<StringSelectMenuInteraction> =
                 .setDescription(lines.join("\n\n"))
                 .setColor(COLORS.info)
                 .setFooter({ text: `Total: ${notes.length} note(s)` })
-                .setTimestamp();
-
-            await interaction.editReply({ embeds: [embed] });
-            return;
-        }
-
-        if (selected === "projects") {
-            const projects = await ProjectsRepository.findByUserId(targetId);
-
-            if (!projects.length) {
-                await interaction.editReply({
-                    embeds: [new EmbedBuilder().setDescription(`No projects found for <@${targetId}>.`).setColor(COLORS.info)],
-                });
-                return;
-            }
-
-            const lines = projects.slice(0, 10).map((project, index) => {
-                const createdAt = Math.floor(project.createdAt.getTime() / 1000);
-                return `**${index + 1}.** ${project.projectTitle} (\`${project.projectId}\`)\n> Type: ${project.projectType} | 👍 ${project.likes.length} | 👎 ${project.dislikes.length} | ${emoji.eyes} ${project.views} | <t:${createdAt}:R>`;
-            });
-
-            const embed = new EmbedBuilder()
-                .setTitle(`${emoji.gear} Projects ${putUser}`)
-                .setDescription(lines.join("\n\n"))
-                .setColor(COLORS.info)
-                .setFooter({ text: `Showing ${Math.min(projects.length, 10)} of ${projects.length} project(s)` })
                 .setTimestamp();
 
             await interaction.editReply({ embeds: [embed] });

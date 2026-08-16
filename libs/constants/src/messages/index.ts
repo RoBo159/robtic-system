@@ -4,7 +4,6 @@ export * from "./check";
 export * from "./coins";
 export * from "./common";
 export * from "./community";
-export * from "./dev";
 export * from "./moderation";
 export * from "./partner";
 export * from "./points";

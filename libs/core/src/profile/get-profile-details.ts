@@ -3,7 +3,6 @@ import {
     ActivityRepository,
     ActivityLogRepository,
     NoteRepository,
-    ProjectsRepository,
     PunishmentRepository,
     SupportSessionRepository,
     UserRepository,
@@ -11,7 +10,6 @@ import {
 
 const RECENT_LOG_LIMIT = 10;
 const NOTES_LIMIT = 15;
-const PROJECTS_LIMIT = 10;
 const PUNISHMENTS_LIMIT = 20;
 
 interface DetailsInput {
@@ -33,11 +31,10 @@ export async function getProfileDetails(input: DetailsInput): Promise<ProfileDet
 
     if (targetId !== viewerId && await UserRepository.getPrivateProfile(targetId)) return null;
 
-    const [record, logs, notes, projects, punishments, punishmentLevel, supportStats] = await Promise.all([
+    const [record, logs, notes, punishments, punishmentLevel, supportStats] = await Promise.all([
         ActivityRepository.findOrCreate(targetId, guildId, username),
         ActivityLogRepository.getByUser(targetId, guildId, RECENT_LOG_LIMIT),
         NoteRepository.findByUser(targetId),
-        ProjectsRepository.findByUserId(targetId),
         PunishmentRepository.findByUser(targetId, guildId),
         PunishmentRepository.getPunishmentLevel(targetId),
         SupportSessionRepository.getStaffStats(targetId),
@@ -83,15 +80,6 @@ export async function getProfileDetails(input: DetailsInput): Promise<ProfileDet
             content: note.content,
             createdBy: note.createdBy,
             createdAt: note.createdAt.getTime(),
-        })),
-        projects: projects.slice(0, PROJECTS_LIMIT).map(project => ({
-            projectId: project.projectId,
-            title: project.projectTitle,
-            projectType: project.projectType,
-            likes: project.likes.length,
-            dislikes: project.dislikes.length,
-            views: project.views,
-            createdAt: project.createdAt.getTime(),
         })),
         punishments: punishments.slice(0, PUNISHMENTS_LIMIT).map(punishment => ({
             caseId: punishment.caseId,

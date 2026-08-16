@@ -1,4 +1,4 @@
-import { Reply, type IReply } from "@database/models/Reply";
+import { Reply, toReplyEntries, newReplyId, type IReply, type IReplyEntry } from "@database/models/Reply";
 
 const CACHE_TTL_MS = 60_000;
 
@@ -11,31 +11,93 @@ const CACHE_TTL_MS = 60_000;
  */
 const triggerCache = new Map<string, { triggers: Set<string>; expiresAt: number }>();
 
+/** One reply, with the trigger it belongs to. What `/reply list` and `/reply remove` work from. */
+export interface ReplyListing extends IReplyEntry {
+    trigger: string;
+}
+
 export class ReplyRepository {
-    static async addReply(guildId: string, trigger: string, reply: string): Promise<IReply> {
+    /** Adds a reply to a trigger, creating the trigger if it is new. Returns the entry it wrote. */
+    static async addReply(
+        guildId: string,
+        trigger: string,
+        text: string,
+        createdBy: string,
+    ): Promise<{ doc: IReply; entry: IReplyEntry }> {
+        const entry: IReplyEntry = { id: newReplyId(), text, createdBy, createdAt: new Date() };
+
         const doc = await Reply.findOneAndUpdate(
             { guildId, trigger },
-            { $addToSet: { replies: reply } },
+            { $push: { replies: entry } },
             { upsert: true, returnDocument: "after" }
         ) as IReply;
 
         triggerCache.delete(guildId);
-        return doc;
+        return { doc, entry };
     }
 
-    static async deleteReply(guildId: string, trigger: string): Promise<IReply | null> {
-        const doc = await Reply.findOneAndDelete({ guildId, trigger });
+    /**
+     * Removes one reply by its id, wherever it lives.
+     *
+     * The trigger goes too when it was the last reply — a trigger with nothing to say would match
+     * messages and then answer nothing, which reads as the bot ignoring people.
+     */
+    static async deleteReplyById(
+        guildId: string,
+        id: string,
+    ): Promise<{ trigger: string; entry: IReplyEntry; triggerRemoved: boolean } | null> {
+        const docs = await Reply.find({ guildId });
+
+        for (const doc of docs) {
+            const entries = toReplyEntries(doc.replies);
+            const entry = entries.find(e => e.id === id);
+            if (!entry) continue;
+
+            const remaining = entries.filter(e => e.id !== id);
+
+            if (remaining.length === 0) {
+                await Reply.deleteOne({ _id: doc._id });
+            } else {
+                // The whole array is rewritten rather than `$pull`-ed, because a legacy document
+                // holds plain strings that no pull predicate could name — and this is the moment
+                // the rest of them become entries.
+                await Reply.updateOne({ _id: doc._id }, { $set: { replies: remaining } });
+            }
+
+            triggerCache.delete(guildId);
+            return { trigger: doc.trigger, entry, triggerRemoved: remaining.length === 0 };
+        }
+
+        return null;
+    }
+
+    /** Removes a whole trigger and every reply on it. */
+    static async deleteTrigger(guildId: string, trigger: string): Promise<IReply | null> {
+        const doc = await Reply.findOneAndDelete({
+            guildId,
+            trigger: new RegExp(`^${escapeRegex(trigger)}$`, "i"),
+        });
+
         triggerCache.delete(guildId);
         return doc;
     }
 
     static async getReply(guildId: string, trigger: string): Promise<IReply | null> {
-        return Reply.findOne({ guildId, trigger });
+        return Reply.findOne({ guildId, trigger: new RegExp(`^${escapeRegex(trigger)}$`, "i") });
     }
 
     static async getAllTriggers(guildId: string): Promise<string[]> {
-        const docs = await Reply.find({ guildId });
+        const docs = await Reply.find({ guildId }, { trigger: 1 });
         return docs.map(d => d.trigger);
+    }
+
+    /** Every reply in the guild, flattened, newest trigger first — the backing for `/reply list`. */
+    static async listAll(guildId: string): Promise<ReplyListing[]> {
+        const docs = await Reply.find({ guildId }).sort({ trigger: 1 });
+
+        return docs.flatMap(doc =>
+            toReplyEntries(doc.replies).map(entry => ({ ...entry, trigger: doc.trigger }))
+        );
     }
 
     /** Cached, case-insensitive membership test — the hot path for the message listener. */
@@ -50,11 +112,13 @@ export class ReplyRepository {
         return triggers.has(trigger.toLowerCase());
     }
 
-    /** Case-insensitive, so `!Hello` matches a trigger stored as `hello`. */
+    /** Case-insensitive, so `Hello` matches a trigger stored as `hello`. */
     static async getRandomReply(guildId: string, trigger: string): Promise<string | null> {
         const doc = await Reply.findOne({ guildId, trigger: new RegExp(`^${escapeRegex(trigger)}$`, "i") });
-        if (!doc?.replies.length) return null;
-        return doc.replies[Math.floor(Math.random() * doc.replies.length)] ?? null;
+        const entries = toReplyEntries(doc?.replies);
+        if (entries.length === 0) return null;
+
+        return entries[Math.floor(Math.random() * entries.length)]?.text ?? null;
     }
 
     static invalidate(guildId: string): void {

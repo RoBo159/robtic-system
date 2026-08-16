@@ -207,17 +207,6 @@ export interface ProfileNoteEntry {
     createdAt: number;
 }
 
-export interface ProfileProjectEntry {
-    projectId: string;
-    title: string;
-    projectType: string;
-    likes: number;
-    dislikes: number;
-    views: number;
-    /** Unix ms. */
-    createdAt: number;
-}
-
 export interface ProfilePunishmentEntry {
     caseId: string;
     type: string;
@@ -234,7 +223,6 @@ export interface ProfileDetails {
     /** Null when the user has never earned staff points (mirrors the bot hiding staff stats for non-staff). */
     staff: ProfileStaffDetails | null;
     notes: ProfileNoteEntry[];
-    projects: ProfileProjectEntry[];
     punishments: ProfilePunishmentEntry[];
     /** 0-100 escalation level from the punishment system. */
     punishmentLevel: number;
