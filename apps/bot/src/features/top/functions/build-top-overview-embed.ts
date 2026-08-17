@@ -1,50 +1,51 @@
 import { EmbedBuilder, type Guild } from "discord.js";
 import {
     COLORS,
-    TOP_CATEGORIES,
+    TOP_PAGES,
     TOP_CATEGORY_EMOJI,
     TOP_DISPLAY_LIMIT,
     type ComboLeaderboardPeriod,
 } from "@constants";
 import type { Lang } from "@typings/lang";
 import { t } from "@bot/utils/lang";
-import { getTopEntries } from "../lib";
-import { formatTopValue } from "../utils/format-value";
+import { buildRankPage } from "../utils/rank-lines";
+
+/** How many pages the overview has. */
+export const overviewPageCount = (): number => TOP_PAGES.length;
 
 /**
- * Every leaderboard at once, top five each, one field per category.
+ * One page of the overview: two or three boards, top five each.
  *
- * Fields are inline so Discord lays them out in columns — xp | messages | combo — which is the
- * point of the overview: comparing the boards side by side rather than paging between them.
+ * It used to render every category at once, which made each board five rows in a column too narrow
+ * to read and pushed the embed toward its limits. Paging is what lets each board keep its own
+ * space, and the buttons make the rest one click away rather than absent.
  */
 export async function buildTopOverviewEmbed(
     guild: Guild,
     period: ComboLeaderboardPeriod,
     lang: Lang,
-    viewerId?: string,
+    viewerId: string | undefined,
+    page = 0,
 ): Promise<EmbedBuilder> {
-    const boards = await Promise.all(
-        TOP_CATEGORIES.map(async category => ({
-            category,
-            entries: await getTopEntries(guild.id, category, period, TOP_DISPLAY_LIMIT),
-        }))
-    );
+    const index = Math.min(Math.max(0, page), TOP_PAGES.length - 1);
+    const categories = TOP_PAGES[index]!;
 
     const embed = new EmbedBuilder()
         .setTitle(t("top.overview_title", lang, { period: t(`top.period_${period}`, lang), guild: guild.name }))
         .setColor(COLORS.activity)
-        .setFooter({ text: t("top.overview_footer", lang) })
+        .setFooter({ text: t("top.page_footer", lang, { page: `${index + 1}`, pages: `${TOP_PAGES.length}` }) })
         .setTimestamp();
 
-    for (const { category, entries } of boards) {
-        const lines = entries.map((entry, index) => {
-            const line = `**${index + 1}.** <@${entry.discordId}> — ${formatTopValue(category, entry.value, t(`top.unit_${category}`, lang))}`;
-            return entry.discordId === viewerId ? `__${line}__` : line;
+    for (const category of categories) {
+        const { lines } = await buildRankPage(guild.id, category, period, t(`top.unit_${category}`, lang), {
+            pageSize: TOP_DISPLAY_LIMIT,
+            viewerId,
         });
 
         embed.addFields({
             name: `${TOP_CATEGORY_EMOJI[category]} ${t(`top.category_${category}`, lang)}`,
-            value: lines.join("\n") || t("top.no_entries", lang),
+            value: (lines.join("\n") || t("top.no_entries", lang)).slice(0, 1024),
+            // Two or three boards side by side; a fourth would wrap and break the columns.
             inline: true,
         });
     }

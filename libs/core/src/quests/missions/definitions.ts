@@ -16,6 +16,7 @@ const SCALE: Record<QuestTier, number> = {
     hard: 5,
     golden: 15,
     vip: 2,
+    special: 3,
 };
 
 const scaled = (base: number) => (tier: QuestTier): number => Math.round(base * SCALE[tier]);

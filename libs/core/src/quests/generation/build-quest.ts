@@ -3,6 +3,7 @@ import type { IQuest } from "@database/models";
 import {
     QUEST_TIER_SPECS,
     QUEST_UNLIMITED_SLOTS,
+    rollQuestRange,
     type QuestTier,
 } from "@constants";
 import { rollMissions } from "../missions/roll-missions";
@@ -35,13 +36,14 @@ export async function buildQuest(
 ): Promise<IQuest | null> {
     const spec = QUEST_TIER_SPECS[tier];
 
-    const missions = rollMissions(tier, spec.missions);
+    const missions = rollMissions(tier, rollQuestRange(spec.missions));
     if (missions.length === 0) return null;
 
-    // Reward and slots are fixed per tier; only the missions and the lifetime vary. Both are still
-    // copied onto the document, so retuning the table later cannot change a quest already posted.
-    const reward = spec.reward;
-    const slotsTotal = spec.slots;
+    // Rolled when the tier declares a range, taken as-is when it declares a number. Either way both
+    // are copied onto the document, so retuning the table later cannot change a quest already
+    // posted — and two Specials posted an hour apart genuinely differ.
+    const reward = rollQuestRange(spec.reward);
+    const slotsTotal = spec.slots === null ? null : rollQuestRange(spec.slots);
     const durationHours = randomInt(spec.durationHours.min, spec.durationHours.max);
 
     try {

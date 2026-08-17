@@ -8,7 +8,12 @@ import type { ComboLeaderboardPeriod } from "@constants";
  * which is what lets the voice leaderboards reuse the existing period machinery rather than
  * carrying their own daily/weekly/monthly tables.
  */
-export type PeriodicStatMetric = "xp" | "messages" | "voiceTime" | "voiceXp";
+/**
+ * `xp` is every source combined, which is what the level system reads. `messageXp` and `voiceXp`
+ * are its two halves, tracked alongside it so each can be its own leaderboard — a total nobody can
+ * decompose answers "who talks most" and "who sits in voice most" equally badly.
+ */
+export type PeriodicStatMetric = "xp" | "messageXp" | "messages" | "voiceTime" | "voiceXp";
 
 /**
  * Per-period, per-user running totals for cumulative counters (XP gained, messages sent) that need

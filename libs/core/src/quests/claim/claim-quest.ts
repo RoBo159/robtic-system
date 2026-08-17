@@ -1,6 +1,6 @@
 import { QuestRepository, QuestClaimRepository, QuestStatsRepository } from "@database/repositories";
 import type { IQuest } from "@database/models";
-import { TIER_SLOT, type QuestTier, type QuestSlot } from "@constants";
+import { TIER_SLOT, QUEST_TIER_SPECS, type QuestTier, type QuestSlot } from "@constants";
 import { Logger } from "@logger";
 import type { QuestMetric } from "@core/metrics";
 import { toRuntime } from "../progress/runtime";
@@ -34,14 +34,18 @@ export interface ClaimResult {
  * Advisory, not authoritative: the unique index is still what decides, and a losing race comes back
  * as E11000 exactly as it always did. This only picks a sensible index to *try*, so a member with
  * an extra slot fills copy 0 before copy 1 rather than leaving gaps.
+ *
+ * `uncapped` is how a Special escapes the rule: it scans until it finds a free copy instead of
+ * stopping at the member's capacity, so holding one never blocks holding another.
  */
 async function firstFreeSlotIndex(
     guildId: string,
     discordId: string,
     slot: QuestSlot,
     extraSlots: number,
+    uncapped: boolean,
 ): Promise<number> {
-    const capacity = 1 + Math.max(0, Math.floor(extraSlots));
+    const capacity = uncapped ? Number.POSITIVE_INFINITY : 1 + Math.max(0, Math.floor(extraSlots));
     if (capacity === 1) return 0;
 
     const active = await QuestClaimRepository.findActiveForMember(guildId, discordId);
@@ -103,7 +107,15 @@ export async function claimQuest(
             tier: reserved.tier,
             slot: TIER_SLOT[reserved.tier as QuestTier],
             // The first free copy of the slot. Everyone has copy 0; an extra slot is copy 1.
-            slotIndex: await firstFreeSlotIndex(reserved.guildId, discordId, TIER_SLOT[reserved.tier as QuestTier], extraSlots),
+            // A tier that ignores the slot limit takes the next free copy of its own slot, however
+            // many that is — which is what lets a Special be claimed alongside anything else.
+            slotIndex: await firstFreeSlotIndex(
+                reserved.guildId,
+                discordId,
+                TIER_SLOT[reserved.tier as QuestTier],
+                extraSlots,
+                QUEST_TIER_SPECS[reserved.tier as QuestTier].ignoresSlotLimit === true,
+            ),
             missions: reserved.missions,
             baseline,
             // Everyone on a quest finishes together — except a member whose tier bought them more

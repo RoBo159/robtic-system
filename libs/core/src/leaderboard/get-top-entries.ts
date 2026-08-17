@@ -17,6 +17,16 @@ export async function getTopEntries(
         );
         return rows.map(r => ({ discordId: r.discordId, value: r.value }));
     }
+    // The two halves of the XP the bot awards. Both are plain periodic counters, so a period board
+    // and the all-time board come from the same query.
+    if (category === "messages-xp") {
+        const rows = await PeriodicStatRepository.getTop(guildId, period, "messageXp", limit);
+        return rows.map(r => ({ discordId: r.discordId, value: r.value }));
+    }
+    if (category === "voice-xp") {
+        const rows = await PeriodicStatRepository.getTop(guildId, period, "voiceXp", limit);
+        return rows.map(r => ({ discordId: r.discordId, value: r.value }));
+    }
     if (category === "xp" || category === "messages") {
         const rows = await PeriodicStatRepository.getTop(guildId, period, category, limit);
         return rows.map(r => ({ discordId: r.discordId, value: r.value }));

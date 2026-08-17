@@ -1,6 +1,6 @@
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import type { IQuest } from "@database/models";
-import { COLORS, QUEST_TIER_SPECS, type QuestTier } from "@constants";
+import { COLORS, type QuestTier } from "@constants";
 
 export const TIER_EMOJI: Record<QuestTier, string> = {
     easy: "🟢",
@@ -8,6 +8,7 @@ export const TIER_EMOJI: Record<QuestTier, string> = {
     hard: "🟣",
     golden: "🌟",
     vip: "💎",
+    special: "🎁",
 };
 
 const TIER_COLOR: Record<QuestTier, number> = {
@@ -16,6 +17,7 @@ const TIER_COLOR: Record<QuestTier, number> = {
     hard: 0x8b5cf6,
     golden: 0xf5c518,
     vip: 0x9b8cff,
+    special: 0xff5f9e,
 };
 
 /** How the tier is announced above the title. Rarity is the whole appeal of the top two. */
@@ -25,6 +27,7 @@ const TIER_BADGE: Record<QuestTier, string> = {
     hard: "RARE QUEST",
     golden: "LEGENDARY QUEST",
     vip: "VIP QUEST",
+    special: "SPECIAL EVENT",
 };
 
 const SLOT_BAR_WIDTH = 10;
@@ -48,7 +51,7 @@ function slotBar(taken: number, total: number): string {
  * the total follow it.
  */
 function slotsValue(quest: IQuest): string {
-    if (quest.slotsTotal === null) return "♾️ Unlimited — every VIP may claim";
+    if (quest.slotsTotal === null) return "♾️ Unlimited";
 
     const left = Math.max(0, quest.slotsRemaining);
     if (left === 0) return `🚫 **Full** — all ${quest.slotsTotal} taken`;
@@ -89,12 +92,16 @@ export function buildQuestEmbed(quest: IQuest): EmbedBuilder {
             },
         );
 
-    const objectiveCount = QUEST_TIER_SPECS[tier].missions === 1 ? "One objective" : `${quest.missions.length} objectives`;
+    const objectiveCount = quest.missions.length === 1 ? "One objective" : `${quest.missions.length} objectives`;
 
     embed.setFooter({
         text: tier === "vip"
             ? `${objectiveCount} · VIP members only · progress tracks itself once claimed`
-            : `${objectiveCount} · progress tracks itself once claimed · /quest to see yours`,
+            : tier === "special"
+                // Worth saying out loud: every other tier competes for a slot, and members have
+                // learned to expect that.
+                ? `${objectiveCount} · claimable even if you are already on a quest`
+                : `${objectiveCount} · progress tracks itself once claimed · /quest to see yours`,
     });
 
     return embed;

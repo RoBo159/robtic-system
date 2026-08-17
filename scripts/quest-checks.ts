@@ -3,7 +3,7 @@ import { randomInt, randomInstant, shuffle } from "@core/quests/generation/rando
 import { enumerateOccurrences, pickInstantIn, localWeekKey, localDateKey } from "@core/quests/generation/windows";
 import { rollMissions } from "@core/quests/missions/roll-missions";
 import "@core/quests/missions";
-import { DEFAULT_QUEST_WINDOWS, QUEST_TIER_SPECS, QUEST_TIERS } from "@constants";
+import { DEFAULT_QUEST_WINDOWS, QUEST_TIER_SPECS, QUEST_TIERS, TIER_SLOT, questRangeBounds, rollQuestRange } from "@constants";
 import { buildQuestEmbed, buildQuestButtons } from "@bot/features/quests/utils/quest-embed";
 
 let failures = 0;
@@ -81,6 +81,7 @@ check("randomInt covers its range", new Set(ints).size === 3, [...new Set(ints)]
 const days = Array.from({ length: 400 }, (_, i) => `2026-${String(i % 12 + 1).padStart(2, "0")}-${String(i % 28 + 1).padStart(2, "0")}-${Math.floor(i / 336)}`);
 
 for (const tier of QUEST_TIERS) {
+    if (QUEST_TIER_SPECS[tier].manual) continue; // posted by hand, so there is no cadence
     const spec = QUEST_TIER_SPECS[tier];
     const range = spec.dailyCount ?? spec.weeklyCount!;
     const period = spec.dailyCount ? "day" : "week";
@@ -109,29 +110,42 @@ check(
     Array.from({ length: 200 }, () => randomInstant(1000, 2000).getTime()).every(t => t >= 1000 && t < 2000),
 );
 check(
-    "every tier has exactly one cadence",
-    QUEST_TIERS.every(t => Boolean(QUEST_TIER_SPECS[t].dailyCount) !== Boolean(QUEST_TIER_SPECS[t].weeklyCount)),
+    "every scheduled tier has exactly one cadence",
+    QUEST_TIERS
+        .filter(t => !QUEST_TIER_SPECS[t].manual)
+        .every(t => Boolean(QUEST_TIER_SPECS[t].dailyCount) !== Boolean(QUEST_TIER_SPECS[t].weeklyCount)),
+);
+check(
+    "a manual tier has no cadence at all",
+    QUEST_TIERS
+        .filter(t => QUEST_TIER_SPECS[t].manual)
+        .every(t => !QUEST_TIER_SPECS[t].dailyCount && !QUEST_TIER_SPECS[t].weeklyCount),
 );
 check(
     "no tier is exclusive, since several are expected open at once",
     QUEST_TIERS.every(t => !QUEST_TIER_SPECS[t].exclusive),
 );
 
-// 13. The posted card has to fit Discord's limits for every tier, full or empty.
+// 13. The posted card has to fit Discord's limits for every tier, empty and full — including the
+//     ones whose reward, places and objective count are rolled per quest rather than fixed.
 for (const tier of QUEST_TIERS) {
     const spec = QUEST_TIER_SPECS[tier];
 
-    for (const taken of [0, spec.slots ?? 0]) {
+    const missions = questRangeBounds(spec.missions).max;
+    const reward = questRangeBounds(spec.reward).max;
+    const slots = spec.slots === null ? null : questRangeBounds(spec.slots).max;
+
+    for (const taken of [0, slots ?? 0]) {
         const quest = {
             _id: "65f1a2b3c4d5e6f7a8b9c0d1",
             tier,
             status: "open",
-            reward: spec.reward,
-            slotsTotal: spec.slots,
+            reward,
+            slotsTotal: slots,
             slotsTaken: taken,
-            slotsRemaining: spec.slots === null ? 1_000_000_000 : spec.slots - taken,
+            slotsRemaining: slots === null ? 1_000_000_000 : slots - taken,
             endsAt: new Date(Date.now() + 3600_000),
-            missions: Array.from({ length: spec.missions }, (_, i) => ({
+            missions: Array.from({ length: missions }, (_, i) => ({
                 missionId: `m${i}`,
                 templateKey: "t",
                 metric: "messages",
@@ -146,15 +160,41 @@ for (const tier of QUEST_TIERS) {
             + (json.author?.name.length ?? 0)
             + (json.fields ?? []).reduce((sum, f) => sum + f.name.length + f.value.length, 0);
 
-        check(`${tier} card fits (${taken}/${spec.slots ?? "∞"} taken)`, size <= 6000 && (json.fields?.length ?? 0) <= 25, `${size} chars`);
+        check(`${tier} card fits (${taken}/${slots ?? "∞"} taken)`, size <= 6000 && (json.fields?.length ?? 0) <= 25, `${size} chars`);
 
         const button = buildQuestButtons(quest).toJSON().components[0] as { label?: string; disabled?: boolean };
         check(`${tier} claim button label fits (${taken} taken)`, (button.label?.length ?? 0) <= 80, button.label ?? "");
 
-        const full = spec.slots !== null && taken >= spec.slots;
+        const full = slots !== null && taken >= slots;
         check(`${tier} button is ${full ? "disabled when full" : "live when open"}`, Boolean(button.disabled) === full);
     }
 }
+
+// 14. Special is the admin-posted event tier, and three properties define it.
+const special = QUEST_TIER_SPECS.special;
+check("special is never scheduled", special.manual === true);
+check("special ignores the slot limit", special.ignoresSlotLimit === true);
+check("special has its own slot", TIER_SLOT.special === "special");
+check("special has no cadence", special.dailyCount === null && special.weeklyCount === null);
+
+for (const [name, range, lo, hi] of [
+    ["missions", special.missions, 3, 7],
+    ["reward", special.reward, 200, 500],
+    ["places", special.slots!, 5, 25],
+] as [string, typeof special.missions, number, number][]) {
+    const bounds = questRangeBounds(range);
+    check(`special ${name} spans ${lo}-${hi}`, bounds.min === lo && bounds.max === hi, `${bounds.min}-${bounds.max}`);
+
+    const rolls = Array.from({ length: 300 }, () => rollQuestRange(range));
+    check(`special ${name} rolls inside its range`, rolls.every(n => n >= lo && n <= hi));
+    check(`special ${name} actually varies`, new Set(rolls).size > 1, `${new Set(rolls).size} distinct`);
+}
+
+check(
+    "a fixed value is not a roll",
+    Array.from({ length: 20 }, () => rollQuestRange(QUEST_TIER_SPECS.easy.reward)).every(n => n === 10),
+);
+
 
 console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) failed.`);
 process.exit(failures === 0 ? 0 : 1);

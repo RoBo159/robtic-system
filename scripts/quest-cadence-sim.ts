@@ -107,7 +107,7 @@ for (const f of fired) {
     perDay.set(day, [...(perDay.get(day) ?? []), f.tier]);
 }
 
-const EMOJI: Record<QuestTier, string> = { easy: "🟢", normal: "🔵", hard: "🟣", golden: "🌟", vip: "💎" };
+const EMOJI: Record<QuestTier, string> = { easy: "🟢", normal: "🔵", hard: "🟣", golden: "🌟", vip: "💎", special: "🎁" };
 
 console.log(`${DAYS} days, guild "${GUILD}", default windows (08–11, 13–16, 18–22)\n`);
 console.log("day          quests  which");

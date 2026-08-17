@@ -9,6 +9,7 @@ import { active } from "./commands/active";
 import { community } from "./commands/community";
 import { stats } from "./commands/stats";
 import { top } from "./commands/top";
+import { post } from "./commands/post";
 import { channelDaily, channelCommunity, channelVip } from "./commands/config/channel";
 import { mentionSet, mentionList } from "./commands/config/mention";
 import { vipRoleAdd, vipRoleRemove, vipRoleList } from "./commands/config/vip-role";
@@ -25,6 +26,7 @@ export const questHandlers: Record<string, FeatureSubcommandHandler> = {
     community,
     stats,
     top,
+    post,
 };
 
 /**

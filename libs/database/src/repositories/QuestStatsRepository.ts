@@ -7,6 +7,7 @@ const TIER_FIELD: Record<QuestTier, keyof IQuestStats & string> = {
     hard: "hardCompleted",
     golden: "goldenCompleted",
     vip: "vipCompleted",
+    special: "specialCompleted",
 };
 
 export class QuestStatsRepository {

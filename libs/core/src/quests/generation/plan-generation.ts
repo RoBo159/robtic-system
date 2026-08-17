@@ -41,6 +41,10 @@ export async function planGeneration(guildId: string, now = new Date()): Promise
 
         const spec = QUEST_TIER_SPECS[tier];
 
+        // Special is posted by an admin, never scheduled. Without this it would fall through to the
+        // "one per window" default below and start appearing on its own.
+        if (spec.manual) continue;
+
         const eligible = spec.dailyCount
             ? await dailySlots(guildId, tier, occurrences, settings.utcOffsetMinutes)
             : spec.weeklyCount

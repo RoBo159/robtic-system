@@ -4,26 +4,22 @@ import {
     TOP_CATEGORY_EMOJI,
     TOP_DETAIL_LIMIT,
     VIEWER_RANK_SCAN_LIMIT,
-    TOP_RANK_GAP_SEPARATOR,
     type ComboLeaderboardPeriod,
     type TopCategory,
 } from "@constants";
-import type { TopEntry } from "@typings/top";
 import type { Lang } from "@typings/lang";
 import { t } from "@bot/utils/lang";
-import { getTopEntries } from "../lib";
-import { formatTopValue } from "../utils/format-value";
+import { buildRankPage } from "../utils/rank-lines";
 
-function formatEntry(rank: number, entry: TopEntry, category: TopCategory, unit: string, isViewer: boolean): string {
-    const line = `#${rank} <@${entry.discordId}> — ${formatTopValue(category, entry.value, unit)}`;
-    return isViewer ? `**${line}**` : line;
-}
+/** How many pages of ten a single board can show before it runs out of scanned ranks. */
+export const detailPageCount = (): number => Math.ceil(VIEWER_RANK_SCAN_LIMIT / TOP_DETAIL_LIMIT);
 
 /**
- * One category in depth: the top ten, plus the viewer's own standing.
+ * One category in depth: ten ranks a page, and the reader's own row wherever it falls.
  *
- * The viewer's line is bolded in place when they are already listed, and appended below otherwise —
- * with a "...." separator when there is a gap, so rank 40 does not read as rank 11.
+ * Paging by rank rather than truncating at ten is what makes a big server's board usable — 40th
+ * place can page down to see the company they are in, instead of only ever seeing the top and
+ * their own line.
  */
 export async function buildTopEmbed(
     guild: Guild,
@@ -31,33 +27,32 @@ export async function buildTopEmbed(
     period: ComboLeaderboardPeriod,
     lang: Lang,
     viewerId?: string,
+    page = 0,
 ): Promise<EmbedBuilder> {
-    const entries = await getTopEntries(guild.id, category, period, TOP_DETAIL_LIMIT);
-    const unit = t(`top.unit_${category}`, lang);
+    const index = Math.max(0, page);
 
-    const lines = entries.map((e, i) => formatEntry(i + 1, e, category, unit, e.discordId === viewerId));
+    const { lines, viewerRank } = await buildRankPage(guild.id, category, period, t(`top.unit_${category}`, lang), {
+        page: index,
+        pageSize: TOP_DETAIL_LIMIT,
+        viewerId,
+    });
 
-    if (viewerId && !entries.some(e => e.discordId === viewerId)) {
-        const scanned = await getTopEntries(guild.id, category, period, VIEWER_RANK_SCAN_LIMIT);
-        const viewerIndex = scanned.findIndex(e => e.discordId === viewerId);
-
-        if (viewerIndex !== -1) {
-            const rank = viewerIndex + 1;
-            if (rank > TOP_DETAIL_LIMIT + 1) lines.push(TOP_RANK_GAP_SEPARATOR);
-            lines.push(formatEntry(rank, scanned[viewerIndex]!, category, unit, true));
-        }
-    }
-
-    const description = lines.length ? lines.join("\n") : t("top.no_entries", lang);
-
-    return new EmbedBuilder()
+    const embed = new EmbedBuilder()
         .setTitle(t("top.title", lang, {
             emoji: TOP_CATEGORY_EMOJI[category],
             category: t(`top.category_${category}`, lang),
             period: t(`top.period_${period}`, lang),
             guild: guild.name,
         }))
-        .setDescription(description)
+        .setDescription(lines.join("\n") || t("top.no_entries", lang))
         .setColor(COLORS.activity)
         .setTimestamp();
+
+    embed.setFooter({
+        text: viewerRank > 0
+            ? t("top.rank_footer", lang, { rank: `${viewerRank}`, page: `${index + 1}` })
+            : t("top.unranked_footer", lang, { page: `${index + 1}` }),
+    });
+
+    return embed;
 }

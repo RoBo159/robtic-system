@@ -426,6 +426,7 @@ and XP only count what was already happening.
 | 🟣 Hard | 4 | 100 | 4 | 3–7 days · 0–1 per day |
 | 🌟 Golden | 1 | 1000 | 1 | 7 days · 0–2 per week |
 | 💎 VIP | 2 | 50 | unlimited | 24h · 2 per day |
+| 🎁 Special | 3–7 | 200–500 | 5–25 | 6–48h · admin-posted |
 
 Reward and slots are fixed per tier in `QUEST_TIER_SPECS` (`libs/constants/src/quests.ts`) — the one
 table to edit to change what a quest pays or how many may claim it. Only the objectives, and Hard's
@@ -434,6 +435,7 @@ lifetime, vary between quests of the same tier.
 | Command | Access | |
 |---|---|---|
 | `/quest board · active · community · stats · top` | general | The board, your claims, the challenge, records |
+| `/quest post` | **admin** | Post a Special quest now — rolled reward, places and objectives |
 | `/quest-config channel daily · community · vip` | admin | Where each kind posts; VIP falls back to daily |
 | `/quest-config mention set · list` | admin | Role pinged per quest type |
 | `/quest-config vip-role add · remove · list` | admin | Any one role is enough to claim VIP |
@@ -499,17 +501,52 @@ Contributes a profile tab. A champion role can be synced to the server's top sco
 
 `default-on` · `/top` · category `Leaderboard` · access `general`
 
-Every leaderboard, one panel.
+Every leaderboard, one paged panel.
 
-- **`?top`** — all eight categories in one embed, top 5 each, laid out in columns.
-- **`?top <category>`** — that board in depth, top 10, plus the caller's own rank even when far
-  below. A gap separator is inserted when they are.
+- **`?top`** — three pages of boards, top 5 each:
 
-Categories: 🔥 streak · 💬 combo · ⭐ xp · 📨 messages · 🎙️ voice · 🎯 points · 🪙 coins · 🗺️ quests.
-Periods: daily · weekly · monthly · all-time, on a select menu.
+  | Page | Boards |
+  |---|---|
+  | 1 | ⭐ Messages XP · 🎧 Voice XP |
+  | 2 | 🔥 Streak · 💬 Combo · 🎯 Points |
+  | 3 | 🗺️ Quests · 📨 Messages · 🎙️ Voice time |
 
-Voice ranks on seconds of active time and is formatted as a duration. Points, coins and quests are
-standings rather than per-period deltas, so they read the same in every period.
+- **`?top <category>`** — that board in depth, ten ranks a page, pageable down the ranking.
+
+**XP is two boards, not one.** `messageXp` is tracked alongside the combined `xp` counter the level
+system reads, so "who talks most" and "who sits in voice most" are separate questions with separate
+answers. The combined `xp` board still exists by name (`?top xp` is aliased to the messages one;
+`?top total-xp` gives the sum), as does 🪙 coins — neither is on a page, because the split boards
+say more and coins is a global wallet unrelated to this server.
+
+**The reader is always on the board.** Their row is bold wherever it falls, and appended when it
+falls outside the page:
+
+```
+in the page        6th of a top 5      40th of a top 5
+1.                 1.                  1.
+2.                 2.                  2.
+**3.**             3.                  3.
+4.                 4.                  4.
+5.                 5.                  5.
+                   **6.**              …
+                                       **40.**
+```
+
+The separator is what makes the last shape honest — without it, rank 40 sitting under rank 5 reads
+as rank 6. It is deliberately absent at rank 6, where nothing is being skipped.
+
+Controls, in order: **Prev / Next** buttons, then the period menu — paging is the frequent action,
+so it sits closest to what you are reading. Both carry the scope, page and period in their custom
+id, so changing period keeps your page and a stale message cannot land on the wrong one.
+
+Periods: daily · weekly · monthly · lifetime.
+
+Voice time ranks on seconds of active participation and is formatted as a duration. Points, coins
+and quests are standings rather than per-period deltas, so they read the same in every period.
+
+`bun run test:top` covers the rank rules and the page layout.
+
 
 ### shortcuts
 

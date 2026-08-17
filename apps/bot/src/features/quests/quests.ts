@@ -34,6 +34,10 @@ export const questsFeature = defineFeature({
                     options: [{ name: "user", description: "Member to check (defaults to yourself)", type: "user" }],
                 },
                 { name: "top", description: "Members with the most completed quests" },
+                {
+                    name: "post",
+                    description: "Post a Special quest right now (server administrators only)",
+                },
             ],
         },
         {

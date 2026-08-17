@@ -31,6 +31,7 @@ slots are fixed values there — edit them and the next generated quest uses the
 | 🟣 Hard | 4 | 100 | 4 | 3–7 days | **0–1 per day** |
 | 🌟 Golden | 1 | 1000 | 1 | 7 days | **0–2 per week** |
 | 💎 VIP | 2 | 50 | unlimited | 24h | **2 per day**, VIP roles only |
+| 🎁 Special | 3–7 | 200–500 | 5–25 | 6–48h | **posted by an admin, never scheduled** |
 
 **Genuinely random, and written down as it is decided.** A tier rolls how many it gets for the
 local day, and those are dealt round-robin across the guild's enabled windows, each taking its
@@ -53,6 +54,12 @@ a tick that rolled 7 where the last rolled 4 would quietly plan three extra Easy
 
 Golden is the one weekly tier, rolled `0–2` per week — the zero is what keeps it rare, and the
 week's plan row holds the answer so a week that rolled none stays that way.
+
+**Special** is the odd one out, deliberately. An admin posts it with `?quest post`; everything
+about it — how many objectives, the reward, the places, the lifetime — is rolled at that moment,
+so no two are alike. It sits in its own uncapped slot, which means a member can claim one while
+already on a Golden or three Easies: an event quest that punished you for being mid-quest would
+be a strange event.
 
 No tier is exclusive any more. Several Easy quests are expected to be open at once, and the old
 `one of this tier at a time` rule would have silently capped a 4–7 roll at one. The flip side is

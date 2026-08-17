@@ -1,5 +1,6 @@
 import type { Guild } from "discord.js";
 import { ActivityRepository } from "@database/repositories/ActivityRepository";
+import { PeriodicStatRepository } from "@database/repositories";
 import { AI_MEANINGFUL_SKIP_CONFIDENCE } from "@constants";
 import { Logger } from "@logger";
 import { analyzeActivity } from "@core/ai";
@@ -49,6 +50,11 @@ export async function grantXP(
         Logger.debug(`Failed to update XP for ${username} (${discordId})`, CTX);
         return null;
     }
+
+    // Tracked separately from the shared `xp` counter so "XP from talking" and "XP from voice" are
+    // two boards rather than one total nobody can decompose. `applyXpGain` still records the
+    // combined figure, which is what the level system reads.
+    await PeriodicStatRepository.incrementAllPeriods(guildId, "messageXp", discordId, xp);
 
     return applyXpGain(discordId, guildId, username, guild, xp, record.level, updated, CTX);
 }

@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test:quests": "bun --preload ./libs/shared/src/preload.ts scripts/quest-checks.ts",
     "test:quests:wiring": "bun --preload ./libs/shared/src/preload.ts scripts/quest-wiring-check.ts",
+    "test:top": "bun --preload ./libs/shared/src/preload.ts scripts/top-check.ts",
     "test:workspaces": "bun --preload ./libs/shared/src/preload.ts scripts/workspace-check.ts",
     "test:premium": "bun --preload ./libs/shared/src/preload.ts scripts/premium-check.ts",
     "test:prefix": "bun --preload ./libs/shared/src/preload.ts scripts/prefix-check.ts",

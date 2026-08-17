@@ -19,6 +19,7 @@ export interface IQuestStats extends Document {
     hardCompleted: number;
     goldenCompleted: number;
     vipCompleted: number;
+    specialCompleted: number;
     communityCompleted: number;
     /** Points earned from quest and community rewards alone. */
     pointsEarned: number;
@@ -46,6 +47,7 @@ const questStatsSchema = new Schema<IQuestStats>(
         hardCompleted: { type: Number, default: 0 },
         goldenCompleted: { type: Number, default: 0 },
         vipCompleted: { type: Number, default: 0 },
+        specialCompleted: { type: Number, default: 0 },
         communityCompleted: { type: Number, default: 0 },
         pointsEarned: { type: Number, default: 0 },
         totalCompletionMs: { type: Number, default: 0 },
