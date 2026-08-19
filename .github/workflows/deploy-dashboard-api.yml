@@ -1,0 +1,84 @@
+name: Deploy dashboard API
+
+# Runs on push like the platform API rather than chaining behind it: the two share no code path and
+# neither is a client of the other, so serialising them would only make every dashboard change wait
+# on a bot deploy. The `deploy-compose` concurrency group below is what actually keeps them from
+# running `docker compose` on the server at the same time.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      force:
+        description: Redeploy even when nothing changed
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+# Shared with every other deploy workflow — not per-workflow. Two runs doing `docker compose` on the
+# same server would race, and the second to finish would decide what is live regardless of which is
+# newer. The group name is the server, so anything that touches it queues.
+concurrency:
+  group: deploy-compose
+  cancel-in-progress: false
+
+jobs:
+  # Content-addressed: the signature of everything that can change this image is looked up in the
+  # Actions cache. A hit means this exact content was already built and deployed.
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.decision.outputs.deploy }}
+      signature: ${{ steps.decision.outputs.signature }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: decision
+        uses: ./.github/actions/deploy-decision
+        with:
+          service: dashboard-api
+          force: ${{ inputs.force || false }}
+
+  deploy:
+    needs: changes
+    if: ${{ needs.changes.outputs.deploy == 'true' }}
+    uses: robticorg/robtic-actions/.github/workflows/deploy.yml@main
+    with:
+      deploy-type: docker
+      runner-labels: '["self-hosted", "robtic-deploy"]'
+      environment-name: 'Robtic Server'
+      environment-url: 'https://dashboard.robtic.org'
+      server-label: 'core.robtic.org'
+      dockerfile: 'apps/dashboard-api/Dockerfile'
+      image-name: 'ghcr.io/robticorg/robtic-dashboard-api'
+      compose-project-name: 'robtic-system'
+      compose-env-file: '/home/robtic/robtic-system/.env'
+      compose-pull-command: 'docker compose -p robtic-system --env-file /home/robtic/robtic-system/.env pull robtic-dashboard-api'
+      compose-up-command: 'docker compose -p robtic-system --env-file /home/robtic/robtic-system/.env up -d robtic-dashboard-api'
+    secrets:
+      DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
+
+  # Claims the signature, but only after the deploy actually succeeded — a failed run leaves it
+  # unclaimed so the next push retries instead of skipping a service that never shipped.
+  seal:
+    name: Record what was deployed
+    needs: [changes, deploy]
+    if: ${{ needs.deploy.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write marker
+        run: |
+          mkdir -p .deploy-signatures
+          printf '%s %s %s\n' "${{ github.sha }}" "$(date -u +%FT%TZ)" "${{ github.run_id }}" \
+            > .deploy-signatures/dashboard-api
+
+      # continue-on-error: a concurrent run may have claimed the same key first. That is a
+      # duplicate, not a failure — the deploy already happened either way.
+      - uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: .deploy-signatures/dashboard-api
+          key: deploy-v1-dashboard-api-${{ needs.changes.outputs.signature }}

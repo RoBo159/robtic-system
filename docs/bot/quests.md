@@ -244,7 +244,7 @@ unpaid completion.
 | `/quest community` | general | The week's challenge, and your share |
 | `/quest stats [user]` | general | A member's quest record |
 | `/quest top` | general | Most completed quests |
-| `/quest-config channel daily · community · vip` | admin | Where quests post |
+| `/quest-config channel quest · community` | admin | Where quests post |
 | `/quest-config mention set · list` | admin | Role pinged per quest type |
 | `/quest-config vip-role add · remove · list` | admin | Who may claim VIP quests |
 | `/quest-config window add · remove · list` | admin | When quests may appear |
@@ -261,9 +261,8 @@ Per guild, on `QuestSettings` (60s cached, invalidated on write):
 
 | Setting | Default |
 |---|---|
-| `dailyChannelId` | none — quests generate but post nowhere |
+| `questChannelId` | none — quests generate but post nowhere |
 | `communityChannelId` | none |
-| `vipChannelId` | none — falls back to the daily channel |
 | `mentionRoles` | none per tier, plus `community` |
 | `vipRoleIds` | empty — **VIP quests cannot be claimed** |
 | `enabledTiers` | all on |

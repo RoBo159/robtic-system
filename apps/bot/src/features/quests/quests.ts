@@ -52,19 +52,14 @@ export const questsFeature = defineFeature({
                     description: "Where quests are posted",
                     subcommands: [
                         {
-                            name: "daily",
-                            description: "Channel for easy, normal, hard and golden quests",
+                            name: "quest",
+                            description: "Channel for every quest — easy, normal, hard, golden and VIP",
                             options: [{ name: "channel", description: "Target channel", type: "channel", required: true, channelTypes: [ChannelType.GuildText] }],
                         },
                         {
                             name: "community",
                             description: "Channel for the weekly community challenge",
                             options: [{ name: "channel", description: "Target channel", type: "channel", required: true, channelTypes: [ChannelType.GuildText] }],
-                        },
-                        {
-                            name: "vip",
-                            description: "Channel for VIP quests — falls back to the daily channel",
-                            options: [{ name: "channel", description: "Target channel (omit to clear)", type: "channel", channelTypes: [ChannelType.GuildText] }],
                         },
                     ],
                 },

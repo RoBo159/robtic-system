@@ -3,11 +3,27 @@ import {
     ChatInputCommandInteraction,
     PermissionFlagsBits,
     MessageFlags,
+    ChannelType,
+    type SlashCommandSubcommandBuilder,
     type GuildTextBasedChannel,
 } from "discord.js";
 import { ChatUtils } from "@bot/utils/moderation/chat";
-import { STAFF_TIER_THRESHOLDS } from "@constants";
+import { STAFF_TIER_THRESHOLDS, CHAT_MESSAGES } from "@constants";
 import { BRANCH_EMOJIS as emoji } from "@config";
+
+/**
+ * Every subcommand takes the same optional target, so `/chat lock #general` and the `l #general`
+ * shortcut form accept the same thing. They diverged before: the shortcut grammar could name a
+ * channel and the slash command could not, which made one usage line wrong whichever form help
+ * chose to print.
+ */
+const withChannel = (sub: SlashCommandSubcommandBuilder) =>
+    sub.addChannelOption(opt =>
+        opt.setName("channel")
+            .setDescription("Channel to act on. Defaults to this one.")
+            .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+            .setRequired(false)
+    );
 
 export default {
     scope: "guild",
@@ -17,39 +33,39 @@ export default {
         .setDescription("Manage channel chat settings")
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageChannels)
         .addSubcommand(sub =>
-            sub.setName("lock")
-                .setDescription("Lock the current channel so members cannot send messages.")
+            withChannel(sub.setName("lock")
+                .setDescription("Lock a channel so members cannot send messages."))
         )
         .addSubcommand(sub =>
-            sub.setName("unlock")
-                .setDescription("Unlock the current channel.")
+            withChannel(sub.setName("unlock")
+                .setDescription("Unlock a channel."))
         )
         .addSubcommand(sub =>
-            sub.setName("hide")
-                .setDescription("Hide the current channel so members cannot see it.")
+            withChannel(sub.setName("hide")
+                .setDescription("Hide a channel so members cannot see it."))
         )
         .addSubcommand(sub =>
-            sub.setName("show")
-                .setDescription("Show the current channel.")
+            withChannel(sub.setName("show")
+                .setDescription("Show a channel."))
         )
         .addSubcommand(sub =>
-            sub.setName("slowmode")
-                .setDescription("Set slowmode for the channel.")
+            withChannel(sub.setName("slowmode")
+                .setDescription("Set slowmode for a channel.")
                 .addStringOption(opt =>
                     opt.setName("duration")
                         .setDescription("Duration (e.g. 5s, 1m, 1h) or 0 to disable")
                         .setRequired(true)
-                )
+                ))
         )
         .addSubcommand(sub =>
-            sub.setName("clear")
-                .setDescription("Clear recent messages in the channel.")
+            withChannel(sub.setName("clear")
+                .setDescription("Clear recent messages in a channel.")
                 .addIntegerOption(opt =>
                     opt.setName("amount")
                         .setDescription("Number of messages to delete (max 100). Default 100.")
                         .setMinValue(1)
                         .setMaxValue(100)
-                )
+                ))
         ),
 
     // setDefaultMemberPermissions only hides the slash command in clients that respect it, and does
@@ -60,17 +76,19 @@ export default {
 
     async run(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild || !interaction.channel) {
-            await interaction.reply({ content: "This command can only be used in a server channel.", ephemeral: true });
+            await interaction.reply({ content: CHAT_MESSAGES.guildChannelOnly, flags: MessageFlags.Ephemeral });
             return;
         }
 
         await interaction.deferReply();
 
         const subcommand = interaction.options.getSubcommand();
-        const channel = interaction.channel as GuildTextBasedChannel;
         const guild = interaction.guild;
 
-        let msg: String | null = null;
+        const named = interaction.options.getChannel("channel");
+        const channel = (named ?? interaction.channel) as GuildTextBasedChannel;
+
+        let msg: string | null = null;
 
         try {
             switch (subcommand) {
@@ -87,12 +105,10 @@ export default {
                     msg = await ChatUtils.show(channel, guild);
                     break;
                 case "slowmode":
-                    const duration = interaction.options.getString("duration", true);
-                    msg = await ChatUtils.slowmode(channel, duration);
+                    msg = await ChatUtils.slowmode(channel, interaction.options.getString("duration", true));
                     break;
                 case "clear":
-                    const amount = interaction.options.getInteger("amount") || 100;
-                    msg = await ChatUtils.clear(channel, amount);
+                    msg = await ChatUtils.clear(channel, interaction.options.getInteger("amount") || 100);
                     break;
             }
 
@@ -106,15 +122,12 @@ export default {
                 });
             } else {
                 await interaction.deleteReply().catch(() => { });
-                await interaction.followUp({ content: `${emoji.info} Unknown subcommand.`, flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: `${emoji.info} ${CHAT_MESSAGES.unknownSubcommand}`, flags: MessageFlags.Ephemeral });
             }
         } catch (error) {
             console.error(error);
             await interaction.deleteReply().catch(() => { });
-            await interaction.followUp({
-                content: "An error occurred while executing the command. Please check my permissions.",
-                flags: MessageFlags.Ephemeral
-            });
+            await interaction.followUp({ content: CHAT_MESSAGES.actionFailed, flags: MessageFlags.Ephemeral });
         }
     }
 };

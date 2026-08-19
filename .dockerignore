@@ -2,6 +2,9 @@ node_modules
 **/node_modules
 dist
 **/dist
+# Next.js build output. A local build would otherwise be copied into the image and then
+# overwritten by the one the build stage produces.
+**/.next
 .git
 .env
 .env.*

@@ -1,5 +1,6 @@
 export * from "./alerts";
 export * from "./audit";
+export * from "./chat";
 export * from "./check";
 export * from "./coins";
 export * from "./common";

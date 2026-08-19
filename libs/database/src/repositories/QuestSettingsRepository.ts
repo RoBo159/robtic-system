@@ -21,7 +21,7 @@ export class QuestSettingsRepository {
 
     static async setChannel(
         guildId: string,
-        field: "dailyChannelId" | "communityChannelId" | "vipChannelId",
+        field: "questChannelId" | "communityChannelId",
         channelId: string | null,
     ): Promise<IQuestSettings> {
         return this.update(guildId, { $set: { [field]: channelId } });

@@ -11,7 +11,7 @@ import { community } from "./commands/community";
 import { stats } from "./commands/stats";
 import { top } from "./commands/top";
 import { post } from "./commands/post";
-import { channelDaily, channelCommunity, channelVip } from "./commands/config/channel";
+import { channelQuest, channelCommunity } from "./commands/config/channel";
 import { mentionSet, mentionList } from "./commands/config/mention";
 import { vipRoleAdd, vipRoleRemove, vipRoleList } from "./commands/config/vip-role";
 import { windowAdd, windowRemove, windowList, windowKeys } from "./commands/config/window";
@@ -40,9 +40,8 @@ const PUBLIC_SUBCOMMANDS = new Set(["community", "top"]);
 
 /** Keyed `group:subcommand`, with a bare subcommand name when there is no group. */
 export const configHandlers: Record<string, FeatureSubcommandHandler> = {
-    "channel:daily": channelDaily,
+    "channel:quest": channelQuest,
     "channel:community": channelCommunity,
-    "channel:vip": channelVip,
     "mention:set": mentionSet,
     "mention:list": mentionList,
     "vip-role:add": vipRoleAdd,

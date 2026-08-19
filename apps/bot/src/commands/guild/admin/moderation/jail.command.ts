@@ -10,7 +10,7 @@ import {
 import type { BotClient } from "@core/bot-client";
 import { COLORS, MEMBER_PUNISHMENTS, PUNISHMENT_POINTS } from "@constants";
 import { PunishmentRepository, ReasonRepository } from "@database/repositories";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import { getUserLang, t } from "@bot/utils/lang";
 import { getLogChannel } from "@bot/utils/server-log";
 import { recordSecurityEvent } from "@bot/utils/moderation/security";
@@ -233,13 +233,13 @@ export default {
             const punishment = await PunishmentRepository.findByCaseId(caseId);
             if (!punishment || punishment.userId !== target.id || (punishment.type !== "ban" && punishment.type !== "tempban")) {
                 await interaction.deleteReply().catch(() => {});
-                await interaction.followUp({ embeds: [errorEmbed("Jail case not found for this user.")], flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: errorText("Jail case not found for this user."), flags: MessageFlags.Ephemeral });
                 return;
             }
 
             if (!punishment.active) {
                 await interaction.deleteReply().catch(() => {});
-                await interaction.followUp({ embeds: [errorEmbed("This jail is already inactive.")], flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: errorText("This jail is already inactive."), flags: MessageFlags.Ephemeral });
                 return;
             }
 
@@ -273,13 +273,13 @@ export default {
             const punishment = await PunishmentRepository.findByCaseId(caseId);
             if (!punishment || punishment.userId !== target.id || (punishment.type !== "ban" && punishment.type !== "tempban")) {
                 await interaction.deleteReply().catch(() => {});
-                await interaction.followUp({ embeds: [errorEmbed("Jail case not found for this user.")], flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: errorText("Jail case not found for this user."), flags: MessageFlags.Ephemeral });
                 return;
             }
 
             if (punishment.appealed) {
                 await interaction.deleteReply().catch(() => {});
-                await interaction.followUp({ embeds: [errorEmbed("This jail has already been appealed.")], flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: errorText("This jail has already been appealed."), flags: MessageFlags.Ephemeral });
                 return;
             }
 

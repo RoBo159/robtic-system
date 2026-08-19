@@ -41,6 +41,14 @@ export const HELP = {
     nextCustomId: "help:next",
     /** A category whose commands could not all fit even after paging. */
     truncatedNote: (dropped: number) => `…and ${dropped} more — narrow it down with \`help <command>\`.`,
+
+    // `help <command>` answers in plain text rather than an embed — see buildCommandHelpText.
+    textCommandLine: (invocation: string) => `**Command:** \`${invocation}\``,
+    textShortcutLine: (triggers: string) => `**Shortcut:** ${triggers}`,
+    textUsageHeading: "**Usage:**",
+    noShortcuts: "*none configured*",
+    /** Discord's message-content ceiling, which the text view is budgeted against. */
+    textLimit: 2000,
 } as const;
 
 /** Per-category emoji for the help dropdown/embeds; falls back to 📁. */

@@ -1,6 +1,6 @@
 export * from "./cooldown/start-cooldown";
 export * from "./cooldown/clear-cooldown";
-export * from "./error-embed";
+export * from "./error-text";
 export * from "./format-duration";
 export * from "./is-acceptable-message";
 export * from "./is-emoji-only";

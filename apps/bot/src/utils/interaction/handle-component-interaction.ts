@@ -3,7 +3,7 @@ import type { BotClient } from "@core/bot-client";
 import { BotError, handleError, classifyError } from "@core/handlers";
 import { isFeatureEnabled } from "@core/features";
 import { getFeatureManifest } from "@core/features/feature-registry";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import { INTERACTION_MESSAGES } from "@constants";
 
 export const HandlingComponent = async (interaction: Interaction, client: BotClient): Promise<boolean> => {
@@ -30,7 +30,7 @@ export const HandlingComponent = async (interaction: Interaction, client: BotCli
                 if (handler.feature && interaction.guildId && !(await isFeatureEnabled(interaction.guildId, handler.feature))) {
                     const manifest = getFeatureManifest(handler.feature);
                     await interaction.reply({
-                        embeds: [errorEmbed(INTERACTION_MESSAGES.featureDisabled(manifest?.description ?? handler.feature, handler.feature))],
+                        content: errorText(INTERACTION_MESSAGES.featureDisabled(manifest?.description ?? handler.feature, handler.feature)),
                         flags: MessageFlags.Ephemeral,
                     }).catch(() => null);
                     return true;
@@ -51,7 +51,7 @@ export const HandlingComponent = async (interaction: Interaction, client: BotCli
                     try {
                         if (!interaction.replied && !interaction.deferred) {
                             await interaction.reply({
-                                embeds: [errorEmbed(classified.userMessage)],
+                                content: errorText(classified.userMessage),
                                 flags: MessageFlags.Ephemeral,
                             });
                         }
@@ -65,7 +65,7 @@ export const HandlingComponent = async (interaction: Interaction, client: BotCli
         if (!interaction.replied && !interaction.deferred) {
             try {
                 await interaction.reply({
-                    embeds: [errorEmbed(INTERACTION_MESSAGES.staleComponent)],
+                    content: errorText(INTERACTION_MESSAGES.staleComponent),
                     flags: MessageFlags.Ephemeral,
                 });
             } catch {

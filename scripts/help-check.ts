@@ -15,18 +15,18 @@ import { isChatInputCommand } from "@bot/utils/help/command-usage";
 import {
     buildOverviewEmbed,
     buildCategoryEmbed,
-    buildCommandEmbed,
     buildCategoryRow,
     buildPagerRow,
     groupByCategory,
     sortedCategories,
-    findCommand,
     pageCount,
     commandName,
 } from "@bot/utils/help/build-help";
 import type { HelpContext } from "@bot/utils/help/help-context";
+import { findHelpTarget, buildCommandHelpText } from "@bot/utils/help/command-help-text";
 
 const EMBED_LIMIT = 6000;
+const TEXT_LIMIT = 2000;
 const DESCRIPTION_LIMIT = 4096;
 const FIELD_LIMIT = 25;
 const FIELD_VALUE_LIMIT = 1024;
@@ -58,7 +58,22 @@ for (const file of walk(ROOT)) {
 }
 
 const client = { commands, user: { username: "Robtic" } } as never;
-const context: HelpContext = { prefix: "!", guildId: "guild", isSuperUser: true, featureState: new Map() };
+// A super user sees everything, which is what makes this a worst-case size check.
+const context: HelpContext = {
+    prefix: "!",
+    guildId: "guild",
+    isSuperUser: true,
+    featureState: new Map(),
+    shortcutsByTarget: new Map([["clear", ["c"]], ["warn add", ["red"]]]),
+    canRun: () => true,
+};
+
+/** A member with no roles and no staff tier — what most of a server sees. */
+const memberContext: HelpContext = {
+    ...context,
+    isSuperUser: false,
+    canRun: command => !command.requiredPermission && command.access !== "admin" && command.scope !== "admin",
+};
 
 /** What Discord counts: title, description, footer, and every field name and value. */
 function embedSize(embed: EmbedBuilder): { chars: number; fields: number; longestField: number; description: number } {
@@ -136,12 +151,10 @@ const biggest = [...commands.values()].sort(
 
 const oversized: string[] = [];
 for (const command of commands.values()) {
-    const size = embedSize(buildCommandEmbed(client, context, command));
-    if (size.chars > EMBED_LIMIT || size.fields > FIELD_LIMIT || size.longestField > FIELD_VALUE_LIMIT) {
-        oversized.push(`${commandName(command)} (${size.chars} chars, ${size.fields} fields, longest ${size.longestField})`);
-    }
+    const text = buildCommandHelpText(client, context, { kind: "command", command, path: commandName(command) });
+    if (text.length > TEXT_LIMIT) oversized.push(`${commandName(command)} (${text.length} chars)`);
 }
-check("every command detail view fits", oversized.length === 0, oversized.join(", ") || `largest: ${commandName(biggest)}`);
+check("every command detail view fits a message", oversized.length === 0, oversized.join(", ") || `largest: ${commandName(biggest)}`);
 
 // 6. Components.
 const row = buildCategoryRow(client, context, HELP.overviewSelectValue).toJSON();
@@ -154,10 +167,28 @@ check("a category large enough to page gets buttons", !pagedCategory || buildPag
 check("a single-page category gets no buttons",
     categories.every(c => pageCount(groups.get(c) ?? []) > 1 || buildPagerRow(client, context, c, 1) === null));
 
-// 7. Lookup.
-check("findCommand resolves a bare name", findCommand(client, context, "coins") !== null);
-check("findCommand tolerates a slash or prefix", findCommand(client, context, "/coins") !== null && findCommand(client, context, "!coins") !== null);
-check("findCommand rejects nonsense", findCommand(client, context, "definitely-not-a-command") === null);
+// 7. Lookup — commands, channel utilities and the guild's own triggers all resolve.
+check("a bare command name resolves", findHelpTarget(client, context, "coins")?.kind === "command");
+check("a slash or prefix is tolerated",
+    findHelpTarget(client, context, "/coins") !== null && findHelpTarget(client, context, "!coins") !== null);
+check("nonsense resolves to nothing", findHelpTarget(client, context, "definitely-not-a-command") === null);
+check("a channel utility resolves", findHelpTarget(client, context, "clear")?.kind === "chatUtil");
+check("a shortcut trigger resolves to what it runs", findHelpTarget(client, context, "c")?.kind === "chatUtil");
+
+const warnTrigger = findHelpTarget(client, context, "red");
+check("a trigger for a subcommand resolves to its command",
+    warnTrigger?.kind === "command" && commandName(warnTrigger.command) === "warn");
+
+// 8. The `help <command>` text view: shape, and that gated commands stay hidden from members.
+const clearText = buildCommandHelpText(client, context, findHelpTarget(client, context, "clear")!);
+check("the text view names the command", clearText.includes("**Command:**"), clearText.split(/\n/)[0]);
+check("the text view lists shortcuts", clearText.includes("`c`"));
+check("the text view lists concrete usage", clearText.includes("- `c 10 #channel`"));
+
+const chat = commands.get("chat")!;
+check("a moderation command is gated", Boolean(chat.requiredPermission));
+check("a member does not see it in help", !memberContext.canRun(chat));
+check("a member sees general commands", memberContext.canRun(commands.get("help")!));
 
 console.log(failures === 0 ? "\nAll checks passed." : `\n${failures} check(s) failed.`);
 process.exit(failures === 0 ? 0 : 1);

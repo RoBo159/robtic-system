@@ -21,7 +21,7 @@ export const status: FeatureSubcommandHandler = async (interaction, _client) => 
     const clock = QUEST_CONFIG_MESSAGES.utcClock(settings.utcOffsetMinutes);
 
     const warnings: string[] = [];
-    if (!settings.dailyChannelId) warnings.push(TEXT.warnings.noDailyChannel);
+    if (!settings.questChannelId) warnings.push(TEXT.warnings.noQuestChannel);
     if (settings.communityEnabled && !settings.communityChannelId) {
         warnings.push(TEXT.warnings.noCommunityChannel);
     }
@@ -39,9 +39,8 @@ export const status: FeatureSubcommandHandler = async (interaction, _client) => 
             {
                 name: TEXT.channelsField,
                 value: TEXT.channelsValue(
-                    channel(settings.dailyChannelId),
+                    channel(settings.questChannelId),
                     channel(settings.communityChannelId),
-                    settings.vipChannelId ? channel(settings.vipChannelId) : TEXT.vipFallsBack,
                 ),
                 inline: true,
             },

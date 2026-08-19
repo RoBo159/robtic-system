@@ -1,7 +1,7 @@
 /** Static user-facing text shared across every bot module. */
 export const SHARED_MESSAGES = {
-    errorEmbedTitle: "❌ Error",
-    errorEmbedFooter: "Please contact support if you think this shouldn't happen.",
+    /** Leads every plain-text refusal, so a failure still reads as one at a glance. */
+    errorPrefix: "❌",
 } as const;
 
 /** Replies produced by the shared interaction pipeline (permission/cooldown/component checks). */

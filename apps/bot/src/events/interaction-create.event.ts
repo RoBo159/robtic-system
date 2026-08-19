@@ -7,7 +7,7 @@ import { Logger } from "@logger";
 import { classifyError } from "@core/handlers";
 import { touchActivity } from "@core/activity";
 import { MessageFlags } from "discord.js";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import { checkPermissions, checkFeatureEnabled, commandError, cooldowns, releaseCooldown, HandlingComponent } from "../utils/interaction";
 
 export default {
@@ -44,7 +44,7 @@ export default {
         try {
             const gate = await checkFeatureEnabled(command, interaction.guildId);
             if (!gate.allowed) {
-                await interaction.reply({ embeds: [errorEmbed(gate.message!)], flags: MessageFlags.Ephemeral });
+                await interaction.reply({ content: errorText(gate.message!), flags: MessageFlags.Ephemeral });
                 return;
             }
 

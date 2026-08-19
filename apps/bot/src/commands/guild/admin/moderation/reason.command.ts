@@ -12,7 +12,7 @@ import {
 import type { BotClient } from "@core/bot-client";
 import { COLORS } from "@constants";
 import { ReasonRepository } from "@database/repositories";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 
 export default {
     scope: "guild",
@@ -106,7 +106,7 @@ export default {
 
             const deleted = await ReasonRepository.delete(key);
             if (!deleted) {
-                await interaction.editReply({ embeds: [errorEmbed(`Reason \`${key}\` not found.`)] });
+                await interaction.editReply({ content: errorText(`Reason \`${key}\` not found.`) });
                 return;
             }
 

@@ -6,7 +6,7 @@ import {
     type GuildMember,
 } from "discord.js";
 import { COLORS } from "@constants";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import { getMemberLevel, isManager } from "@bot/utils/access";
 import { PunishConfigRepository } from "@database/repositories";
 
@@ -64,7 +64,7 @@ export default {
 
         const member = interaction.member as GuildMember;
         if (!(await managerOnly(member))) {
-            await interaction.editReply({ embeds: [errorEmbed("Only managers can use this command.")] });
+            await interaction.editReply({ content: errorText("Only managers can use this command.") });
             return;
         }
 

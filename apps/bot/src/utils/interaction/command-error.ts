@@ -1,7 +1,7 @@
 import { MessageFlags, type ChatInputCommandInteraction, type Interaction, type InteractionReplyOptions } from "discord.js";
 import type { BotClient } from "@core/bot-client";
 import { BotError, handleError, classifyError } from "@core/handlers";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import { scheduleDeletion } from "./schedule-deletion";
 
 export const commandError = async (error: unknown, intract: Interaction, client: BotClient) => {
@@ -17,7 +17,7 @@ export const commandError = async (error: unknown, intract: Interaction, client:
     if (classified.category === "interaction_expired") return;
 
     const reply: InteractionReplyOptions = {
-        embeds: [errorEmbed(classified.userMessage)],
+        content: errorText(classified.userMessage),
         flags: MessageFlags.Ephemeral,
     };
 

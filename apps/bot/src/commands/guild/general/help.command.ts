@@ -2,6 +2,7 @@ import {
     SlashCommandBuilder,
     MessageFlags,
     type ChatInputCommandInteraction,
+    type GuildMember,
     type Message,
     type MessageComponentInteraction,
     type ActionRowBuilder,
@@ -13,15 +14,14 @@ import { HELP } from "@constants";
 import {
     buildOverviewEmbed,
     buildCategoryEmbed,
-    buildCommandEmbed,
     buildCategoryRow,
     buildPagerRow,
-    findCommand,
     groupByCategory,
     sortedCategories,
     pageCount,
 } from "@bot/utils/help/build-help";
 import { buildHelpContext, type HelpContext } from "@bot/utils/help/help-context";
+import { findHelpTarget, buildCommandHelpText } from "@bot/utils/help/command-help-text";
 
 const COLLECTOR_IDLE_MS = 120_000;
 
@@ -60,15 +60,33 @@ export default {
         ),
 
     async run(interaction: ChatInputCommandInteraction, client: BotClient) {
-        const context = await buildHelpContext(client, interaction.guildId, interaction.user.id);
+        const context = await buildHelpContext(
+            client,
+            interaction.guildId,
+            interaction.user.id,
+            (interaction.member as GuildMember | null) ?? null,
+        );
         const query = interaction.options.getString("query");
 
         // A category wins over a command of the same name — categories are the coarser answer, and
         // no category currently shares a name with a command.
         const category = resolveCategory(client, context, query);
-        const command = category ? null : query ? findCommand(client, context, query) : null;
+        const target = category || !query ? null : findHelpTarget(client, context, query);
 
-        if (query && !category && !command) {
+        // A target the reader may not run is answered with silence in chat, and with the same
+        // "no such command" a typo gets from a slash invocation, which must be acknowledged. Saying
+        // "that exists but is not for you" is the one reply that tells a member something.
+        if (target && !context.canRun(target.command)) {
+            if (!(interaction as { isPrefix?: boolean }).isPrefix) {
+                await interaction.reply({
+                    content: HELP.unknownCommand(query!, context.prefix),
+                    flags: MessageFlags.Ephemeral,
+                });
+            }
+            return;
+        }
+
+        if (query && !category && !target) {
             await interaction.reply({
                 content: HELP.unknownCommand(query, context.prefix),
                 flags: MessageFlags.Ephemeral,
@@ -91,10 +109,10 @@ export default {
             return { embeds: [embed], components: rows };
         };
 
-        // A named command answers directly. There is nothing to browse from there, so it gets no
-        // menu — the reader asked a closed question.
-        if (command) {
-            await interaction.reply({ embeds: [buildCommandEmbed(client, context, command)] });
+        // A named command answers directly, in plain text. There is nothing to browse from there,
+        // so it gets no menu — the reader asked a closed question.
+        if (target) {
+            await interaction.reply({ content: buildCommandHelpText(client, context, target) });
             return;
         }
 

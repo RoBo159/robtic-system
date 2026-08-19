@@ -9,7 +9,7 @@ import {
 import type { BotClient } from "@core/bot-client";
 import { COLORS, MEMBER_PUNISHMENTS, PUNISHMENT_POINTS } from "@constants";
 import { PunishmentRepository, ReasonRepository } from "@database/repositories";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import { getUserLang, t } from "@bot/utils/lang";
 import { needsProof, buildProofModal, sendShortcutProofDM, awardPunishPoints } from "@bot/utils/moderation/punish-flow";
 
@@ -173,13 +173,13 @@ export default {
             const punishment = await PunishmentRepository.findByCaseId(caseId);
             if (!punishment || punishment.userId !== target.id || punishment.type !== "warn") {
                 await interaction.deleteReply().catch(() => {});
-                await interaction.followUp({ embeds: [errorEmbed("Warning case not found for this user.")], flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: errorText("Warning case not found for this user."), flags: MessageFlags.Ephemeral });
                 return;
             }
 
             if (punishment.appealed) {
                 await interaction.deleteReply().catch(() => {});
-                await interaction.followUp({ embeds: [errorEmbed("This warning has already been appealed.")], flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: errorText("This warning has already been appealed."), flags: MessageFlags.Ephemeral });
                 return;
             }
 

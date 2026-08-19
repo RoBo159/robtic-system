@@ -4,7 +4,6 @@ import {
     ButtonBuilder,
     ButtonStyle,
     ActionRowBuilder,
-    type APIEmbedField,
 } from "discord.js";
 import type { BotClient } from "@core/bot-client";
 import type { CommandConfig } from "@typings/command";
@@ -24,7 +23,6 @@ import { visibleCommands, isFromDisabledFeature, type HelpContext } from "./help
  */
 const EMBED_CHAR_BUDGET = 5200; // 6000, minus room for title, footer and field names
 const DESCRIPTION_LIMIT = 4096;
-const FIELD_VALUE_LIMIT = 1024;
 const COMMANDS_PER_PAGE = 12;
 
 const emojiFor = (category: string): string => HELP_CATEGORY_EMOJI[category] ?? "📁";
@@ -67,11 +65,6 @@ export function sortedCategories(groups: Map<string, CommandConfig[]>): string[]
         if (b === HELP.generalCategory) return 1;
         return a.localeCompare(b);
     });
-}
-
-export function findCommand(client: BotClient, context: HelpContext, input: string): CommandConfig | null {
-    const wanted = input.trim().toLowerCase().replace(/^[/!?]/, "").split(/\s+/)[0] ?? "";
-    return visibleCommands(client, context).find(command => commandName(command).toLowerCase() === wanted) ?? null;
 }
 
 export function pageCount(commands: CommandConfig[]): number {
@@ -201,50 +194,6 @@ export function buildCategoryEmbed(
     lines.push("", HELP.detailHint(context.prefix));
 
     embed.setDescription(lines.join("\n").slice(0, DESCRIPTION_LIMIT));
-    return embed;
-}
-
-/** Every invocable form of one command — the view `help <command>` opens. */
-export function buildCommandEmbed(client: BotClient, context: HelpContext, command: CommandConfig): EmbedBuilder {
-    const name = commandName(command);
-    const forms = commandUsageEntries(context.prefix, command);
-
-    const embed = new EmbedBuilder()
-        .setTitle(HELP.commandTitle(displayName(client), name))
-        .setColor(COLORS.info)
-        .setFooter({ text: HELP.footer(forms.length) });
-
-    const header = [
-        commandDescription(command),
-        command.modalOnly ? HELP.slashOnlyNote(context.prefix, name) : "",
-        isFromDisabledFeature(command, context) ? HELP.disabledNote : "",
-    ].filter(Boolean).join("\n");
-
-    if (header) embed.setDescription(header.slice(0, DESCRIPTION_LIMIT));
-
-    // One field per chunk of usage lines rather than per line: a command with 20 subcommands would
-    // otherwise need 20 fields and blow the 25-field limit on its own.
-    const fields: APIEmbedField[] = [];
-    let chunk: string[] = [];
-    let used = 0;
-
-    const flush = () => {
-        if (!chunk.length) return;
-        fields.push({ name: fields.length === 0 ? "Usage" : "​", value: chunk.join("\n") });
-        chunk = [];
-        used = 0;
-    };
-
-    for (const form of forms) {
-        const line = form.description ? `${form.usage} — ${form.description}` : form.usage;
-        if (used + line.length + 1 > FIELD_VALUE_LIMIT) flush();
-        if (fields.length >= 24) break;
-        chunk.push(line);
-        used += line.length + 1;
-    }
-    flush();
-
-    embed.addFields(...fields.slice(0, 25));
     return embed;
 }
 

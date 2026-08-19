@@ -35,3 +35,58 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+
+  # The dashboard's own API. Separate from robtic-platform-api because it authenticates people
+  # rather than machines — a Discord identity checked against one guild, not a scoped key.
+  #
+  # Loopback-only, like the platform API: the browser never calls this container directly, it calls
+  # the public hostname that Nginx terminates and forwards here. See docs/deployment-nginx.md.
+  robtic-dashboard-api:
+    image: ghcr.io/robticorg/robtic-dashboard-api:latest
+    build:
+      context: .
+      dockerfile: apps/dashboard-api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - /home/robtic/robtic-system/.env
+    ports:
+      - "127.0.0.1:3003:3003"
+    healthcheck:
+      # /health is the one route without @Public()'s opposite — it needs no session, so a healthy
+      # container is provably serving rather than merely running.
+      test: ["CMD", "bun", "-e", "await fetch('http://127.0.0.1:3003/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # The Next.js dashboard. Talks only to robtic-dashboard-api, and holds no database credential.
+  robtic-dashboard:
+    image: ghcr.io/robticorg/robtic-dashboard:latest
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - /home/robtic/robtic-system/.env
+    environment:
+      # Server components reach the API over the compose network rather than back out through
+      # Nginx, which would be a pointless round trip and would fail whenever DNS is the thing that
+      # is broken.
+      DASHBOARD_API_INTERNAL_URL: http://robtic-dashboard-api:3003
+      # What the *browser* is told to call, read at request time rather than compiled in. Comes
+      # from the host .env through the `--env-file` the deploy commands pass.
+      DASHBOARD_PUBLIC_API_URL: ${DASHBOARD_PUBLIC_API_URL:-https://dashboard-api.robtic.org}
+    depends_on:
+      robtic-dashboard-api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      # The landing page needs no session and calls no other service, so it answers even when
+      # Discord or Mongo are down — which is what a liveness probe should measure.
+      test: ["CMD", "bun", "-e", "await fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s

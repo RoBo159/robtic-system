@@ -4,6 +4,7 @@ import { QuestSettingsRepository } from "@database/repositories";
 import { forgetGuildClaims, forgetGuildChallenge } from "@core/quests";
 import { Logger } from "@logger";
 import { startQuestScheduler } from "./functions/scheduler/start-quest-scheduler";
+import { migrateQuestChannels } from "./functions/migrate-quest-channels";
 
 const CTX = "quests";
 
@@ -18,7 +19,12 @@ export default [
     {
         name: Events.ClientReady,
         once: true,
-        execute: client => startQuestScheduler(client),
+        execute: async client => {
+            // Before the scheduler, so the first cycle already reads the folded channel rather than
+            // posting nowhere for one tick.
+            await migrateQuestChannels();
+            startQuestScheduler(client);
+        },
     } satisfies EventConfig<Events.ClientReady>,
 
     /**

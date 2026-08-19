@@ -6,6 +6,7 @@ export * from "./discord-limits";
 export * from "./colors";
 export * from "./coins";
 export * from "./command-categories";
+export * from "./chat-utils";
 export * from "./command-scopes";
 export * from "./combo";
 export * from "./interaction";

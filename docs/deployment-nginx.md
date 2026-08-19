@@ -12,11 +12,15 @@ Cloudflare (proxied, orange cloud)
 Host 192.168.1.127  ── Nginx (host, ports 80/443)
                           ├── robtic.org                → web app
                           ├── minecraft.api.robtic.org  → 127.0.0.1:3002
+                          ├── dashboard.robtic.org      → 127.0.0.1:3000
+                          ├── dashboard-api.robtic.org  → 127.0.0.1:3003
                           └── …
                                       │
                                       ▼
                         Docker containers, published to 127.0.0.1 only
-                          robtic-platform-api → 127.0.0.1:3002
+                          robtic-platform-api  → 127.0.0.1:3002
+                          robtic-dashboard     → 127.0.0.1:3000
+                          robtic-dashboard-api → 127.0.0.1:3003
 ```
 
 ## Why the port binding looks "wrong" and isn't
@@ -191,6 +195,47 @@ Enable and reload:
 ln -s /etc/nginx/sites-available/minecraft.api.robtic.org /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 ```
+
+## The dashboard vhosts
+
+Two hostnames, not one. The session is an `httpOnly` cookie that the API sets on **its own** origin
+and the browser sends back with `credentials: "include"`, so the two origins are a real CORS pair —
+`DASHBOARD_URL` on the API must equal the web origin exactly, scheme included, or every write is
+rejected by the browser before it reaches Nginx.
+
+`/etc/nginx/sites-available/dashboard.robtic.org` → `127.0.0.1:3000`
+`/etc/nginx/sites-available/dashboard-api.robtic.org` → `127.0.0.1:3003`
+
+Both follow the shape above. Three differences that matter:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3000;   # or :3003 for the API
+    proxy_http_version 1.1;
+
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    # 1. Cookies pass through untouched. Rewriting the domain or path here breaks the OAuth
+    #    handshake in a way that looks like "login does nothing": the callback succeeds, the
+    #    Set-Cookie is mangled, and the next request arrives with no session.
+    proxy_pass_request_headers on;
+
+    # 2. No buffering on the API — its replies are live guild state, and a cached one would show
+    #    an operator a setting they already changed.
+    proxy_buffering off;
+}
+```
+
+3. **Both must be HTTPS.** `DASHBOARD_SECURE_COOKIES` defaults to true whenever `DASHBOARD_API_URL`
+   is `https://`, and a `Secure` cookie is discarded by the browser over plain http — login appears
+   to work and then bounces straight back to the landing page.
+
+Add `https://dashboard-api.robtic.org/auth/callback` to the OAuth2 redirects in the Discord
+developer portal. A mismatch there fails at Discord with `invalid_request`, before anything reaches
+this server.
 
 ## Verify end to end
 

@@ -17,8 +17,22 @@ images/     Static image assets served/attached by the bot
 | App | Status | Purpose |
 |---|---|---|
 | `apps/bot` | **Live** | The Discord bot — one client running every system (admin, moderation, community, dev, minecraft) |
-| `apps/dashboard` | Scaffold | Web dashboard |
+| `apps/robtic-api` | **Live** | Bun HTTP API for machines — the bot and the Minecraft plugin, authenticated with scoped API keys |
+| `apps/dashboard-api` | **Live** | NestJS API for people — Discord OAuth sessions and per-guild authorization, see [apps/dashboard-api/README.md](../apps/dashboard-api/README.md) |
+| `apps/dashboard` | **Live** | Next.js web dashboard, a client of `apps/dashboard-api` only |
 | `apps/minecraft-plugin` | **Live** | Paper plugin (Java/Maven) — a Minecraft client for the same MongoDB, see [bot/minecraft.md](bot/minecraft.md) |
+
+### Why two APIs
+
+`robtic-api` serves machines and `dashboard-api` serves browsers. They authenticate differently —
+a scoped API key against a service, versus a Discord identity that must be checked against *this
+guild* on every request — and merging them would mean one auth pipeline carrying both models.
+They share `libs/database` rather than calling each other.
+
+The consequence is that MongoDB now has three writers (`bot`, `robtic-api`, `dashboard-api`) rather
+than the single owner the earlier design intended. That is a deliberate trade: routing the dashboard
+through `robtic-api` would have meant building a machine-facing endpoint for every screen before the
+screen could exist.
 
 ## Libraries
 

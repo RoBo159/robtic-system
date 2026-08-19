@@ -8,6 +8,12 @@ export interface UsageEntry {
     usage: string;
     /** The subcommand's description, or the command's own if it has no subcommands. */
     description: string;
+    /**
+     * The invocable path this line documents — `warn add`, or `warn` for a flat command. The same
+     * string a shortcut stores, so a trigger can be matched to the one form it actually runs
+     * instead of the whole command.
+     */
+    path: string;
 }
 
 const isSub = (o: OptionJSON) => o.type === ApplicationCommandOptionType.Subcommand;
@@ -32,7 +38,11 @@ export function commandUsageEntries(prefix: string, command: CommandConfig): Usa
 
     const hasSubs = options.some(o => isSub(o) || isGroup(o));
     if (!hasSubs) {
-        return [{ usage: usageLine(prefix, json.name, null, null, options), description: json.description ?? "" }];
+        return [{
+            usage: usageLine(prefix, json.name, null, null, options),
+            description: json.description ?? "",
+            path: json.name,
+        }];
     }
 
     for (const opt of options) {
@@ -40,6 +50,7 @@ export function commandUsageEntries(prefix: string, command: CommandConfig): Usa
             entries.push({
                 usage: usageLine(prefix, json.name, null, opt.name, opt.options ?? []),
                 description: opt.description ?? json.description ?? "",
+                path: `${json.name} ${opt.name}`,
             });
         } else if (isGroup(opt)) {
             for (const sub of opt.options ?? []) {
@@ -47,6 +58,7 @@ export function commandUsageEntries(prefix: string, command: CommandConfig): Usa
                 entries.push({
                     usage: usageLine(prefix, json.name, opt.name, sub.name, sub.options ?? []),
                     description: sub.description ?? opt.description ?? json.description ?? "",
+                    path: `${json.name} ${opt.name} ${sub.name}`,
                 });
             }
         }

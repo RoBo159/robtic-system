@@ -7,7 +7,7 @@ import type { BotClient } from "@core/bot-client";
 import type { ComponentHandler } from "@typings/command";
 import { COLORS } from "@constants";
 import { ReasonRepository } from "@database/repositories";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 
 export const reasonCreateHandler: ComponentHandler<ModalSubmitInteraction> = {
     customId: /^reason_create_(warn|mute|ban)$/,
@@ -22,7 +22,7 @@ export const reasonCreateHandler: ComponentHandler<ModalSubmitInteraction> = {
 
         const existing = await ReasonRepository.findByKey(key);
         if (existing) {
-            await interaction.editReply({ embeds: [errorEmbed(`Reason \`${key}\` already exists.`)] });
+            await interaction.editReply({ content: errorText(`Reason \`${key}\` already exists.`) });
             return;
         }
 

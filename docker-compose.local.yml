@@ -62,6 +62,47 @@ services:
       mongo:
         condition: service_healthy
 
+  # The dashboard's API. Opt-in, because it needs a Discord OAuth application configured and most
+  # bot work does not touch it:
+  #
+  #   docker compose -f docker-compose.local.yml --profile dashboard up -d
+  dashboard-api:
+    profiles: [dashboard]
+    build:
+      context: .
+      dockerfile: apps/dashboard-api/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/robtic
+      DASHBOARD_API_PORT: 3003
+      DASHBOARD_API_URL: http://localhost:3003
+      DASHBOARD_URL: http://localhost:3000
+      # http locally, so a Secure cookie would never be stored and login would appear to succeed
+      # and then bounce straight back to the landing page.
+      DASHBOARD_SECURE_COOKIES: "false"
+      NODE_ENV: development
+    ports:
+      - "127.0.0.1:3003:3003"
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  dashboard:
+    profiles: [dashboard]
+    build:
+      context: .
+      dockerfile: apps/dashboard/Dockerfile
+    restart: unless-stopped
+    environment:
+      DASHBOARD_API_INTERNAL_URL: http://dashboard-api:3003
+      DASHBOARD_PUBLIC_API_URL: http://localhost:3003
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - dashboard-api
+
   minecraft:
     build:
       context: ./apps/minecraft-plugin

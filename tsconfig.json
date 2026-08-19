@@ -37,5 +37,8 @@
     }
   },
   "include": ["apps", "libs", "scripts"],
-  "exclude": ["node_modules", "dist", "apps/dashboard"]
+  // The two web apps compile themselves. Nest needs `emitDecoratorMetadata` for its DI and Next
+  // needs `jsx`; turning either on here would change how the bot and the plugin API compile, so
+  // each carries its own tsconfig and its own `typecheck` script.
+  "exclude": ["node_modules", "dist", "apps/dashboard", "apps/dashboard-api"]
 }

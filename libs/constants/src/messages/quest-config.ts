@@ -46,14 +46,10 @@ export const QUEST_CONFIG_MESSAGES = {
     utcClock,
 
     channel: {
-        daily: (mention: string | null) => `Easy, normal, hard and golden quests will be posted in ${mention}.`,
-        community: (mention: string | null) =>
+        quest: (mention: string) => `Every quest — easy, normal, hard, golden and VIP — will be posted in ${mention}.`,
+        community: (mention: string) =>
             `The weekly community challenge will be posted in ${mention}.\n` +
             "The panel is posted once and edited all week — it is worth a channel members can find.",
-        vip: (mention: string | null) =>
-            mention
-                ? `VIP quests will be posted in ${mention}.`
-                : "VIP channel cleared — VIP quests will go to the daily quest channel.",
     },
 
     mention: {
@@ -133,9 +129,8 @@ export const QUEST_CONFIG_MESSAGES = {
         communityLabel: "🌍 Community",
 
         channelsField: "Channels",
-        channelsValue: (daily: string, community: string, vip: string) =>
-            `Daily — ${daily}\nCommunity — ${community}\nVIP — ${vip}`,
-        vipFallsBack: "*falls back to daily*",
+        channelsValue: (quest: string, community: string) =>
+            `Quests — ${quest}\nCommunity — ${community}`,
 
         mentionsField: "Mentions",
         mentionRow: (label: string, roleId: string | null) => `${label} — ${roleId ? `<@&${roleId}>` : "—"}`,
@@ -157,7 +152,7 @@ export const QUEST_CONFIG_MESSAGES = {
         warningsField: "⚠️ Needs attention",
         warningRow: (line: string) => `• ${line}`,
         warnings: {
-            noDailyChannel: "No daily channel — generated quests are posted nowhere.",
+            noQuestChannel: "No quest channel — generated quests are posted nowhere.",
             noCommunityChannel: "No community channel — the weekly challenge runs unseen.",
             noVipRoles: "No VIP roles — VIP quests are posted but nobody can claim them.",
             noWindows: "No enabled windows — nothing will be generated at all.",

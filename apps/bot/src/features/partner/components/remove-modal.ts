@@ -3,7 +3,7 @@ import type { BotClient } from "@core/bot-client";
 import type { ComponentHandler } from "@typings/command";
 import { COLORS } from "@constants";
 import { PartnerRepository } from "@database/repositories";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import { PARTNER_ROLE_NAME } from "../utils/partner-role";
 
 const partnerRemoveModal: ComponentHandler<ModalSubmitInteraction> = {
@@ -16,7 +16,7 @@ const partnerRemoveModal: ComponentHandler<ModalSubmitInteraction> = {
         const removed = await PartnerRepository.deleteByServerId(partnerServerId);
 
         if (!removed) {
-            await interaction.editReply({ embeds: [errorEmbed("No partner found with that server ID.")] });
+            await interaction.editReply({ content: errorText("No partner found with that server ID.") });
             return;
         }
 

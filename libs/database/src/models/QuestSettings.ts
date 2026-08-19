@@ -12,10 +12,16 @@ export interface IQuestWindow {
 
 export interface IQuestSettings extends Document {
     guildId: string;
-    dailyChannelId: string | null;
+    /**
+     * Where every generated quest is posted, whatever its tier.
+     *
+     * There were three of these — daily, VIP, and a per-tier fallback chain. Splitting the feed by
+     * tier meant a member had to watch several channels to see what was available, and it made VIP
+     * quests configurable into a channel VIP members could not read. One feed, one place to look.
+     */
+    questChannelId: string | null;
+    /** The weekly community challenge panel, which is a different kind of thing and stays separate. */
     communityChannelId: string | null;
-    /** Falls back to dailyChannelId when unset. */
-    vipChannelId: string | null;
     /** Tier → role id pinged when that tier is posted. */
     mentionRoles: Record<string, string | null>;
     /** Any one of these may claim VIP quests. There is no other premium concept in the bot. */
@@ -58,9 +64,8 @@ const defaultEnabledTiers = (): Record<string, boolean> =>
 const questSettingsSchema = new Schema<IQuestSettings>(
     {
         guildId: { type: String, required: true, unique: true, index: true },
-        dailyChannelId: { type: String, default: null },
+        questChannelId: { type: String, default: null },
         communityChannelId: { type: String, default: null },
-        vipChannelId: { type: String, default: null },
         mentionRoles: { type: Schema.Types.Mixed, default: defaultMentionRoles },
         vipRoleIds: { type: [String], default: [] },
         enabledTiers: { type: Schema.Types.Mixed, default: defaultEnabledTiers },

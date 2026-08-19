@@ -1,7 +1,7 @@
 import { MessageFlags, type ChatInputCommandInteraction, type GuildMember, type Interaction } from "discord.js";
 import type { CommandConfig } from "@typings/command";
 import { SUPER_ADMIN_ID, STAFF_TIER_THRESHOLDS, INTERACTION_MESSAGES } from "@constants";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import { SuperUserRepository } from "@database/repositories";
 import { getMemberLevel, isGuildOperator, hasGuildBotAdmin } from "@bot/utils/access";
 import { hasCommandAccessGrant } from "@bot/utils/command-access";
@@ -27,7 +27,7 @@ export const checkPermissions = async (
 
     const deny = async (reason: string): Promise<false> => {
         if (options?.silent) return false;
-        await interaction.reply({ embeds: [errorEmbed(reason)], flags: MessageFlags.Ephemeral });
+        await interaction.reply({ content: errorText(reason), flags: MessageFlags.Ephemeral });
         scheduleDeletion(() => interaction.deleteReply());
         return false;
     };

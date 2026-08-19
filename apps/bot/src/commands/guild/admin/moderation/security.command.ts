@@ -7,7 +7,7 @@ import {
     type GuildMember,
 } from "discord.js";
 import { COLORS } from "@constants";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import { getMemberLevel, isManager } from "@bot/utils/access";
 import {
     formatWindow,
@@ -250,7 +250,7 @@ export default {
         const member = interaction.member as GuildMember;
         if (!(await managerOnly(member))) {
             await interaction.editReply({
-                embeds: [errorEmbed("Only managers can use this command.")],
+                content: errorText("Only managers can use this command."),
             });
             return;
         }
@@ -343,7 +343,7 @@ export default {
             const list = config.rules.filter((rule) => rule.event === event);
 
             if (index < 0 || index >= list.length) {
-                await interaction.editReply({ embeds: [errorEmbed("Invalid index for this event.")] });
+                await interaction.editReply({ content: errorText("Invalid index for this event.") });
                 return;
             }
 
@@ -386,7 +386,7 @@ export default {
             const role = interaction.options.getRole("role", false);
 
             if (!user && !role) {
-                await interaction.editReply({ embeds: [errorEmbed("Provide at least one of user or role.")] });
+                await interaction.editReply({ content: errorText("Provide at least one of user or role.") });
                 return;
             }
 

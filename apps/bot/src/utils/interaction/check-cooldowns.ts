@@ -1,7 +1,7 @@
 import { MessageFlags, type ChatInputCommandInteraction, type Interaction } from "discord.js";
 import type { CommandConfig } from "@typings/command";
 import { DEFAULT_COMMAND_COOLDOWN_SECONDS, INTERACTION_MESSAGES } from "@constants";
-import { startCooldown, errorEmbed } from "@utils";
+import { startCooldown, errorText } from "@utils";
 import { getCooldownKey } from "./get-cooldown-key";
 import { scheduleDeletion } from "./schedule-deletion";
 
@@ -16,7 +16,7 @@ export const cooldowns = async (intract: Interaction, command: CommandConfig): P
     if (remaining === 0) return true;
 
     await interaction.reply({
-        embeds: [errorEmbed(INTERACTION_MESSAGES.cooldownWait(remaining))],
+        content: errorText(INTERACTION_MESSAGES.cooldownWait(remaining)),
         flags: MessageFlags.Ephemeral,
     });
     scheduleDeletion(() => interaction.deleteReply());

@@ -10,7 +10,7 @@ import {
 import type { BotClient } from "@core/bot-client";
 import { COLORS, MEMBER_PUNISHMENTS, PUNISHMENT_POINTS } from "@constants";
 import { PunishmentRepository, ReasonRepository } from "@database/repositories";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import { getUserLang, t } from "@bot/utils/lang";
 import { getLogChannel } from "@bot/utils/server-log";
 import { needsProof, buildProofModal, sendShortcutProofDM, awardPunishPoints } from "@bot/utils/moderation/punish-flow";
@@ -205,13 +205,13 @@ export default {
             const punishment = await PunishmentRepository.findByCaseId(caseId);
             if (!punishment || punishment.userId !== target.id || punishment.type !== "mute") {
                 await interaction.deleteReply().catch(() => {});
-                await interaction.followUp({ embeds: [errorEmbed("Mute case not found for this user.")], flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: errorText("Mute case not found for this user."), flags: MessageFlags.Ephemeral });
                 return;
             }
 
             if (!punishment.active) {
                 await interaction.deleteReply().catch(() => {});
-                await interaction.followUp({ embeds: [errorEmbed("This mute is already inactive.")], flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: errorText("This mute is already inactive."), flags: MessageFlags.Ephemeral });
                 return;
             }
 
@@ -244,13 +244,13 @@ export default {
             const punishment = await PunishmentRepository.findByCaseId(caseId);
             if (!punishment || punishment.userId !== target.id || punishment.type !== "mute") {
                 await interaction.deleteReply().catch(() => {});
-                await interaction.followUp({ embeds: [errorEmbed("Mute case not found for this user.")], flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: errorText("Mute case not found for this user."), flags: MessageFlags.Ephemeral });
                 return;
             }
 
             if (punishment.appealed) {
                 await interaction.deleteReply().catch(() => {});
-                await interaction.followUp({ embeds: [errorEmbed("This mute has already been appealed.")], flags: MessageFlags.Ephemeral });
+                await interaction.followUp({ content: errorText("This mute has already been appealed."), flags: MessageFlags.Ephemeral });
                 return;
             }
 

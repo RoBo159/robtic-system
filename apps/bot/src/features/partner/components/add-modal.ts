@@ -3,7 +3,7 @@ import type { BotClient } from "@core/bot-client";
 import type { ComponentHandler } from "@typings/command";
 import { COLORS } from "@constants";
 import { PartnerRepository } from "@database/repositories";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import { ensurePartnerRole } from "../utils/partner-role";
 
 const SNOWFLAKE_RE = /^\d{15,25}$/;
@@ -22,7 +22,7 @@ const partnerAddModal: ComponentHandler<ModalSubmitInteraction> = {
 
         if (!SNOWFLAKE_RE.test(partnerServerId) || !SNOWFLAKE_RE.test(repUserId)) {
             await interaction.editReply({
-                embeds: [errorEmbed("Server ID and Representative User ID must both be valid Discord IDs.")],
+                content: errorText("Server ID and Representative User ID must both be valid Discord IDs."),
             });
             return;
         }
@@ -30,7 +30,7 @@ const partnerAddModal: ComponentHandler<ModalSubmitInteraction> = {
         const existing = await PartnerRepository.findByServerId(partnerServerId);
         if (existing) {
             await interaction.editReply({
-                embeds: [errorEmbed("A partner with this server ID already exists. Remove it first to update.")],
+                content: errorText("A partner with this server ID already exists. Remove it first to update."),
             });
             return;
         }

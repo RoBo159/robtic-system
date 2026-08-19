@@ -5,7 +5,7 @@
 # content was built and deployed before, so the service is skipped.
 #
 #   scripts/deploy-signature.sh bot
-#   EXTRA_SIGNATURE_INPUT="$SOME_BUILD_ARG" scripts/deploy-signature.sh platform-api
+#   EXTRA_SIGNATURE_INPUT="$SOME_BUILD_ARG" scripts/deploy-signature.sh dashboard
 #
 # Content, not history: two different commits with identical file contents produce the same
 # signature, so a revert or a rebase re-uses what was already deployed instead of rebuilding it.
@@ -13,7 +13,7 @@ set -euo pipefail
 
 service="${1:-}"
 if [ -z "$service" ]; then
-    echo "usage: scripts/deploy-signature.sh <bot|platform-api>" >&2
+    echo "usage: scripts/deploy-signature.sh <bot|platform-api|dashboard-api|dashboard>" >&2
     exit 2
 fi
 
@@ -41,6 +41,14 @@ case "$service" in
     platform-api)
         paths=("${common[@]}" apps/robtic-api libs)
         ;;
+    dashboard-api)
+        paths=("${common[@]}" apps/dashboard-api libs)
+        ;;
+    # No `libs`: the dashboard imports nothing from them — it is a client of dashboard-api and
+    # nothing else. Including them would rebuild the web image on every repository change.
+    dashboard)
+        paths=("${common[@]}" apps/dashboard)
+        ;;
     *)
         echo "unknown service: $service" >&2
         exit 2
@@ -61,7 +69,14 @@ esac
 #
 # Paths are hashed alongside the contents, so moving a file changes the signature even when nothing
 # was edited. Both lists come out in the same sorted order, so the pairing is stable.
-mapfile -t files < <(git ls-files -- "${paths[@]}" | LC_ALL=C sort)
+#
+# Filtered to files that exist on disk. `git ls-files` reports what is tracked, which still includes
+# a file deleted in the working tree but not yet committed — hash-object then fails on it and takes
+# the whole script with it under `set -e`. On a CI checkout every tracked file exists, so this
+# changes no signature there; it only stops a local run dying mid-edit.
+mapfile -t files < <(git ls-files -- "${paths[@]}" | LC_ALL=C sort | while IFS= read -r f; do
+    [ -e "$f" ] && printf '%s\n' "$f"
+done)
 
 {
     printf '%s\n' "${files[@]}" | git hash-object --stdin-paths

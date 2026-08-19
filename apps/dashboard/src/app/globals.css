@@ -1,0 +1,95 @@
+/*
+ * One stylesheet, no framework.
+ *
+ * The dashboard is a settings surface: forms, tables and a sidebar. Custom properties plus a few
+ * component classes cover that, and adding a utility framework here would be a build-tooling
+ * decision made before there is a design to justify it.
+ */
+
+:root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --panel-raised: #1e222b;
+    --border: #2a2f3a;
+    --text: #e6e8ec;
+    --muted: #9aa3b2;
+    --accent: #5865f2;
+    --accent-text: #ffffff;
+    --danger: #ed4245;
+    --ok: #3ba55d;
+    --radius: 10px;
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --bg: #f5f6f8;
+        --panel: #ffffff;
+        --panel-raised: #f0f2f5;
+        --border: #d8dbe0;
+        --text: #1c1e22;
+        --muted: #61666e;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+.sidebar { border-right: 1px solid var(--border); background: var(--panel); padding: 20px 14px; }
+.sidebar h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 20px 8px 8px; }
+.sidebar a { display: block; padding: 8px 10px; border-radius: 8px; color: var(--muted); }
+.sidebar a:hover { background: var(--panel-raised); color: var(--text); }
+.sidebar a[aria-current="page"] { background: var(--accent); color: var(--accent-text); }
+
+.main { padding: 28px 32px; max-width: 1100px; }
+.page-title { margin: 0 0 4px; font-size: 24px; }
+.page-lede { margin: 0 0 28px; color: var(--muted); }
+
+.card { background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
+.card h3 { margin: 0 0 4px; font-size: 16px; }
+.card .hint { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.row + .row { margin-top: 12px; }
+
+input, select {
+    background: var(--panel-raised); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font: inherit;
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+button {
+    background: var(--accent); color: var(--accent-text); border: 0;
+    border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer;
+}
+button:disabled { opacity: .55; cursor: not-allowed; }
+button.secondary { background: var(--panel-raised); color: var(--text); border: 1px solid var(--border); }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.scroll-x { overflow-x: auto; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--panel-raised); color: var(--muted); }
+.badge.on { background: color-mix(in srgb, var(--ok) 20%, transparent); color: var(--ok); }
+.badge.off { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); }
+
+.status { min-height: 20px; font-size: 13px; color: var(--muted); }
+.status.error { color: var(--danger); }
+.status.ok { color: var(--ok); }
+
+.grid-guilds { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.guild-card { display: flex; gap: 12px; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.guild-card:hover { border-color: var(--accent); }
+.guild-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--panel-raised); flex: 0 0 auto; }
+
+.centered { display: grid; place-items: center; min-height: 100vh; text-align: center; padding: 24px; }
+.empty { color: var(--muted); padding: 24px 0; }

@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    // `bundler` resolution, matching the rest of the monorepo. The shared libs import each other
+    // without file extensions, which NodeNext rejects outright — so this app runs on Bun like the
+    // bot and robtic-api do, and tsc is only ever used here to typecheck.
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ESNext",
+    "lib": ["ESNext"],
+    "types": ["bun", "node"],
+
+    // Nest's DI reads constructor parameter types out of emitted metadata, which is why this app
+    // cannot simply inherit the root tsconfig: that one has no decorator support, and turning these
+    // on globally would change how every other app compiles.
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "strict": true,
+    // Nest constructs controllers and DTOs itself; `foo: string` on a DTO is assigned by the
+    // validation pipe, not by a constructor this file can see.
+    "strictPropertyInitialization": false,
+    "skipLibCheck": true,
+    "ignoreDeprecations": "6.0",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "baseUrl": "../..",
+    "paths": {
+      "@database/*": ["libs/database/src/*"],
+      "@core/*": ["libs/core/src/*"],
+      "@typings/*": ["libs/types/src/*"],
+      "@constants": ["libs/constants/src/index.ts"],
+      "@constants/*": ["libs/constants/src/*"],
+      "@utils": ["libs/utils/src/index.ts"],
+      "@utils/*": ["libs/utils/src/*"],
+      "@logger": ["libs/logger/src/index.ts"],
+      "@sdk": ["libs/sdk/src/api.ts"],
+      "@sdk/*": ["libs/sdk/src/*"],
+      "@config": ["libs/config/src/index.ts"],
+      "@config/*": ["libs/config/src/*"]
+    }
+  },
+  // The ambient globals in libs/types (BotName, StatusType, …) are declared in a .d.ts with no
+  // import, so they only exist for a program that includes the file. The root tsconfig gets them
+  // by including all of `libs`; this one has to name it.
+  "include": ["src/**/*.ts", "../../libs/types/**/*.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

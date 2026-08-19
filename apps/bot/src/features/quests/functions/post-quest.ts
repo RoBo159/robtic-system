@@ -9,14 +9,11 @@ import { scheduleEdit } from "../utils/edit-throttle";
 
 const CTX = "quests";
 
-/** Where a tier is announced. VIP falls back to the daily channel, as specified. */
+/** Where a quest is announced. One channel for every tier, VIP included. */
 async function resolveChannel(client: Client, quest: IQuest): Promise<TextChannel | null> {
     const settings = await QuestSettingsRepository.getCached(quest.guildId);
 
-    const channelId = quest.tier === "vip"
-        ? settings.vipChannelId ?? settings.dailyChannelId
-        : settings.dailyChannelId;
-
+    const channelId = settings.questChannelId;
     if (!channelId) return null;
 
     const channel = await client.channels.fetch(channelId).catch(() => null);

@@ -6,7 +6,7 @@ import {
     type GuildMember,
 } from "discord.js";
 import { COLORS } from "@constants";
-import { errorEmbed } from "@utils";
+import { errorText } from "@utils";
 import type { BotClient } from "@core/bot-client";
 import { recordSecurityEvent, sendAuditLog } from "@bot/utils/moderation/security";
 
@@ -41,20 +41,20 @@ export default {
 
         if (target.id === interaction.user.id) {
             await interaction.deleteReply().catch(() => {});
-            await interaction.followUp({ embeds: [errorEmbed("You cannot kick yourself.")], flags: MessageFlags.Ephemeral });
+            await interaction.followUp({ content: errorText("You cannot kick yourself."), flags: MessageFlags.Ephemeral });
             return;
         }
 
         const member = interaction.guild.members.cache.get(target.id) ?? await interaction.guild.members.fetch(target.id).catch(() => null);
         if (!member) {
             await interaction.deleteReply().catch(() => {});
-            await interaction.followUp({ embeds: [errorEmbed("Target member not found in guild.")], flags: MessageFlags.Ephemeral });
+            await interaction.followUp({ content: errorText("Target member not found in guild."), flags: MessageFlags.Ephemeral });
             return;
         }
 
         if (!member.kickable) {
             await interaction.deleteReply().catch(() => {});
-            await interaction.followUp({ embeds: [errorEmbed("I cannot kick this member due to role hierarchy or permissions.")], flags: MessageFlags.Ephemeral });
+            await interaction.followUp({ content: errorText("I cannot kick this member due to role hierarchy or permissions."), flags: MessageFlags.Ephemeral });
             return;
         }
 

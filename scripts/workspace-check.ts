@@ -45,7 +45,12 @@ check(
 
 // 3. In each Dockerfile's dependency stage. A missing COPY means the workspace's package.json is
 //    absent when `bun install --frozen-lockfile` runs, which the lockfile then disagrees with.
-const dockerfiles = ["Dockerfile", "apps/robtic-api/Dockerfile"].filter(p => existsSync(join(ROOT, p)));
+const dockerfiles = [
+    "Dockerfile",
+    "apps/robtic-api/Dockerfile",
+    "apps/dashboard-api/Dockerfile",
+    "apps/dashboard/Dockerfile",
+].filter(p => existsSync(join(ROOT, p)));
 
 for (const path of dockerfiles) {
     const body = read(path);
