@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { COLORS, type QuestTier } from "@constants";
+import { COLORS, QUEST_MESSAGES, type QuestTier } from "@constants";
 import { QuestClaimRepository, QuestRepository } from "@database/repositories";
 import { tierTitle, missionProgressLines } from "./quest-lines";
 
@@ -14,22 +14,20 @@ import { tierTitle, missionProgressLines } from "./quest-lines";
  * rather than aggregated.
  */
 export async function buildActiveQuestsEmbed(guildId: string, discordId: string): Promise<EmbedBuilder> {
+    const text = QUEST_MESSAGES.active;
     const claims = await QuestClaimRepository.findActiveForMember(guildId, discordId);
 
     if (claims.length === 0) {
         return new EmbedBuilder()
-            .setTitle("🗺️ Your quests")
+            .setTitle(text.title)
             .setColor(COLORS.info)
-            .setDescription(
-                "Nothing claimed right now.\n" +
-                "Quests appear in the quest channel — hit **Claim** on one and progress tracks itself."
-            );
+            .setDescription(text.empty);
     }
 
     const embed = new EmbedBuilder()
-        .setTitle("🗺️ Your quests")
+        .setTitle(text.title)
         .setColor(COLORS.activity)
-        .setFooter({ text: "Progress updates on its own · you are told by DM when one finishes or ends" });
+        .setFooter({ text: text.footer });
 
     let totalReward = 0;
 
@@ -43,17 +41,14 @@ export async function buildActiveQuestsEmbed(guildId: string, discordId: string)
         ).length;
 
         embed.addFields({
-            name: `${tierTitle(claim.tier as QuestTier)} — ${done}/${claim.missions.length} done`,
+            name: text.questField(tierTitle(claim.tier as QuestTier), done, claim.missions.length),
             value:
                 `${missionProgressLines(claim.missions, claim.progress).join("\n")}\n` +
-                `🎯 **${reward.toLocaleString()}** points · ends <t:${Math.floor(claim.expiresAt.getTime() / 1000)}:R>`,
+                text.questMeta(reward, claim.expiresAt),
         });
     }
 
-    embed.setDescription(
-        `**${claims.length}** quest${claims.length === 1 ? "" : "s"} in progress · ` +
-        `**${totalReward.toLocaleString()}** points on the table`
-    );
+    embed.setDescription(text.summary(claims.length, totalReward));
 
     return embed;
 }

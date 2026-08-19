@@ -1,12 +1,13 @@
 import { EmbedBuilder, type GuildMember } from "discord.js";
 import type { FeatureSubcommandHandler } from "@typings/feature";
-import { COLORS, QUEST_TIERS, TIER_SLOT, type QuestTier } from "@constants";
+import { COLORS, QUEST_MESSAGES, QUEST_TIERS, TIER_SLOT, type QuestTier } from "@constants";
 import { QuestRepository, QuestClaimRepository } from "@database/repositories";
 import { isVipMember } from "../functions/is-vip";
 import { tierTitle } from "../utils/quest-lines";
 
 /** Everything claimable in this guild right now, annotated with what this member can do about it. */
 export const board: FeatureSubcommandHandler = async (interaction, _client) => {
+    const text = QUEST_MESSAGES.board;
     const guildId = interaction.guildId!;
     const member = interaction.member as GuildMember | null;
 
@@ -18,13 +19,9 @@ export const board: FeatureSubcommandHandler = async (interaction, _client) => {
     if (quests.length === 0) {
         await interaction.editReply({
             embeds: [new EmbedBuilder()
-                .setTitle("Quest board")
+                .setTitle(text.title)
                 .setColor(COLORS.info)
-                .setDescription(
-                    "Nothing is open at the moment.\n\n" +
-                    "Quests appear at unannounced times inside the server's generation windows — " +
-                    "check back later, or watch the quest channel."
-                )],
+                .setDescription(text.empty)],
         });
         return;
     }
@@ -40,36 +37,36 @@ export const board: FeatureSubcommandHandler = async (interaction, _client) => {
     );
 
     const embed = new EmbedBuilder()
-        .setTitle("Quest board")
+        .setTitle(text.title)
         .setColor(COLORS.activity)
-        .setFooter({ text: "Claim from the quest's own message — progress then tracks itself." });
+        .setFooter({ text: text.footer });
 
     for (const quest of ordered.slice(0, 20)) {
         const tier = quest.tier as QuestTier;
 
         const status = heldQuestIds.has(String(quest._id))
-            ? "✅ Claimed"
+            ? text.status.claimed
             : tier === "vip" && !isVip
-                ? "🔒 VIP members only"
+                ? text.status.vipOnly
                 : quest.slotsRemaining <= 0
-                    ? "❌ Full"
+                    ? text.status.full
                     : busySlots.has(TIER_SLOT[tier])
-                        ? "⏳ Finish your current quest of this kind first"
-                        : "🟩 Open to you";
+                        ? text.status.slotBusy
+                        : text.status.open;
 
         const slots = quest.slotsTotal === null
-            ? "unlimited slots"
-            : `${quest.slotsRemaining}/${quest.slotsTotal} slots left`;
+            ? text.slotsUnlimited
+            : text.slotsLeft(quest.slotsRemaining, quest.slotsTotal);
 
         const link = quest.channelId && quest.messageId
-            ? ` · [go to it](https://discord.com/channels/${guildId}/${quest.channelId}/${quest.messageId})`
+            ? text.link(guildId, quest.channelId, quest.messageId)
             : "";
 
         embed.addFields({
-            name: `${tierTitle(tier)} — ${quest.reward.toLocaleString()} points`,
+            name: text.questField(tierTitle(tier), quest.reward),
             value:
-                `${quest.missions.map(mission => `• ${mission.label}`).join("\n")}\n` +
-                `${status} · ${slots} · ends <t:${Math.floor(quest.endsAt.getTime() / 1000)}:R>${link}`,
+                `${quest.missions.map(mission => text.objective(mission.label)).join("\n")}\n` +
+                text.questMeta(status, slots, quest.endsAt, link),
         });
     }
 

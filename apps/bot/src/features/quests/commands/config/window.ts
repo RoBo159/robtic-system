@@ -1,8 +1,10 @@
 import { EmbedBuilder } from "discord.js";
 import type { FeatureSubcommandHandler } from "@typings/feature";
-import { COLORS, QUEST_LIMITS } from "@constants";
+import { COLORS, QUEST_CONFIG_MESSAGES, QUEST_LIMITS } from "@constants";
 import type { IQuestWindow } from "@database/models";
 import { QuestSettingsRepository } from "@database/repositories";
+
+const TEXT = QUEST_CONFIG_MESSAGES.window;
 
 /** Window keys end up inside the generation key ("2026-08-15#morning"), so they stay boring. */
 const normalizeKey = (raw: string): string =>
@@ -22,12 +24,6 @@ const plain = (window: IQuestWindow): IQuestWindow => ({
     enabled: window.enabled,
 });
 
-const describe = (window: IQuestWindow): string => {
-    const hours = `${String(window.startHour).padStart(2, "0")}:00 → ${String(window.endHour).padStart(2, "0")}:00`;
-    const overnight = window.endHour <= window.startHour ? " *(overnight)*" : "";
-    return `**${window.key}** — ${hours}${overnight}${window.enabled ? "" : " *(disabled)*"}`;
-};
-
 /**
  * Adds a window, or replaces one with the same key.
  *
@@ -42,7 +38,7 @@ export const windowAdd: FeatureSubcommandHandler = async (interaction, _client) 
     const key = normalizeKey(interaction.options.getString("key", true));
 
     if (!key) {
-        await interaction.editReply({ content: "That name has no usable characters — try something like `morning`." });
+        await interaction.editReply({ content: TEXT.unusableKey });
         return;
     }
 
@@ -53,9 +49,7 @@ export const windowAdd: FeatureSubcommandHandler = async (interaction, _client) 
     const existing = settings.windows.find(window => window.key === key);
 
     if (!existing && settings.windows.length >= QUEST_LIMITS.maxWindows) {
-        await interaction.editReply({
-            content: `This server already has ${QUEST_LIMITS.maxWindows} windows — remove one before adding another.`,
-        });
+        await interaction.editReply({ content: TEXT.tooMany(QUEST_LIMITS.maxWindows) });
         return;
     }
 
@@ -67,9 +61,7 @@ export const windowAdd: FeatureSubcommandHandler = async (interaction, _client) 
     await QuestSettingsRepository.setWindows(guildId, windows);
 
     await interaction.editReply({
-        content: `${existing ? "Updated" : "Added"} window ${describe({ key, startHour, endHour, enabled: true })}\n` +
-            "Quests appear at an unannounced minute inside it — the same minute for the whole server, " +
-            "different for every other server.",
+        content: TEXT.saved(Boolean(existing), TEXT.describe({ key, startHour, endHour, enabled: true })),
     });
 };
 
@@ -81,35 +73,29 @@ export const windowRemove: FeatureSubcommandHandler = async (interaction, _clien
     const remaining = settings.windows.filter(window => window.key !== key).map(plain);
 
     if (remaining.length === settings.windows.length) {
-        await interaction.editReply({ content: `No window called **${key}**. \`/quest-config window list\` shows them.` });
+        await interaction.editReply({ content: TEXT.notFound(key) });
         return;
     }
 
     await QuestSettingsRepository.setWindows(guildId, remaining);
 
     await interaction.editReply({
-        content: remaining.length === 0
-            ? `Removed **${key}**. With no windows left, no daily quests will be generated.`
-            : `Removed **${key}**.`,
+        content: remaining.length === 0 ? TEXT.removedLast(key) : TEXT.removed(key),
     });
 };
 
 export const windowList: FeatureSubcommandHandler = async (interaction, _client) => {
     const settings = await QuestSettingsRepository.getCached(interaction.guildId!);
-    const offset = settings.utcOffsetMinutes;
-
-    const sign = offset < 0 ? "-" : "+";
-    const abs = Math.abs(offset);
-    const clock = `UTC${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+    const clock = QUEST_CONFIG_MESSAGES.utcClock(settings.utcOffsetMinutes);
 
     await interaction.editReply({
         embeds: [new EmbedBuilder()
-            .setTitle("Quest generation windows")
+            .setTitle(TEXT.listTitle)
             .setColor(COLORS.info)
             .setDescription(settings.windows.length > 0
-                ? settings.windows.map(describe).join("\n")
-                : "No windows configured — no daily quests will be generated.")
-            .setFooter({ text: `Hours are read in ${clock} · change it with /quest-config offset` })],
+                ? settings.windows.map(window => TEXT.describe(window)).join("\n")
+                : TEXT.listEmpty)
+            .setFooter({ text: TEXT.listFooter(clock) })],
     });
 };
 

@@ -1,11 +1,13 @@
 import { EmbedBuilder } from "discord.js";
 import type { FeatureSubcommandHandler } from "@typings/feature";
-import { COLORS, QUEST_TIERS, type QuestTier } from "@constants";
+import { COLORS, QUEST_CONFIG_MESSAGES, QUEST_TIERS, type QuestTier } from "@constants";
 import { mentionRoleFor, tierEnabled } from "@database/models";
 import { QuestSettingsRepository } from "@database/repositories";
 import { tierTitle } from "../../utils/quest-lines";
 
-const channel = (id: string | null): string => (id ? `<#${id}>` : "*not set*");
+const TEXT = QUEST_CONFIG_MESSAGES.status;
+
+const channel = (id: string | null): string => (id ? `<#${id}>` : TEXT.notSet);
 
 /**
  * The whole configuration on one screen, with the problems called out.
@@ -16,82 +18,75 @@ const channel = (id: string | null): string => (id ? `<#${id}>` : "*not set*");
  */
 export const status: FeatureSubcommandHandler = async (interaction, _client) => {
     const settings = await QuestSettingsRepository.getCached(interaction.guildId!);
-
-    const sign = settings.utcOffsetMinutes < 0 ? "-" : "+";
-    const abs = Math.abs(settings.utcOffsetMinutes);
-    const clock = `UTC${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+    const clock = QUEST_CONFIG_MESSAGES.utcClock(settings.utcOffsetMinutes);
 
     const warnings: string[] = [];
-    if (!settings.dailyChannelId) warnings.push("No daily channel — generated quests are posted nowhere.");
+    if (!settings.dailyChannelId) warnings.push(TEXT.warnings.noDailyChannel);
     if (settings.communityEnabled && !settings.communityChannelId) {
-        warnings.push("No community channel — the weekly challenge runs unseen.");
+        warnings.push(TEXT.warnings.noCommunityChannel);
     }
     if (settings.vipRoleIds.length === 0 && tierEnabled(settings, "vip")) {
-        warnings.push("No VIP roles — VIP quests are posted but nobody can claim them.");
+        warnings.push(TEXT.warnings.noVipRoles);
     }
     if (settings.windows.filter(window => window.enabled).length === 0) {
-        warnings.push("No enabled windows — nothing will be generated at all.");
+        warnings.push(TEXT.warnings.noWindows);
     }
 
     const embed = new EmbedBuilder()
-        .setTitle("Quest configuration")
+        .setTitle(TEXT.title)
         .setColor(warnings.length > 0 ? COLORS.warning : COLORS.success)
         .addFields(
             {
-                name: "Channels",
-                value:
-                    `Daily — ${channel(settings.dailyChannelId)}\n` +
-                    `Community — ${channel(settings.communityChannelId)}\n` +
-                    `VIP — ${settings.vipChannelId ? channel(settings.vipChannelId) : "*falls back to daily*"}`,
+                name: TEXT.channelsField,
+                value: TEXT.channelsValue(
+                    channel(settings.dailyChannelId),
+                    channel(settings.communityChannelId),
+                    settings.vipChannelId ? channel(settings.vipChannelId) : TEXT.vipFallsBack,
+                ),
                 inline: true,
             },
             {
-                name: "Mentions",
+                name: TEXT.mentionsField,
                 value: [...QUEST_TIERS, "community" as const]
-                    .map(type => {
-                        const roleId = mentionRoleFor(settings, type);
-                        const name = type === "community" ? "🌍 Community" : tierTitle(type as QuestTier);
-                        return `${name} — ${roleId ? `<@&${roleId}>` : "—"}`;
-                    })
+                    .map(type => TEXT.mentionRow(
+                        type === "community" ? TEXT.communityLabel : tierTitle(type as QuestTier),
+                        mentionRoleFor(settings, type),
+                    ))
                     .join("\n"),
                 inline: true,
             },
             {
-                name: "Difficulties",
+                name: TEXT.difficultiesField,
                 value: QUEST_TIERS
-                    .map(tier => `${tierEnabled(settings, tier) ? "✅" : "🚫"} ${tierTitle(tier)}`)
+                    .map(tier => TEXT.difficultyRow(tierEnabled(settings, tier), tierTitle(tier)))
                     .join("\n"),
                 inline: true,
             },
             {
-                name: `Windows (${clock})`,
+                name: TEXT.windowsField(clock),
                 value: settings.windows.length > 0
-                    ? settings.windows
-                        .map(window =>
-                            `${window.enabled ? "•" : "○"} **${window.key}** ${String(window.startHour).padStart(2, "0")}:00 → ${String(window.endHour).padStart(2, "0")}:00`)
-                        .join("\n")
-                    : "*none*",
+                    ? settings.windows.map(window => TEXT.windowRow(window)).join("\n")
+                    : TEXT.none,
                 inline: true,
             },
             {
-                name: "VIP roles",
+                name: TEXT.vipRolesField,
                 value: settings.vipRoleIds.length > 0
                     ? settings.vipRoleIds.map(id => `<@&${id}>`).join(", ")
-                    : "*none*",
+                    : TEXT.none,
                 inline: true,
             },
             {
-                name: "Community challenge",
+                name: TEXT.communityField,
                 value: settings.communityEnabled
-                    ? `On · ${settings.communityRewardBase.toLocaleString()} points base · ` +
-                      `min ${settings.communityMinContribution.toLocaleString()}`
-                    : "Off",
+                    ? TEXT.communityOn(settings.communityRewardBase, settings.communityMinContribution)
+                    : TEXT.communityOff,
                 inline: true,
             },
         );
 
     if (warnings.length > 0) {
-        embed.addFields({ name: "⚠️ Needs attention", value: warnings.map(line => `• ${line}`).join("\n") });
+        embed.addFields({ name: TEXT.warningsField, value: warnings.map(TEXT.warningRow).join("\n") });
     }
 
     await interaction.editReply({ embeds: [embed] });

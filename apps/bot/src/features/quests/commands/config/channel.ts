@@ -1,4 +1,5 @@
 import type { FeatureSubcommandHandler } from "@typings/feature";
+import { QUEST_CONFIG_MESSAGES } from "@constants";
 import { QuestSettingsRepository } from "@database/repositories";
 
 type ChannelField = "dailyChannelId" | "communityChannelId" | "vipChannelId";
@@ -17,20 +18,8 @@ const setChannel = (field: ChannelField, describe: (mention: string | null) => s
         await interaction.editReply({ content: describe(channel ? `<#${channel.id}>` : null) });
     };
 
-export const channelDaily = setChannel(
-    "dailyChannelId",
-    mention => `Easy, normal, hard and golden quests will be posted in ${mention}.`
-);
+export const channelDaily = setChannel("dailyChannelId", QUEST_CONFIG_MESSAGES.channel.daily);
 
-export const channelCommunity = setChannel(
-    "communityChannelId",
-    mention => `The weekly community challenge will be posted in ${mention}.\n` +
-        "The panel is posted once and edited all week — it is worth a channel members can find.",
-);
+export const channelCommunity = setChannel("communityChannelId", QUEST_CONFIG_MESSAGES.channel.community);
 
-export const channelVip = setChannel(
-    "vipChannelId",
-    mention => mention
-        ? `VIP quests will be posted in ${mention}.`
-        : "VIP channel cleared — VIP quests will go to the daily quest channel.",
-);
+export const channelVip = setChannel("vipChannelId", QUEST_CONFIG_MESSAGES.channel.vip);

@@ -1,6 +1,6 @@
 import { EmbedBuilder } from "discord.js";
 import type { QuestSummary } from "@core/quests";
-import { COLORS } from "@constants";
+import { COLORS, QUEST_MESSAGES } from "@constants";
 import { formatDuration } from "@utils";
 
 interface StatsTarget {
@@ -16,69 +16,72 @@ interface StatsTarget {
  * completion rate means — the arithmetic lives in `getQuestSummary`, and this only lays it out.
  */
 export function buildQuestStatsEmbed(summary: QuestSummary, target: StatsTarget, isSelf: boolean): EmbedBuilder {
+    const text = QUEST_MESSAGES.stats;
+
     if (summary.claimed === 0) {
         return new EmbedBuilder()
-            .setTitle(`🗺️ Quest record — ${target.username}`)
+            .setTitle(text.title(target.username))
             .setColor(COLORS.info)
-            .setDescription(isSelf
-                ? "You have not claimed a quest yet. `/quest board` shows what is open."
-                : "This member has not claimed a quest yet.");
+            .setDescription(isSelf ? text.emptySelf : text.emptyOther);
     }
 
+    const duration = (ms: number | null): string => (ms === null ? text.noDuration : formatDuration(ms));
+
     const embed = new EmbedBuilder()
-        .setTitle(`🗺️ Quest record — ${target.username}`)
+        .setTitle(text.title(target.username))
         .setColor(COLORS.activity)
         .addFields(
             {
-                name: "Overall",
-                value:
-                    `Claimed **${summary.claimed.toLocaleString()}**\n` +
-                    `Completed **${summary.completed.toLocaleString()}**\n` +
-                    `Failed **${summary.failed.toLocaleString()}**\n` +
-                    `Completion rate **${summary.completionRate}%**` +
-                    (summary.activeClaims > 0 ? `\nOn **${summary.activeClaims}** right now` : ""),
+                name: text.overallField,
+                value: text.overallValue(
+                    summary.claimed,
+                    summary.completed,
+                    summary.failed,
+                    summary.completionRate,
+                    summary.activeClaims,
+                ),
                 inline: true,
             },
             {
-                name: "By difficulty",
-                value:
-                    `🟢 Easy **${summary.easyCompleted.toLocaleString()}**\n` +
-                    `🔵 Normal **${summary.normalCompleted.toLocaleString()}**\n` +
-                    `🟣 Hard **${summary.hardCompleted.toLocaleString()}**\n` +
-                    `🌟 Golden **${summary.goldenCompleted.toLocaleString()}**\n` +
-                    `💎 VIP **${summary.vipCompleted.toLocaleString()}**`,
+                name: text.difficultyField,
+                value: text.difficultyValue(
+                    summary.easyCompleted,
+                    summary.normalCompleted,
+                    summary.hardCompleted,
+                    summary.goldenCompleted,
+                    summary.vipCompleted,
+                ),
                 inline: true,
             },
             {
-                name: "Timing",
-                value:
-                    `Fastest **${summary.fastestCompletionMs === null ? "—" : formatDuration(summary.fastestCompletionMs)}**\n` +
-                    `Average **${summary.averageCompletionMs === null ? "—" : formatDuration(summary.averageCompletionMs)}**\n` +
-                    `First to finish **${summary.firstPlaceFinishes.toLocaleString()}×**`,
+                name: text.timingField,
+                value: text.timingValue(
+                    duration(summary.fastestCompletionMs),
+                    duration(summary.averageCompletionMs),
+                    summary.firstPlaceFinishes,
+                ),
                 inline: true,
             },
             {
-                name: "Rewards",
-                value: `🎯 **${summary.pointsEarned.toLocaleString()}** points`,
+                name: text.rewardsField,
+                value: text.rewardsValue(summary.pointsEarned),
                 inline: true,
             },
             {
-                name: "Community",
-                value:
-                    `🌍 **${summary.communityCompleted.toLocaleString()}** challenges\n` +
-                    `📈 **${summary.communityContribution.toLocaleString()}** contributed`,
+                name: text.communityField,
+                value: text.communityValue(summary.communityCompleted, summary.communityContribution),
                 inline: true,
             },
             {
-                name: "Server rank",
-                value: summary.rank > 0 ? `#${summary.rank}` : "Unranked",
+                name: text.rankField,
+                value: summary.rank > 0 ? text.rankValue(summary.rank) : text.unranked,
                 inline: true,
             },
         );
 
     if (target.avatarUrl) embed.setThumbnail(target.avatarUrl);
     if (summary.lastCompletedAt) {
-        embed.setFooter({ text: "Last completion" }).setTimestamp(new Date(summary.lastCompletedAt));
+        embed.setFooter({ text: text.lastCompletionFooter }).setTimestamp(new Date(summary.lastCompletedAt));
     }
 
     return embed;

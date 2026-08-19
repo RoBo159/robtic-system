@@ -1,5 +1,5 @@
 import { EmbedBuilder, type Client } from "discord.js";
-import { COLORS, type QuestTier } from "@constants";
+import { COLORS, QUEST_MESSAGES, type QuestTier } from "@constants";
 import { setQuestNotifier, type QuestCompleted, type QuestExpired } from "@core/quests";
 import { formatDuration } from "@utils";
 import { Logger } from "@logger";
@@ -7,7 +7,7 @@ import { tierTitle, miniBar } from "../utils/quest-lines";
 
 const CTX = "quests";
 
-const RANK_SUFFIX = ["🥇 first to finish", "🥈 second", "🥉 third"];
+const TEXT = QUEST_MESSAGES.dm;
 
 /**
  * DMs a member when their quest resolves.
@@ -28,7 +28,7 @@ export function registerQuestNotifier(client: Client): void {
 
 async function guildName(client: Client, guildId: string): Promise<string> {
     const guild = client.guilds.cache.get(guildId) ?? await client.guilds.fetch(guildId).catch(() => null);
-    return guild?.name ?? "the server";
+    return guild?.name ?? TEXT.unknownGuild;
 }
 
 async function dm(client: Client, discordId: string, embed: EmbedBuilder): Promise<void> {
@@ -41,47 +41,51 @@ async function dm(client: Client, discordId: string, embed: EmbedBuilder): Promi
 }
 
 async function sendCompleted(client: Client, event: QuestCompleted): Promise<void> {
-    const rank = RANK_SUFFIX[event.rank - 1] ?? `finished #${event.rank}`;
+    const text = TEXT.completed;
+    const rank = TEXT.rankSuffix[event.rank - 1] ?? TEXT.rankFallback(event.rank);
 
     const embed = new EmbedBuilder()
-        .setTitle("✅ Quest complete")
+        .setTitle(text.title)
         .setColor(COLORS.success)
-        .setDescription(
-            `You finished your **${tierTitle(event.tier as QuestTier)}** quest in **${await guildName(client, event.guildId)}**.\n\n` +
-            event.missions.map(mission => `✅ ${mission.label}`).join("\n")
-        )
+        .setDescription(text.description(
+            tierTitle(event.tier as QuestTier),
+            await guildName(client, event.guildId),
+            event.missions.map(mission => text.missionLine(mission.label)).join("\n"),
+        ))
         .addFields(
-            { name: "Reward", value: `🎯 **${event.reward.toLocaleString()}** points — already paid`, inline: true },
-            { name: "Finished", value: rank, inline: true },
-            { name: "Took", value: formatDuration(event.durationMs), inline: true },
+            { name: text.rewardField, value: text.rewardValue(event.reward), inline: true },
+            { name: text.rankField, value: rank, inline: true },
+            { name: text.durationField, value: formatDuration(event.durationMs), inline: true },
         )
-        .setFooter({ text: "That slot is free again — claim the next one whenever it appears." })
+        .setFooter({ text: text.footer })
         .setTimestamp();
 
     await dm(client, event.discordId, embed);
 }
 
 async function sendExpired(client: Client, event: QuestExpired): Promise<void> {
+    const text = TEXT.expired;
+
     const lines = event.missions.map(mission => {
         const value = Math.min(mission.target, mission.progress);
         const fraction = mission.target > 0 ? value / mission.target : 0;
-        const done = value >= mission.target;
 
-        return `${done ? "✅" : "▫️"} ${mission.label}\n\`${miniBar(fraction)}\` ${value.toLocaleString()} / ${mission.target.toLocaleString()}`;
+        return text.missionLine(mission.label, miniBar(fraction), value, mission.target, value >= mission.target);
     });
 
     const embed = new EmbedBuilder()
-        .setTitle("⌛ Quest ended")
+        .setTitle(text.title)
         .setColor(COLORS.warning)
-        .setDescription(
-            `Your **${tierTitle(event.tier as QuestTier)}** quest in **${await guildName(client, event.guildId)}** ran out of time.\n\n` +
-            lines.join("\n")
-        )
+        .setDescription(text.description(
+            tierTitle(event.tier as QuestTier),
+            await guildName(client, event.guildId),
+            lines.join("\n"),
+        ))
         .addFields({
-            name: "Where you got to",
-            value: `${event.missionsCompleted} of ${event.missionsTotal} objective(s) done`,
+            name: text.progressField,
+            value: text.progressValue(event.missionsCompleted, event.missionsTotal),
         })
-        .setFooter({ text: "No penalty — your slot is free, so the next quest is yours to take." })
+        .setFooter({ text: text.footer })
         .setTimestamp();
 
     await dm(client, event.discordId, embed);

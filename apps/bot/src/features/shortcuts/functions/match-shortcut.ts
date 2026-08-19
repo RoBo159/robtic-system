@@ -6,6 +6,12 @@ export interface ShortcutHit {
     shortcut: IShortcutDoc;
     /** What the member typed after the trigger. */
     args: string;
+    /**
+     * True when the trigger was written with the guild prefix (`?c`), which is a deliberate command
+     * and deserves an error when it doesn't parse. A bare trigger is indistinguishable from ordinary
+     * chat, so callers keep quiet about that one instead.
+     */
+    viaPrefix: boolean;
 }
 
 /**
@@ -49,7 +55,7 @@ export async function matchShortcut(
         if (shortcut.channelIds.length && !shortcut.channelIds.includes(message.channel.id)) return null;
         if (shortcut.allowedRoleIds.length && !shortcut.allowedRoleIds.some(id => member.roles.cache.has(id))) return null;
 
-        return { shortcut, args: content.slice(trigger.length).trim() };
+        return { shortcut, args: content.slice(trigger.length).trim(), viaPrefix: prefixStripped !== null };
     }
 
     return null;

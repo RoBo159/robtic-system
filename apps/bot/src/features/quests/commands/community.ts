@@ -1,6 +1,6 @@
 import { EmbedBuilder } from "discord.js";
 import type { FeatureSubcommandHandler } from "@typings/feature";
-import { COLORS } from "@constants";
+import { COLORS, QUEST_COMMUNITY_MESSAGES } from "@constants";
 import { CommunityChallengeRepository, QuestSettingsRepository } from "@database/repositories";
 import { pendingTotal } from "@core/quests";
 import { buildCommunityEmbed } from "../utils/community-embed";
@@ -12,6 +12,7 @@ import { buildCommunityEmbed } from "../utils/community-embed";
  * fields the shared embed has no business carrying.
  */
 export const community: FeatureSubcommandHandler = async (interaction, _client) => {
+    const text = QUEST_COMMUNITY_MESSAGES;
     const guildId = interaction.guildId!;
     const challenge = await CommunityChallengeRepository.findActive(guildId);
 
@@ -20,11 +21,9 @@ export const community: FeatureSubcommandHandler = async (interaction, _client) 
 
         await interaction.editReply({
             embeds: [new EmbedBuilder()
-                .setTitle("🌍 Weekly Community Challenge")
+                .setTitle(text.title)
                 .setColor(COLORS.info)
-                .setDescription(settings.communityEnabled
-                    ? "No challenge is running. A new one opens at the start of the week."
-                    : "Community challenges are switched off in this server.")],
+                .setDescription(settings.communityEnabled ? text.noneRunning : text.disabled)],
         });
         return;
     }
@@ -41,14 +40,14 @@ export const community: FeatureSubcommandHandler = async (interaction, _client) 
 
     const amount = mine?.amount ?? 0;
     embed.addFields({
-        name: "Your contribution",
+        name: text.yourContributionField,
         value: amount >= challenge.minContribution
-            ? `${amount.toLocaleString()} — you qualify for the reward`
-            : `${amount.toLocaleString()} — ${(challenge.minContribution - amount).toLocaleString()} more to qualify`,
+            ? text.yourContributionQualified(amount)
+            : text.yourContributionShort(amount, challenge.minContribution - amount),
         inline: true,
     });
 
-    embed.addFields({ name: "Contributors", value: contributors.toLocaleString(), inline: true });
+    embed.addFields({ name: text.contributorsField, value: contributors.toLocaleString(), inline: true });
 
     await interaction.editReply({ embeds: [embed] });
 };

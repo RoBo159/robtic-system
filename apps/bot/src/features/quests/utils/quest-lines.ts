@@ -1,12 +1,10 @@
 import type { IQuestClaimMission } from "@database/models";
-import type { QuestTier } from "@constants";
-import { TIER_EMOJI } from "./quest-embed";
+import { QUEST_MESSAGES, type QuestTier } from "@constants";
 
 const BAR_WIDTH = 10;
 
 /** "🟢 Easy" — the one place a tier turns into display text, so every surface spells it the same. */
-export const tierTitle = (tier: QuestTier): string =>
-    `${TIER_EMOJI[tier]} ${tier === "vip" ? "VIP" : tier.charAt(0).toUpperCase() + tier.slice(1)}`;
+export const tierTitle = (tier: QuestTier): string => QUEST_MESSAGES.tierTitle(tier);
 
 /** Same block characters as the community bar, ten wide because these sit in a stacked list. */
 export function miniBar(fraction: number): string {
@@ -28,9 +26,14 @@ export function missionProgressLines(
     return missions.map((mission, index) => {
         const value = Math.min(mission.target, progress?.[mission.missionId] ?? 0);
         const fraction = mission.target > 0 ? value / mission.target : 0;
-        const done = value >= mission.target;
 
-        return `${done ? "✅" : `\`${index + 1}.\``} ${mission.label}\n` +
-            `\`${miniBar(fraction)}\` ${value.toLocaleString()} / ${mission.target.toLocaleString()}`;
+        return QUEST_MESSAGES.missionLine(
+            index,
+            mission.label,
+            miniBar(fraction),
+            value,
+            mission.target,
+            value >= mission.target,
+        );
     });
 }

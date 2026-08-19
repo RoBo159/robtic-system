@@ -1,6 +1,6 @@
 import { EmbedBuilder, type GuildMember } from "discord.js";
 import type { FeatureSubcommandHandler } from "@typings/feature";
-import { COLORS, QUEST_TIER_SPECS, questRangeBounds } from "@constants";
+import { COLORS, QUEST_MESSAGES, QUEST_TIER_SPECS, questRangeBounds } from "@constants";
 import { buildQuest } from "@core/quests";
 import { hasGuildBotAdmin } from "@bot/utils/access";
 import { Logger } from "@logger";
@@ -18,10 +18,11 @@ const CTX = "quests";
  * places, the lifetime — so two Specials posted an hour apart are genuinely different quests.
  */
 export const post: FeatureSubcommandHandler = async (interaction, client) => {
+    const text = QUEST_MESSAGES.post;
     const member = interaction.member as GuildMember | null;
 
     if (!member || !(await hasGuildBotAdmin(member))) {
-        await interaction.editReply({ content: "Only a server administrator can post a Special quest." });
+        await interaction.editReply({ content: text.adminOnly });
         return;
     }
 
@@ -34,9 +35,7 @@ export const post: FeatureSubcommandHandler = async (interaction, client) => {
     const quest = await buildQuest(guildId, "special", cycleKey);
 
     if (!quest) {
-        await interaction.editReply({
-            content: "Could not build a Special quest — no mission templates matched. Nothing was posted.",
-        });
+        await interaction.editReply({ content: text.buildFailed });
         return;
     }
 
@@ -52,19 +51,15 @@ export const post: FeatureSubcommandHandler = async (interaction, client) => {
 
     await interaction.editReply({
         embeds: [new EmbedBuilder()
-            .setTitle("🎁 Special quest posted")
+            .setTitle(text.title)
             .setColor(COLORS.success)
-            .setDescription(quest.missions.map((mission, index) => `\`${index + 1}\` ${mission.label}`).join("\n"))
+            .setDescription(quest.missions.map((mission, index) => text.objective(index, mission.label)).join("\n"))
             .addFields(
-                { name: "Reward", value: `🎯 **${quest.reward.toLocaleString()}** points`, inline: true },
-                { name: "Places", value: `${quest.slotsTotal ?? "unlimited"}`, inline: true },
-                { name: "Ends", value: `<t:${Math.floor(quest.endsAt.getTime() / 1000)}:R>`, inline: true },
+                { name: text.rewardField, value: text.rewardValue(quest.reward), inline: true },
+                { name: text.placesField, value: text.placesValue(quest.slotsTotal), inline: true },
+                { name: text.endsField, value: text.endsValue(quest.endsAt), inline: true },
             )
-            .setFooter({
-                text: `Rolled from ${rewardBounds.min}–${rewardBounds.max} points`
-                    + (slotBounds ? ` and ${slotBounds.min}–${slotBounds.max} places` : "")
-                    + " · anyone may claim it, even mid-quest",
-            })],
+            .setFooter({ text: text.footer(rewardBounds, slotBounds) })],
     });
 
     Logger.info(`${member.id} posted a special quest in ${guildId} (${quest.missions.length} missions, ${quest.reward} points)`, CTX);

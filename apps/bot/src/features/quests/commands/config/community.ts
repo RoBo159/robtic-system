@@ -1,7 +1,9 @@
 import { EmbedBuilder } from "discord.js";
 import type { FeatureSubcommandHandler } from "@typings/feature";
-import { COLORS } from "@constants";
+import { COLORS, QUEST_COMMUNITY_MESSAGES, QUEST_CONFIG_MESSAGES } from "@constants";
 import { QuestSettingsRepository } from "@database/repositories";
+
+const TEXT = QUEST_CONFIG_MESSAGES.community;
 
 /**
  * Weekly challenge settings. Omitted options are left alone.
@@ -22,14 +24,10 @@ export const communitySettings: FeatureSubcommandHandler = async (interaction, _
 
     await interaction.editReply({
         embeds: [new EmbedBuilder()
-            .setTitle("Weekly community challenge")
+            .setTitle(TEXT.title)
             .setColor(enabled ? COLORS.success : COLORS.warning)
-            .setDescription(
-                `**Running:** ${enabled ? "yes, a new one opens each week" : "no"}\n` +
-                `**Base reward:** ${reward.toLocaleString()} points per qualifying contributor\n` +
-                `**Minimum contribution:** ${minimum.toLocaleString()}\n` +
-                "**Rank bonus:** 🥇 ×3 · 🥈🥉 ×2 · 4th–5th ×1.5"
-            )
-            .setFooter({ text: "A challenge already under way keeps the numbers it started with." })],
+            // The rank bonus comes from the panel's own copy, so the two cannot drift apart.
+            .setDescription(TEXT.description(enabled, reward, minimum, QUEST_COMMUNITY_MESSAGES.rankBonus))
+            .setFooter({ text: TEXT.footer })],
     });
 };

@@ -1,7 +1,9 @@
 import type { FeatureSubcommandHandler } from "@typings/feature";
-import { QUEST_TIER_SPECS, type QuestTier } from "@constants";
+import { QUEST_CONFIG_MESSAGES, QUEST_TIER_SPECS, type QuestTier } from "@constants";
 import { QuestSettingsRepository } from "@database/repositories";
 import { tierTitle } from "../../utils/quest-lines";
+
+const TEXT = QUEST_CONFIG_MESSAGES.tier;
 
 /**
  * Turns one difficulty on or off for this guild.
@@ -17,17 +19,16 @@ export const tierToggle: FeatureSubcommandHandler = async (interaction, _client)
 
     const spec = QUEST_TIER_SPECS[tier];
     const cadence = spec.dailyCount
-        ? `${spec.dailyCount.min}–${spec.dailyCount.max} per day`
+        ? TEXT.cadenceDaily(spec.dailyCount.min, spec.dailyCount.max)
         : spec.weeklyCount
-            ? `${spec.weeklyCount.min}–${spec.weeklyCount.max} per week`
-            : "one per generation window";
+            ? TEXT.cadenceWeekly(spec.weeklyCount.min, spec.weeklyCount.max)
+            : TEXT.cadencePerWindow;
 
-    const slots = spec.slots === null ? "unlimited claims" : `${spec.slots} claim slot(s)`;
+    const slots = spec.slots === null ? TEXT.slotsUnlimited : TEXT.slots(spec.slots);
 
     await interaction.editReply({
         content: enabled
-            ? `${tierTitle(tier)} quests are on — ${cadence}, ${spec.missions} mission(s), ` +
-              `${spec.reward.toLocaleString()} points, ${slots}.`
-            : `${tierTitle(tier)} quests are off. Any that are already live will finish normally.`,
+            ? TEXT.enabled(tierTitle(tier), cadence, spec.missions, spec.reward, slots)
+            : TEXT.disabled(tierTitle(tier)),
     });
 };

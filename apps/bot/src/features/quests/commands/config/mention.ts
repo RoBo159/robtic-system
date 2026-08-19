@@ -1,15 +1,17 @@
 import { EmbedBuilder } from "discord.js";
 import type { FeatureSubcommandHandler } from "@typings/feature";
-import { COLORS, QUEST_TIERS, type QuestTier } from "@constants";
+import { COLORS, QUEST_CONFIG_MESSAGES, QUEST_TIERS, type QuestTier } from "@constants";
 import { mentionRoleFor } from "@database/models";
 import { QuestSettingsRepository } from "@database/repositories";
 import { tierTitle } from "../../utils/quest-lines";
+
+const TEXT = QUEST_CONFIG_MESSAGES.mention;
 
 /** Tier order, with the community challenge last — it is not a tier, but it does get pinged. */
 const PINGABLE = [...QUEST_TIERS, "community"] as const;
 
 const label = (type: typeof PINGABLE[number]): string =>
-    type === "community" ? "🌍 Community" : tierTitle(type as QuestTier);
+    type === "community" ? TEXT.communityLabel : tierTitle(type as QuestTier);
 
 /** Sets — or with no role, clears — the role pinged when one kind of quest is posted. */
 export const mentionSet: FeatureSubcommandHandler = async (interaction, _client) => {
@@ -19,23 +21,18 @@ export const mentionSet: FeatureSubcommandHandler = async (interaction, _client)
     await QuestSettingsRepository.setMentionRole(interaction.guildId!, type, role?.id ?? null);
 
     await interaction.editReply({
-        content: role
-            ? `${label(type)} quests will ping <@&${role.id}>.`
-            : `${label(type)} quests will no longer ping anyone.`,
+        content: role ? TEXT.set(label(type), role.id) : TEXT.cleared(label(type)),
     });
 };
 
 export const mentionList: FeatureSubcommandHandler = async (interaction, _client) => {
     const settings = await QuestSettingsRepository.getCached(interaction.guildId!);
 
-    const lines = PINGABLE.map(type => {
-        const roleId = mentionRoleFor(settings, type);
-        return `${label(type)} — ${roleId ? `<@&${roleId}>` : "*no ping*"}`;
-    });
+    const lines = PINGABLE.map(type => TEXT.listRow(label(type), mentionRoleFor(settings, type)));
 
     await interaction.editReply({
         embeds: [new EmbedBuilder()
-            .setTitle("Quest mention roles")
+            .setTitle(TEXT.listTitle)
             .setColor(COLORS.info)
             .setDescription(lines.join("\n"))],
     });

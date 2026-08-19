@@ -1,4 +1,4 @@
-import type { QuestTier } from "@constants";
+import { QUEST_MISSION_LABELS, type QuestTier } from "@constants";
 import { registerMissionTemplate } from "./registry";
 import type { MissionTemplate } from "./types";
 
@@ -21,8 +21,6 @@ const SCALE: Record<QuestTier, number> = {
 
 const scaled = (base: number) => (tier: QuestTier): number => Math.round(base * SCALE[tier]);
 
-const plural = (n: number, one: string, many = `${one}s`): string => `${n} ${n === 1 ? one : many}`;
-
 const TEMPLATES: MissionTemplate[] = [
     {
         key: "send-messages",
@@ -30,7 +28,7 @@ const TEMPLATES: MissionTemplate[] = [
         accumulation: "sum",
         tiers: ["easy", "normal", "hard", "golden", "vip"],
         targetFor: scaled(25),
-        label: target => `Send ${plural(target, "message")}`,
+        label: QUEST_MISSION_LABELS["send-messages"],
         community: true,
         communityTarget: () => 5_000,
     },
@@ -40,7 +38,7 @@ const TEMPLATES: MissionTemplate[] = [
         accumulation: "sum",
         tiers: ["easy", "normal", "hard", "golden", "vip"],
         targetFor: scaled(150),
-        label: target => `Earn ${target.toLocaleString()} XP`,
+        label: QUEST_MISSION_LABELS["earn-xp"],
         community: true,
         communityTarget: () => 50_000,
     },
@@ -51,7 +49,7 @@ const TEMPLATES: MissionTemplate[] = [
         // Seconds under the hood; the label converts. Voice is slower than chat by design.
         tiers: ["easy", "normal", "hard", "golden", "vip"],
         targetFor: tier => Math.round(15 * 60 * SCALE[tier]),
-        label: target => `Spend ${plural(Math.round(target / 60), "minute")} active in voice`,
+        label: QUEST_MISSION_LABELS["voice-minutes"],
         community: true,
         communityTarget: () => 100 * 60 * 60,
     },
@@ -61,7 +59,7 @@ const TEMPLATES: MissionTemplate[] = [
         accumulation: "sum",
         tiers: ["normal", "hard", "golden", "vip"],
         targetFor: scaled(100),
-        label: target => `Earn ${target.toLocaleString()} XP in voice`,
+        label: QUEST_MISSION_LABELS["voice-xp"],
     },
     {
         key: "combo-score",
@@ -70,7 +68,7 @@ const TEMPLATES: MissionTemplate[] = [
         accumulation: "max",
         tiers: ["easy", "normal", "hard", "golden"],
         targetFor: tier => Math.round(40 * SCALE[tier]),
-        label: target => `Reach a combo score of ${target}`,
+        label: QUEST_MISSION_LABELS["combo-score"],
     },
     {
         key: "combo-heat",
@@ -78,7 +76,7 @@ const TEMPLATES: MissionTemplate[] = [
         accumulation: "max",
         tiers: ["normal", "hard", "golden"],
         targetFor: tier => Math.min(100, Math.round(30 * SCALE[tier])),
-        label: target => `Reach ${target} combo heat`,
+        label: QUEST_MISSION_LABELS["combo-heat"],
     },
     {
         key: "reach-streak",
@@ -87,7 +85,7 @@ const TEMPLATES: MissionTemplate[] = [
         // Not on easy: a streak is days long, so it cannot be started and finished inside 24h.
         tiers: ["hard", "golden"],
         targetFor: tier => (tier === "golden" ? 14 : 5),
-        label: target => `Reach a ${plural(target, "day")} streak`,
+        label: QUEST_MISSION_LABELS["reach-streak"],
     },
     {
         key: "earn-points",
@@ -95,7 +93,7 @@ const TEMPLATES: MissionTemplate[] = [
         accumulation: "sum",
         tiers: ["easy", "normal", "hard", "golden", "vip"],
         targetFor: scaled(10),
-        label: target => `Earn ${plural(target, "point")}`,
+        label: QUEST_MISSION_LABELS["earn-points"],
         community: true,
         communityTarget: () => 2_500,
     },
@@ -105,7 +103,7 @@ const TEMPLATES: MissionTemplate[] = [
         accumulation: "sum",
         tiers: ["normal", "hard", "golden"],
         targetFor: tier => (tier === "golden" ? 3 : 1),
-        label: target => (target === 1 ? "Gain a level" : `Gain ${target} levels`),
+        label: QUEST_MISSION_LABELS["level-up"],
     },
     {
         key: "community-contribution",
@@ -113,7 +111,7 @@ const TEMPLATES: MissionTemplate[] = [
         accumulation: "sum",
         tiers: ["normal", "hard", "golden", "vip"],
         targetFor: scaled(20),
-        label: target => `Contribute ${target} to the community challenge`,
+        label: QUEST_MISSION_LABELS["community-contribution"],
     },
 ];
 

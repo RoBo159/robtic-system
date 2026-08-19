@@ -51,7 +51,7 @@ export async function onShortcutMessage(message: Message, client: BotClient): Pr
     const command = client.commands.get(name);
     if (!command) return;
 
-    await runPrefixShortcut({
+    const ran = await runPrefixShortcut({
         message,
         client,
         command,
@@ -59,11 +59,18 @@ export async function onShortcutMessage(message: Message, client: BotClient): Pr
         // The subcommand words go back in front of the arguments, which is what makes a shortcut
         // usable for a command built from subcommands.
         argString: [subPath, args].filter(Boolean).join(" "),
+        // A bare trigger is indistinguishable from someone typing a sentence, so a message whose
+        // arguments don't parse is treated as chat and left alone rather than answered with a usage
+        // line. `?r` named the shortcut on purpose and still gets told what went wrong.
+        silent: !hit.viaPrefix,
         // The trigger stands in for the prefix, so a usage line reads `red @user <reason>` — what
         // the member actually types — rather than `!warn add @user <reason>`.
         prefix: `${shortcut.trigger} `,
         deleteMode,
     });
 
-    await ShortcutRepository.recordUse(message.guild.id, shortcut.trigger);
+    // Only a real invocation counts. A one-letter trigger matches ordinary sentences too, and
+    // counting those would make `/shortcut list` report a trigger nobody deliberately used as the
+    // busiest one in the server.
+    if (ran) await ShortcutRepository.recordUse(message.guild.id, shortcut.trigger);
 }

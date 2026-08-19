@@ -1,4 +1,5 @@
 import type { FeatureSubcommandHandler } from "@typings/feature";
+import { QUEST_CONFIG_MESSAGES } from "@constants";
 import { QuestSettingsRepository } from "@database/repositories";
 
 /**
@@ -12,16 +13,11 @@ export const offset: FeatureSubcommandHandler = async (interaction, _client) => 
     const minutes = interaction.options.getInteger("minutes", true);
     await QuestSettingsRepository.setUtcOffset(interaction.guildId!, minutes);
 
-    const sign = minutes < 0 ? "-" : "+";
-    const abs = Math.abs(minutes);
-    const clock = `UTC${sign}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
-
     // The bot's own idea of "now" in the new offset, so an admin can sanity-check it against a wall
     // clock instead of trusting the arithmetic.
     const localNow = new Date(Date.now() + minutes * 60_000).toISOString().slice(11, 16);
 
     await interaction.editReply({
-        content: `Quest windows are now read in **${clock}** — that makes it **${localNow}** here.\n` +
-            "Existing windows keep their hours; they just land at different real times.",
+        content: QUEST_CONFIG_MESSAGES.offset.saved(QUEST_CONFIG_MESSAGES.utcClock(minutes), localNow),
     });
 };

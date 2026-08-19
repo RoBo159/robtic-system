@@ -13,10 +13,20 @@ import { scheduleDeletion } from "./schedule-deletion";
  * never from interaction-only fields like `memberPermissions`, `appPermissions` or `locale` —
  * the stand-in has none of them.
  */
-export const checkPermissions = async (intract: Interaction, command: CommandConfig): Promise<boolean> => {
+export const checkPermissions = async (
+    intract: Interaction,
+    command: CommandConfig,
+    /**
+     * `silent` refuses without replying. Only the bare-shortcut entry point sets it: a one-letter
+     * trigger matches ordinary sentences too, so telling every member who starts a message with
+     * "l " that they lack permission is noise about a command they never named.
+     */
+    options?: { silent?: boolean },
+): Promise<boolean> => {
     let interaction = intract as ChatInputCommandInteraction;
 
     const deny = async (reason: string): Promise<false> => {
+        if (options?.silent) return false;
         await interaction.reply({ embeds: [errorEmbed(reason)], flags: MessageFlags.Ephemeral });
         scheduleDeletion(() => interaction.deleteReply());
         return false;

@@ -1,15 +1,6 @@
 import { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from "discord.js";
 import type { IQuest } from "@database/models";
-import { COLORS, type QuestTier } from "@constants";
-
-export const TIER_EMOJI: Record<QuestTier, string> = {
-    easy: "🟢",
-    normal: "🔵",
-    hard: "🟣",
-    golden: "🌟",
-    vip: "💎",
-    special: "🎁",
-};
+import { COLORS, QUEST_MESSAGES, type QuestTier } from "@constants";
 
 const TIER_COLOR: Record<QuestTier, number> = {
     easy: COLORS.success,
@@ -20,22 +11,9 @@ const TIER_COLOR: Record<QuestTier, number> = {
     special: 0xff5f9e,
 };
 
-/** How the tier is announced above the title. Rarity is the whole appeal of the top two. */
-const TIER_BADGE: Record<QuestTier, string> = {
-    easy: "DAILY QUEST",
-    normal: "DAILY QUEST",
-    hard: "RARE QUEST",
-    golden: "LEGENDARY QUEST",
-    vip: "VIP QUEST",
-    special: "SPECIAL EVENT",
-};
-
 const SLOT_BAR_WIDTH = 10;
 
 export const claimButtonId = (questId: string): string => `quest:claim:${questId}`;
-
-const tierName = (tier: QuestTier): string =>
-    tier === "vip" ? "VIP" : tier.charAt(0).toUpperCase() + tier.slice(1);
 
 /** `▰▰▰▱▱▱▱▱▱▱` — how full the quest is, so scarcity is visible at a glance rather than as a number. */
 function slotBar(taken: number, total: number): string {
@@ -51,12 +29,13 @@ function slotBar(taken: number, total: number): string {
  * the total follow it.
  */
 function slotsValue(quest: IQuest): string {
-    if (quest.slotsTotal === null) return "♾️ Unlimited";
+    const card = QUEST_MESSAGES.card;
+    if (quest.slotsTotal === null) return card.placesUnlimited;
 
     const left = Math.max(0, quest.slotsRemaining);
-    if (left === 0) return `🚫 **Full** — all ${quest.slotsTotal} taken`;
+    if (left === 0) return card.placesFull(quest.slotsTotal);
 
-    return `**${left}** of ${quest.slotsTotal} left\n\`${slotBar(quest.slotsTaken, quest.slotsTotal)}\``;
+    return card.placesLeft(left, quest.slotsTotal, slotBar(quest.slotsTaken, quest.slotsTotal));
 }
 
 /**
@@ -66,43 +45,34 @@ function slotsValue(quest: IQuest): string {
  * unpredictable widths, and a four-objective Hard quest ends up reading as a grid of fragments.
  */
 export function buildQuestEmbed(quest: IQuest): EmbedBuilder {
+    const card = QUEST_MESSAGES.card;
     const tier = quest.tier as QuestTier;
     const closed = quest.status !== "open" || quest.endsAt.getTime() <= Date.now();
 
     const objectives = quest.missions
-        .map((mission, index) => `\`${index + 1}\`  ${mission.label}`)
+        .map((mission, index) => card.objective(index, mission.label))
         .join("\n");
 
     const embed = new EmbedBuilder()
-        .setAuthor({ name: `${TIER_EMOJI[tier]}  ${TIER_BADGE[tier]}` })
-        .setTitle(`${tierName(tier)} Quest`)
+        .setAuthor({ name: card.author(tier) })
+        .setTitle(card.title(tier))
         .setColor(TIER_COLOR[tier])
         .setDescription(
-            `${objectives || "No objectives."}\n` +
+            `${objectives || card.noObjectives}\n` +
             `​`
         )
         .addFields(
-            { name: "Reward", value: `🎯 **${quest.reward.toLocaleString()}** points`, inline: true },
-            { name: "Places", value: slotsValue(quest), inline: true },
+            { name: card.rewardField, value: card.rewardValue(quest.reward), inline: true },
+            { name: card.placesField, value: slotsValue(quest), inline: true },
             {
-                name: closed ? "Ended" : "Ends",
+                name: card.endsField(closed),
                 // Client-rendered, so the countdown stays right without ever costing an edit.
-                value: `<t:${Math.floor(quest.endsAt.getTime() / 1000)}:R>`,
+                value: card.endsValue(quest.endsAt),
                 inline: true,
             },
         );
 
-    const objectiveCount = quest.missions.length === 1 ? "One objective" : `${quest.missions.length} objectives`;
-
-    embed.setFooter({
-        text: tier === "vip"
-            ? `${objectiveCount} · VIP members only · progress tracks itself once claimed`
-            : tier === "special"
-                // Worth saying out loud: every other tier competes for a slot, and members have
-                // learned to expect that.
-                ? `${objectiveCount} · claimable even if you are already on a quest`
-                : `${objectiveCount} · progress tracks itself once claimed · /quest to see yours`,
-    });
+    embed.setFooter({ text: card.footer(card.objectiveCount(quest.missions.length), tier) });
 
     return embed;
 }
@@ -114,21 +84,23 @@ export function buildQuestEmbed(quest: IQuest): EmbedBuilder {
  * embed and the button are edited together, so they cannot disagree.
  */
 export function buildQuestButtons(quest: IQuest): ActionRowBuilder<ButtonBuilder> {
+    const button = QUEST_MESSAGES.button;
+
     const closed = quest.status !== "open"
         || quest.endsAt.getTime() <= Date.now()
         || quest.slotsRemaining <= 0;
 
     const label = closed
-        ? quest.slotsRemaining <= 0 && quest.status === "open" ? "Full" : "Closed"
+        ? quest.slotsRemaining <= 0 && quest.status === "open" ? button.full : button.closed
         : quest.slotsTotal === null
-            ? "Claim"
-            : `Claim · ${quest.slotsRemaining} left`;
+            ? button.claim
+            : button.claimWithSlots(quest.slotsRemaining);
 
     return new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
             .setCustomId(claimButtonId(String(quest._id)))
             .setLabel(label)
-            .setEmoji(closed ? "🔒" : "⚔️")
+            .setEmoji(closed ? button.closedEmoji : button.openEmoji)
             .setStyle(closed ? ButtonStyle.Secondary : ButtonStyle.Success)
             .setDisabled(closed),
     );

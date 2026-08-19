@@ -16,6 +16,7 @@
     "test:workspaces": "bun --preload ./libs/shared/src/preload.ts scripts/workspace-check.ts",
     "test:premium": "bun --preload ./libs/shared/src/preload.ts scripts/premium-check.ts",
     "test:prefix": "bun --preload ./libs/shared/src/preload.ts scripts/prefix-check.ts",
+    "test:moderation": "bun --preload ./libs/shared/src/preload.ts scripts/moderation-guard-check.ts",
     "test:help": "bun --preload ./libs/shared/src/preload.ts scripts/help-check.ts",
     "migrate:coins-global": "bun --preload ./libs/shared/src/preload.ts scripts/migrate-coins-global.ts",
     "start": "NODE_ENV=production bun dist/index.js"

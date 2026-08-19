@@ -1,6 +1,7 @@
 import { MessageFlags, type ButtonInteraction, type GuildMember } from "discord.js";
 import type { ComponentHandler } from "@typings/command";
 import type { BotClient } from "@core/bot-client";
+import { QUEST_MESSAGES } from "@constants";
 import { QuestRepository } from "@database/repositories";
 import { claimQuest } from "@core/quests";
 import { Logger } from "@logger";
@@ -9,13 +10,8 @@ import { refreshQuestMessage } from "../functions/post-quest";
 
 const CTX = "quests";
 
-const FAILURE_TEXT: Record<string, string> = {
-    "not-found": "That quest no longer exists.",
-    ended: "This quest has already ended.",
-    "already-holding": "You are already on a quest of this kind. Finish it, or wait for it to expire.",
-    "not-vip": "VIP quests are for members with a VIP role.",
-    error: "Something went wrong claiming that. Try again in a moment.",
-};
+const TEXT = QUEST_MESSAGES.claim;
+const FAILURE_TEXT = TEXT.failure;
 
 /**
  * Takes a slot on the quest this button belongs to.
@@ -36,7 +32,7 @@ const handler: ComponentHandler<ButtonInteraction> = {
         const member = interaction.member as GuildMember | null;
 
         if (!member) {
-            await interaction.followUp({ content: "Quests only work in a server.", flags: MessageFlags.Ephemeral });
+            await interaction.followUp({ content: TEXT.guildOnly, flags: MessageFlags.Ephemeral });
             return;
         }
 
@@ -55,7 +51,7 @@ const handler: ComponentHandler<ButtonInteraction> = {
 
         if (!result.ok) {
             const text = result.reason === "full"
-                ? `Every slot was taken${result.slotsTotal ? ` — all ${result.slotsTotal} of them` : ""}.`
+                ? TEXT.full(result.slotsTotal)
                 : FAILURE_TEXT[result.reason ?? "error"] ?? FAILURE_TEXT.error!;
 
             await interaction.followUp({ content: text, flags: MessageFlags.Ephemeral });
@@ -64,12 +60,10 @@ const handler: ComponentHandler<ButtonInteraction> = {
             return;
         }
 
-        const objectives = quest.missions.map(mission => `• ${mission.label}`).join("\n");
+        const objectives = quest.missions.map(mission => TEXT.objective(mission.label)).join("\n");
 
         await interaction.followUp({
-            content:
-                `**Claimed.** Progress tracks automatically — there is nothing else to run.\n\n${objectives}\n\n` +
-                `Reward: **${quest.reward.toLocaleString()}** points · ends <t:${Math.floor(quest.endsAt.getTime() / 1000)}:R>`,
+            content: TEXT.claimed(objectives, quest.reward, quest.endsAt),
             flags: MessageFlags.Ephemeral,
         });
 

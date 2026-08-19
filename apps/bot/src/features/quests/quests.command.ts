@@ -2,6 +2,7 @@ import { MessageFlags, type AutocompleteInteraction } from "discord.js";
 import type { CommandConfig } from "@typings/command";
 import type { CommandInteractionLike, FeatureSubcommandHandler } from "@typings/feature";
 import type { BotClient } from "@core/bot-client";
+import { QUEST_MESSAGES } from "@constants";
 import { buildFeatureCommands } from "@core/features";
 import { questsFeature } from "./quests";
 import { board } from "./commands/board";
@@ -69,7 +70,7 @@ async function route(
     handler: FeatureSubcommandHandler | undefined,
 ): Promise<void> {
     if (!handler) {
-        await interaction.editReply({ content: "That subcommand is not wired up yet." });
+        await interaction.editReply({ content: QUEST_MESSAGES.notWired });
         return;
     }
 

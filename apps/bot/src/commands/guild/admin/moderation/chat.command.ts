@@ -6,6 +6,7 @@ import {
     type GuildTextBasedChannel,
 } from "discord.js";
 import { ChatUtils } from "@bot/utils/moderation/chat";
+import { STAFF_TIER_THRESHOLDS } from "@constants";
 import { BRANCH_EMOJIS as emoji } from "@config";
 
 export default {
@@ -50,6 +51,12 @@ export default {
                         .setMaxValue(100)
                 )
         ),
+
+    // setDefaultMemberPermissions only hides the slash command in clients that respect it, and does
+    // nothing at all for `!chat lock` — the prefix router never sees Discord's permission overwrite.
+    // Without a requiredPermission this command reached checkPermissions' permissive fallthrough,
+    // so any member could lock, hide or wipe a channel from chat. Staff tier is the real gate.
+    requiredPermission: STAFF_TIER_THRESHOLDS.staff,
 
     async run(interaction: ChatInputCommandInteraction) {
         if (!interaction.guild || !interaction.channel) {

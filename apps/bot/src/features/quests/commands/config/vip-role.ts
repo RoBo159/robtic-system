@@ -1,7 +1,9 @@
 import { EmbedBuilder } from "discord.js";
 import type { FeatureSubcommandHandler } from "@typings/feature";
-import { COLORS } from "@constants";
+import { COLORS, QUEST_CONFIG_MESSAGES } from "@constants";
 import { QuestSettingsRepository } from "@database/repositories";
+
+const TEXT = QUEST_CONFIG_MESSAGES.vipRole;
 
 /**
  * Any one of these roles is enough to claim a VIP quest.
@@ -14,9 +16,7 @@ export const vipRoleAdd: FeatureSubcommandHandler = async (interaction, _client)
     const role = interaction.options.getRole("role", true);
     const settings = await QuestSettingsRepository.editVipRole(interaction.guildId!, role.id, "add");
 
-    await interaction.editReply({
-        content: `<@&${role.id}> can now claim VIP quests — ${settings.vipRoleIds.length} VIP role(s) configured.`,
-    });
+    await interaction.editReply({ content: TEXT.added(role.id, settings.vipRoleIds.length) });
 };
 
 export const vipRoleRemove: FeatureSubcommandHandler = async (interaction, _client) => {
@@ -24,9 +24,7 @@ export const vipRoleRemove: FeatureSubcommandHandler = async (interaction, _clie
     const settings = await QuestSettingsRepository.editVipRole(interaction.guildId!, role.id, "remove");
 
     await interaction.editReply({
-        content: settings.vipRoleIds.length === 0
-            ? `<@&${role.id}> removed. With no VIP roles left, nobody can claim VIP quests.`
-            : `<@&${role.id}> can no longer claim VIP quests.`,
+        content: settings.vipRoleIds.length === 0 ? TEXT.removedLast(role.id) : TEXT.removed(role.id),
     });
 };
 
@@ -35,11 +33,10 @@ export const vipRoleList: FeatureSubcommandHandler = async (interaction, _client
 
     await interaction.editReply({
         embeds: [new EmbedBuilder()
-            .setTitle("VIP roles")
+            .setTitle(TEXT.listTitle)
             .setColor(COLORS.info)
             .setDescription(settings.vipRoleIds.length > 0
-                ? settings.vipRoleIds.map(id => `• <@&${id}>`).join("\n")
-                : "No VIP roles configured, so VIP quests cannot be claimed by anyone.\n" +
-                  "Add one with `/quest-config vip-role add`.")],
+                ? settings.vipRoleIds.map(TEXT.listRow).join("\n")
+                : TEXT.listEmpty)],
     });
 };
