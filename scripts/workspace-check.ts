@@ -63,7 +63,37 @@ for (const path of dockerfiles) {
     check(`${path} copies no manifest that is gone`, stale.length === 0, stale.join(", "));
 }
 
-// 4. The root manifest's globs, so a new group (`packages/*`) cannot be added without this noticing.
+// 4. A workspace with dependencies of its own must have its node_modules copied into the image.
+//
+//    Bun does not hoist a workspace's dependencies to the root: `@nestjs/*`, `next` and everything
+//    else declared in an app's own package.json lives in that app's node_modules, along with the
+//    `.bin` entries that make `bun run <script>` work. An image that copies only /app/node_modules
+//    builds cleanly and then fails — `next: command not found` during the build, or a missing
+//    module at container start. Neither names the cause.
+//
+//    Only checked for the app a Dockerfile actually copies source for; the root package.json's own
+//    dependencies are hoisted and need nothing.
+for (const path of dockerfiles) {
+    const body = read(path);
+
+    for (const workspace of onDisk) {
+        // `COPY apps/x ./apps/x` — the source copy, as opposed to the manifest copy above.
+        const copiesSource = new RegExp(`^COPY ${workspace} `, "m").test(body);
+        if (!copiesSource) continue;
+
+        const manifest = JSON.parse(read(`${workspace}/package.json`)) as {
+            dependencies?: Record<string, string>;
+            devDependencies?: Record<string, string>;
+        };
+        const hasOwnDeps = Object.keys({ ...manifest.dependencies, ...manifest.devDependencies }).length > 0;
+        if (!hasOwnDeps) continue;
+
+        const copiesModules = new RegExp(`^COPY --from=\\S+ /app/${workspace}/node_modules `, "m").test(body);
+        check(`${path} copies ${workspace}'s own node_modules`, copiesModules);
+    }
+}
+
+// 5. The root manifest's globs, so a new group (`packages/*`) cannot be added without this noticing.
 const rootPkg = JSON.parse(read("package.json")) as { workspaces?: string[] };
 check(
     "package.json workspace globs are the ones checked here",

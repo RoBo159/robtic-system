@@ -27,6 +27,15 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY apps/dashboard ./apps/dashboard
 
+# Bun keeps a workspace's own dependencies in that workspace's node_modules rather than hoisting
+# them to the root — `@nestjs/*`, `next` and friends are simply not in /app/node_modules, and the
+# `.bin` entries that make `bun run build` work live here too. Copying only the root tree gets a
+# `next: command not found` at build time, or a missing @nestjs/common at container start.
+#
+# After the source copy, not before: COPY merges directories, and the build context has no
+# node_modules of its own (.dockerignore), so this order is what survives.
+COPY --from=deps /app/apps/dashboard/node_modules ./apps/dashboard/node_modules
+
 # No build arguments, deliberately. Where the browser reaches the API is read at request time from
 # DASHBOARD_PUBLIC_API_URL (see src/lib/api-config.tsx), so this image is environment-independent —
 # the same digest runs in staging and production, and a wrong URL is a restart rather than a rebuild.

@@ -27,6 +27,13 @@ ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
 COPY apps/robtic-api ./apps/robtic-api
+
+# Bun keeps a workspace's own dependencies in that workspace's node_modules rather than hoisting
+# them to the root. Today this is only the `@robtic/sdk` link, and nothing imports it by package
+# name — the code reaches libs/sdk through the `@sdk` tsconfig alias — so the image worked without
+# it. It is here so that stops being a thing anyone has to know: the first `import "@robtic/sdk"`
+# would otherwise fail at container start, long after the build went green.
+COPY --from=deps /app/apps/robtic-api/node_modules ./apps/robtic-api/node_modules
 COPY libs ./libs
 
 EXPOSE 3002
