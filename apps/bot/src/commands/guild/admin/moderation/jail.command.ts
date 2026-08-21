@@ -194,7 +194,6 @@ export default {
             const modMember = interaction.member as GuildMember;
             const extra = permanent ? "perm" : String(durationDays);
 
-            // Must precede any deferReply()/reply() — showModal() has to be the first response.
             if (await needsProof(modMember)) {
                 if ((interaction as any).isPrefix) {
                     const sent = await sendShortcutProofDM(client, interaction.user.id, "ban", interaction.guildId!, target.id, reasonKey, extra);

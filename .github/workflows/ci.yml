@@ -32,7 +32,7 @@ jobs:
         run: bun --filter @robtic/dashboard-api typecheck
 
       # Builds the Nest application and asserts every guild-scoped controller carries
-      # GuildAccessGuard. Needs no database or network — see apps/dashboard-api/src/route-check.ts.
+      # GuildAccessGuard. Needs no database or network — see apps/dashboard-api/test/route-check.ts.
       - name: Check API routes and guards
         run: bun --filter @robtic/dashboard-api test:routes
 

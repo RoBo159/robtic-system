@@ -35,8 +35,6 @@ export async function drainBridgeEvents(client: Client, guildId: string): Promis
                     statusDirty = true;
                     break;
                 case "server_status":
-                    // A server announcing itself is the first point where the guild is known to
-                    // have a Minecraft setup, so this is where the price catalog gets seeded.
                     await getItemPrices(guildId);
                     statusDirty = true;
                     break;

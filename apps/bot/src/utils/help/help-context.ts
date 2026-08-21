@@ -63,7 +63,6 @@ export async function buildHelpContext(
         }
     }
 
-    // The three viewer facts checkPermissions derives per invocation, read once here instead.
     const isOperator = member ? isGuildOperator(member) : false;
     const score = member ? (await getMemberLevel(member)).score : 0;
     const isBotAdmin = member ? await hasGuildBotAdmin(member) : false;
@@ -81,8 +80,6 @@ export async function buildHelpContext(
         }
     }
 
-    // Mirrors checkPermissions' grant order exactly. Kept in step deliberately: a command listed
-    // here that then refuses the reader is worse than one that was never listed.
     const canRun = (command: CommandConfig): boolean => {
         if (isSuperUser) return true;
         if (command.scope === "admin") return false;

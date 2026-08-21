@@ -46,9 +46,6 @@ export class StaffRankService {
             throw ApiError.validation({ rank: "there is nothing to change" });
         }
 
-        // Ordered add-then-remove. If the second call fails the member is left holding both roles,
-        // which resolves to the more senior of the two — a visible over-grant an admin can correct,
-        // rather than a member briefly holding nothing and dropping out of staff channels.
         if (input.grantRoleId) await this.applyRole("PUT", input.guildId, link.discordId, input.grantRoleId);
         if (input.revokeRoleId) await this.applyRole("DELETE", input.guildId, link.discordId, input.revokeRoleId);
 
@@ -58,9 +55,6 @@ export class StaffRankService {
             roleIds.push(input.grantRoleId);
         }
 
-        // Projected immediately rather than waiting for Discord's own member-update event, so the
-        // next /admin sees the new rank without a round trip through the gateway. The event will
-        // arrive too and write the same thing.
         await MinecraftRoleStateRepository.upsert({
             guildId: input.guildId,
             discordId: link.discordId,
@@ -97,8 +91,6 @@ export class StaffRankService {
             const detail = await response.text().catch(() => "");
             Logger.error(`Discord refused ${method} role ${roleId} for ${discordId}: ${response.status} ${detail}`, CTX);
 
-            // 403 here is nearly always the bot's own role sitting below the one it is managing,
-            // which is a Discord hierarchy setting and not something the caller can fix in game.
             throw response.status === 403
                 ? ApiError.forbidden(
                       "Discord refused the role change — move the bot's role above the staff roles it manages",

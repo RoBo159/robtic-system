@@ -34,8 +34,6 @@ export async function apiGet<T>(path: string): Promise<T> {
 
     const response = await fetch(`${INTERNAL_API}${path}`, {
         headers: { cookie: cookieHeader },
-        // Guild configuration is edited in this UI, so a cached read would show the operator their
-        // own change failing to appear.
         cache: "no-store",
     });
 

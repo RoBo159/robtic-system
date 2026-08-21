@@ -46,10 +46,6 @@ export async function resolveOptionValue(message: Message, opt: OptionJSON, toke
                 return role ?? undefined;
             }
 
-            // A slash user picks the role from a menu; someone typing `!role give @user Moderator`
-            // has no menu, so an unambiguous name is accepted too. Ambiguous names are rejected
-            // rather than guessed — silently picking one of two same-named roles is worse than
-            // asking for the id.
             if (match) return undefined;
 
             const named = message.guild?.roles.cache.filter(r => r.name.toLowerCase() === token.toLowerCase());

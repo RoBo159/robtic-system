@@ -41,7 +41,6 @@ export function buildFakeInteraction(
         client,
         deferred: false,
         replied: false,
-        // Not a genuine Interaction — can't showModal(). Commands check this flag to fall back to a DM+button flow instead.
         isPrefix: true,
 
         options: {
@@ -73,8 +72,6 @@ export function buildFakeInteraction(
             fake.replied = true;
             return sendOrEdit(opts);
         },
-        // Real interactions expose fetchReply() to grab the sent Message (e.g. to attach a component
-        // collector). Prefix mode already holds that Message, so hand it back for parity.
         async fetchReply() {
             return sentMessage;
         },

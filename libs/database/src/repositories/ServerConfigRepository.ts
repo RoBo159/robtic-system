@@ -152,7 +152,6 @@ export class ServerConfigRepository {
     static async getLineChannels(guildId: string): Promise<string[]> {
         const config = await ServerConfig.findOne({ guildId });
         if (!config) return [];
-        // Merge legacy single-channel field in case it was never migrated
         const legacy = config.lineChannelId && !config.lineChannelIds.includes(config.lineChannelId)
             ? [config.lineChannelId]
             : [];

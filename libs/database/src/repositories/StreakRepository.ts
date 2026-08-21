@@ -31,8 +31,6 @@ export class StreakRepository {
                 lastMessageContent: messageContent,
                 reminderSent: false,
                 active: true,
-                // Reaching here means any freeze had already lapsed — the caller refuses to advance
-                // a frozen streak. Clearing it keeps a stale past date from reading as "pending".
                 pendingReturnUntil: null,
             },
             { returnDocument: "after" }

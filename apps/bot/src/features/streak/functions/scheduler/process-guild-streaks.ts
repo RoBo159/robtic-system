@@ -56,8 +56,6 @@ export async function processGuildStreaks(client: Client, guild: Guild): Promise
         Logger.debug(`Sent expiry reminder to ${streak.discordId} in ${guild.id}`, CTX);
     }
 
-    // Recovery rows outlive nothing: once the guild's return window has passed they can never be
-    // used again, so they are pruned on the same clock the window runs on.
     const recoveryCutoff = new Date(now.getTime() - windows.returnWindowHours * 3_600_000);
     await StreakRecoveryRepository.deleteOlderThan(guild.id, recoveryCutoff);
 }

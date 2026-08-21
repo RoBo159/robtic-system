@@ -62,10 +62,7 @@ const questGenerationHistorySchema = new Schema<IQuestGenerationHistory>(
     { timestamps: true }
 );
 
-// The anti-double-generation mechanism. Planning inserts and treats E11000 as "already planned",
-// so two processes — or one process across a restart — cannot schedule the same occasion twice.
 questGenerationHistorySchema.index({ guildId: 1, tier: 1, windowKey: 1 }, { unique: true });
-// The fire query, and the stale-lease reclaim.
 questGenerationHistorySchema.index({ status: 1, scheduledAt: 1 });
 
 export const QuestGenerationHistory = model<IQuestGenerationHistory>(

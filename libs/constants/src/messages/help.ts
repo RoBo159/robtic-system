@@ -42,7 +42,6 @@ export const HELP = {
     /** A category whose commands could not all fit even after paging. */
     truncatedNote: (dropped: number) => `…and ${dropped} more — narrow it down with \`help <command>\`.`,
 
-    // `help <command>` answers in plain text rather than an embed — see buildCommandHelpText.
     textCommandLine: (invocation: string) => `**Command:** \`${invocation}\``,
     textShortcutLine: (triggers: string) => `**Shortcut:** ${triggers}`,
     textUsageHeading: "**Usage:**",

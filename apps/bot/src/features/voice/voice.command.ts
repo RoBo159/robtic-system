@@ -25,7 +25,6 @@ export default buildFeatureCommands(voiceFeature, {
         if (!interaction.guildId) return;
 
         const group = interaction.options.getSubcommandGroup(false);
-        // Config replies are noise for everyone else; stats and boards are worth showing.
         await interaction.deferReply(group === "config" ? { flags: MessageFlags.Ephemeral } : {});
 
         const sub = interaction.options.getSubcommand();

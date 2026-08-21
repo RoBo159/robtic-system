@@ -26,7 +26,6 @@ if (!process.env.MONGODB_URI) {
 
 await connectDatabase(process.env.MONGODB_URI);
 
-// Said once, at startup. Three features depend on it and each fails differently without it.
 warnIfBotTokenMissing();
 
 const router = new Router().register(
@@ -72,7 +71,7 @@ function unauthenticatedRoute(url: URL): Response | null {
  * no log line here to explain it, because the connection never arrives. Binding 0.0.0.0 is what
  * makes the container's published port work at all.
  *
- * Restricting *who may reach it* is the port mapping's job (see docker-compose.yml) and the API
+ * Restricting *who may reach it* is the port mapping's job (see infra/docker/compose/docker-compose.yml) and the API
  * key's job, not this bind address's.
  */
 const hostname = process.env.ROBTIC_API_HOST ?? "0.0.0.0";
@@ -101,10 +100,6 @@ setInterval(() => {
     pruneRateLimitBuckets();
 }, SWEEP_INTERVAL_MS);
 
-// The bound address is logged rather than a hardcoded "localhost", because the single most
-// common deployment failure is a reachability problem the process itself cannot observe: the
-// connection is refused before it ever arrives here. Printing what was actually bound turns a
-// silent ERR_CONNECTION_REFUSED into something answerable from the logs.
 Logger.success(
     `Listening on ${server.hostname}:${server.port} — ${router.all().length} routes, docs at ${API_ROUTES.docs}`,
     CTX,

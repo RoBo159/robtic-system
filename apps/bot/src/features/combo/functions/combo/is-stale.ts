@@ -9,8 +9,6 @@ import { COMBO_CONFIG } from "@constants";
  */
 export function isStale(pair: ICombo, now: number): boolean {
     if (pair.status === "ended") return true;
-    // Fall back to the shared timestamp for pairs written before per-participant tracking existed;
-    // the next message from either side repopulates both fields going forward.
     const lowTimestamp = pair.lastMessageAtLow ?? pair.lastMessageAt;
     const highTimestamp = pair.lastMessageAtHigh ?? pair.lastMessageAt;
     const lowSilentMs = now - lowTimestamp.getTime();

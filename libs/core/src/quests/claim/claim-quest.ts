@@ -55,7 +55,6 @@ async function firstFreeSlotIndex(
         if (!taken.has(index)) return index;
     }
 
-    // Full. Index 0 is the honest attempt: it collides, and the caller reports "already holding".
     return 0;
 }
 
@@ -79,7 +78,6 @@ export async function claimQuest(
     const reserved = await QuestRepository.reserveSlot(quest._id);
 
     if (!reserved) {
-        // Read once more to say *why* — the member deserves better than "no".
         const fresh = await QuestRepository.findById(quest._id);
         if (!fresh) return { ok: false, reason: "not-found" };
         if (fresh.status !== "open" || fresh.endsAt.getTime() <= Date.now()) {
@@ -92,8 +90,6 @@ export async function claimQuest(
         const metrics = reserved.missions.map(mission => mission.metric as QuestMetric);
         const baseline = await snapshotBaseline(reserved.guildId, discordId, username, metrics);
 
-        // Both perks come from the engine rather than from a role check, so a tier that grants
-        // neither leaves this path arithmetically identical to what it was before premium existed.
         const [extraSlots, extensionMs] = await Promise.all([
             getFeatureValue(reserved.guildId, discordId, PremiumFeature.EXTRA_QUEST_SLOT),
             getDurationMs(reserved.guildId, discordId, PremiumFeature.QUEST_TIME_EXTENSION),
@@ -106,9 +102,6 @@ export async function claimQuest(
             username,
             tier: reserved.tier,
             slot: TIER_SLOT[reserved.tier as QuestTier],
-            // The first free copy of the slot. Everyone has copy 0; an extra slot is copy 1.
-            // A tier that ignores the slot limit takes the next free copy of its own slot, however
-            // many that is — which is what lets a Special be claimed alongside anything else.
             slotIndex: await firstFreeSlotIndex(
                 reserved.guildId,
                 discordId,
@@ -118,13 +111,9 @@ export async function claimQuest(
             ),
             missions: reserved.missions,
             baseline,
-            // Everyone on a quest finishes together — except a member whose tier bought them more
-            // time, who keeps working after the quest itself has closed to new claims.
             expiresAt: new Date(reserved.endsAt.getTime() + extensionMs),
         });
 
-        // The caller already has the document, so seed the cache rather than forcing a re-read on
-        // this member's very next message.
         primeClaim(toRuntime(claim));
 
         await QuestStatsRepository.recordClaim(reserved.guildId, discordId, username).catch(err =>

@@ -68,14 +68,9 @@ export default {
         );
         const query = interaction.options.getString("query");
 
-        // A category wins over a command of the same name — categories are the coarser answer, and
-        // no category currently shares a name with a command.
         const category = resolveCategory(client, context, query);
         const target = category || !query ? null : findHelpTarget(client, context, query);
 
-        // A target the reader may not run is answered with silence in chat, and with the same
-        // "no such command" a typo gets from a slash invocation, which must be acknowledged. Saying
-        // "that exists but is not for you" is the one reply that tells a member something.
         if (target && !context.canRun(target.command)) {
             if (!(interaction as { isPrefix?: boolean }).isPrefix) {
                 await interaction.reply({
@@ -109,8 +104,6 @@ export default {
             return { embeds: [embed], components: rows };
         };
 
-        // A named command answers directly, in plain text. There is nothing to browse from there,
-        // so it gets no menu — the reader asked a closed question.
         if (target) {
             await interaction.reply({ content: buildCommandHelpText(client, context, target) });
             return;
@@ -124,7 +117,6 @@ export default {
         const collector = message.createMessageComponentCollector({ idle: COLLECTOR_IDLE_MS });
 
         collector.on("collect", async (component: MessageComponentInteraction) => {
-            // Only the person who opened the menu drives it — the context was resolved for them.
             if (component.user.id !== interaction.user.id) {
                 await component.reply({ content: HELP.pickPrompt, flags: MessageFlags.Ephemeral }).catch(() => null);
                 return;

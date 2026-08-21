@@ -7,6 +7,5 @@ export async function awardComboPoint(guildId: string, discordId: string, userna
     const rates = await getPointRates(guildId);
     const earned = await PointsRepository.addProgress(guildId, discordId, username, "combo", scoreGain, rates.comboPerPoint);
 
-    // Premium tops up the whole units, never the progress, so the carry stays exact.
     return earned + await awardPremiumPointBonus(guildId, discordId, username, earned, "combo");
 }

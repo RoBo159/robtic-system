@@ -54,16 +54,11 @@ async function fireOne(row: IQuestGenerationHistory, post: QuestPoster, now: Dat
         return false;
     }
 
-    // Late beyond the tier's tolerance. Daily tiers allow none — a "morning" quest appearing at
-    // midnight is worse than one that simply did not appear.
     if (row.scheduledAt.getTime() + spec.graceHours * HOUR_MS < now.getTime()) {
         await QuestGenerationRepository.markResolved(row._id as never, "missed", "past-grace");
         return false;
     }
 
-    // Golden runs for a week and appears about weekly, so its own lifetime overlaps its cadence by
-    // construction. Skipping rather than stacking keeps "extremely rare" true, at the cost of the
-    // effective interval being slightly over seven days.
     if (spec.exclusive && await QuestRepository.hasOpenOfTier(row.guildId, row.tier)) {
         await QuestGenerationRepository.markResolved(row._id as never, "skipped", "tier-already-open");
         return false;
@@ -75,8 +70,6 @@ async function fireOne(row: IQuestGenerationHistory, post: QuestPoster, now: Dat
         return false;
     }
 
-    // Posting is best-effort: the quest exists and is claimable through /quest even if the announce
-    // fails, so a Discord hiccup must not roll back a generated quest.
     try {
         await post(quest);
     } catch (err) {

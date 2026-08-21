@@ -63,7 +63,6 @@ export default {
                 .addSubcommand(sub => sub.setName("list").setDescription("Show this server's bot administrator roles"))
         ),
 
-    // Configures the permission system itself — same bootstrap-safe check as /staff-tier and /whitelist.
     async run(interaction: ChatInputCommandInteraction, _client: BotClient) {
         const member = interaction.member as GuildMember | null;
         if (interaction.user.id !== SUPER_ADMIN_ID && !(member && isGuildOperator(member))) {
@@ -80,8 +79,6 @@ export default {
         const guildId = interaction.guildId;
         const sub = interaction.options.getSubcommand();
 
-        // Server-wide bot-admin roles: not per-command, so they answer a different question from
-        // the grants below — "who administers the bot here" rather than "who else may run this one".
         if (interaction.options.getSubcommandGroup(false) === "admin-roles") {
             const roleIds = sub === "list"
                 ? await ServerConfigRepository.getBotAdminRolesCached(guildId)
@@ -136,7 +133,6 @@ export default {
             return;
         }
 
-        // sub === "list"
         const entry = await CommandAccessRepository.getForCommand(guildId, commandName);
         const embed = new EmbedBuilder()
             .setTitle(`Access Grants — /${commandName}`)

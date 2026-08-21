@@ -62,9 +62,6 @@ export async function finishLeasedClaim(claim: IQuestClaim): Promise<CompletionR
     const quest = await QuestRepository.findById(claim.questId);
     const base = quest?.reward ?? 0;
 
-    // The premium bonus is applied at payout rather than baked into the quest, so a member who
-    // upgrades mid-quest is paid at the tier they hold when they finish — and the posted card can
-    // keep advertising one honest number to everybody.
     const bonus = await getMultiplier(claim.guildId, claim.discordId, PremiumFeature.QUEST_REWARD_BONUS);
     const reward = Math.round(base * bonus);
 
@@ -82,8 +79,6 @@ export async function finishLeasedClaim(claim: IQuestClaim): Promise<CompletionR
                 idempotencyKey: questPayoutKey(String(claim.questId), claim.discordId),
             });
         } catch (err) {
-            // Leave the claim in `completing` so the tick retries it rather than sealing an unpaid
-            // completion. The key makes the retry safe.
             Logger.error(`Could not pay quest reward to ${claim.discordId}: ${err}`, CTX);
             return { completed: false, reward: 0, rank };
         }
@@ -104,8 +99,6 @@ export async function finishLeasedClaim(claim: IQuestClaim): Promise<CompletionR
 
     invalidateMemberClaims(claim.guildId, claim.discordId);
 
-    // After the payment and the seal, never before: a member told they finished must actually have
-    // been paid by the time they read it.
     announceCompleted({
         guildId: claim.guildId,
         discordId: claim.discordId,

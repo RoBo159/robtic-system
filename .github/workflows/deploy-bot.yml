@@ -50,8 +50,17 @@ jobs:
           service: bot
           force: ${{ inputs.force || false }}
 
-  # No dockerfile or image name: the bot is the default target of the shared deploy workflow, and
-  # its final `compose pull` + `up -d` brings up everything, by which point every image is in GHCR.
+  # Everything here used to be a default and is now stated outright, because the defaults pointed at
+  # two files that moved into infra/docker/:
+  #
+  #   - `dockerfile`/`image-name` — the shared workflow builds `Dockerfile` at the repository root.
+  #   - `compose-*-command` — its default `docker compose` runs with no `-f`, which resolved the
+  #     root docker-compose.yml. That file is now at infra/docker/compose/, so the path is explicit.
+  #
+  # Every value is what the corresponding default resolved to before the move, so this publishes the
+  # same image and brings up the same services. Unlike the other three workflows, the bot's commands
+  # name no service: it is last in the chain, and its `pull` + `up -d` deliberately covers the whole
+  # stack, by which point every image is in GHCR.
   deploy:
     needs: changes
     if: ${{ needs.changes.outputs.deploy == 'true' }}
@@ -62,8 +71,12 @@ jobs:
       environment-name: 'Robtic Server'
       environment-url: 'https://robtic.org'
       server-label: 'core.robtic.org'
+      dockerfile: 'infra/docker/dockerfiles/bot.Dockerfile'
+      image-name: 'ghcr.io/robticorg/robtic-system'
       compose-project-name: 'robtic-system'
       compose-env-file: '/home/robtic/robtic-system/.env'
+      compose-pull-command: 'docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env pull'
+      compose-up-command: 'docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env up -d'
     secrets:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 

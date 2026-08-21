@@ -30,9 +30,6 @@ export async function processStreakMessage(message: Message): Promise<void> {
 
     const record = await StreakRepository.findOrCreate(message.author.id, guildId, message.author.username);
 
-    // Frozen while staff can still give the old streak back. Deliberately silent — the member is
-    // told nothing here; `?streak` is where they see the pending state. Replying would turn every
-    // message during the window into spam, and announcing it invites arguing in the channel.
     if (record.pendingReturnUntil && record.pendingReturnUntil.getTime() > Date.now()) return;
 
     if (!isValidStreakMessage(message, settings, record)) return;
@@ -63,7 +60,6 @@ export async function processStreakMessage(message: Message): Promise<void> {
         );
     }
 
-    // The streak reached, not the increment — a streak is a level, so its missions use `max`.
     publishMetric({
         guildId,
         discordId: message.author.id,

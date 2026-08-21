@@ -33,7 +33,6 @@ export async function getAdminConfig(guildId: string): Promise<AdminConfigSnapsh
 
     const logChannels: Record<string, string | null> = {};
     for (const key of Object.keys(LOG_REGISTRY)) {
-        // A log config is stored globally per key, but only surface the one pointing at this guild.
         const match = logConfigs.find(entry => entry.key === key && entry.serverId === guildId);
         logChannels[key] = match?.channelId ?? null;
     }
@@ -101,8 +100,6 @@ export async function getAdminConfig(guildId: string): Promise<AdminConfigSnapsh
             minMembersForFullRate: voice.minMembersForFullRate,
         },
         features: {
-            // The catalog is whatever the bot last published; the override map is this guild's
-            // explicit choices. Absence of an override means the feature runs on its default.
             features: catalog.map(entry => ({
                 key: entry.key,
                 description: entry.description,

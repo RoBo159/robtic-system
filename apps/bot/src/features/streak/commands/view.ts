@@ -32,8 +32,6 @@ export const view: FeatureSubcommandHandler = async (interaction, _client) => {
         )
         .setTimestamp();
 
-    // Nothing is said when the streak breaks, and messages sent during the window are ignored in
-    // silence — so this is the one place the member finds out they are frozen and for how long.
     if (pendingReturnMs !== null) {
         embed.addFields({
             name: t("streak.pending_return", lang),

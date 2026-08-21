@@ -66,7 +66,6 @@ export function buildQuestEmbed(quest: IQuest): EmbedBuilder {
             { name: card.placesField, value: slotsValue(quest), inline: true },
             {
                 name: card.endsField(closed),
-                // Client-rendered, so the countdown stays right without ever costing an edit.
                 value: card.endsValue(quest.endsAt),
                 inline: true,
             },

@@ -22,7 +22,6 @@ export function formatDuration(milliseconds: number | null): string {
             parts.push(`${value}${label}`);
             remaining -= value * size;
         }
-        // Two units is enough precision for a punishment, and keeps the embed field on one line.
         if (parts.length === 2) break;
     }
 

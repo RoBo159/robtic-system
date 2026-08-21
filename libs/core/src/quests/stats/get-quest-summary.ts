@@ -69,8 +69,6 @@ export async function getQuestSummary(guildId: string, discordId: string): Promi
 
     if (!record) return { ...EMPTY, activeClaims: activeClaims.length, communityContribution };
 
-    // Active claims are neither completed nor failed, so the rate is measured against what actually
-    // resolved — otherwise a quest still in progress reads as a failure.
     const resolved = record.completed + record.failed;
 
     return {

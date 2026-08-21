@@ -51,8 +51,6 @@ export const exclude = editChannels("excludedChannelIds", "excluded channels");
 export const rates: FeatureSubcommandHandler = async (interaction, _client) => {
     if (!(await requireAdmin(interaction))) return;
 
-    // Taken as a percentage because Discord has no decimal option type, and "25" reads better
-    // than "0.25" to whoever is configuring it.
     const alonePercent = interaction.options.getInteger("alone-multiplier");
     const afkMinutes = interaction.options.getInteger("afk-minutes");
 

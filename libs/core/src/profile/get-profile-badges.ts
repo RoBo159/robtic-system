@@ -15,7 +15,6 @@ export async function getProfileBadges(
     const badges: ProfileBadge[] = [];
 
     const tier = BADGE_FIRE_RANGES.find(range => currentStreak >= range.min && currentStreak <= range.max)
-        // Streaks past the last tier keep its badge.
         ?? (currentStreak > 0 ? BADGE_FIRE_RANGES[BADGE_FIRE_RANGES.length - 1] : undefined);
     if (tier) {
         badges.push({ id: `fire${tier.min}-${tier.max}`, label: `${currentStreak}-day streak` });
@@ -32,9 +31,6 @@ export async function getProfileBadges(
         badges.push({ id: "top-streak", label: "Top streak on the server" });
     }
 
-    // The badge is a *perk*, not a role read: whether it shows is `PROFILE_BADGE` on whatever tier
-    // this member holds, which is why a server can grant a tier that pays bonuses without also
-    // advertising it, and vice versa.
     const benefits = await getBenefits(guildId, targetId);
     if (benefits.tier && benefits.values[PremiumFeature.PROFILE_BADGE] === true) {
         badges.push({ id: `premium-${benefits.tier.key}`, label: `${benefits.tier.emoji} ${benefits.tier.name}` });

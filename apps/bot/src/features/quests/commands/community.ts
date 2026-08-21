@@ -34,8 +34,6 @@ export const community: FeatureSubcommandHandler = async (interaction, _client) 
         CommunityChallengeRepository.countContributors(guildId, challenge.weekKey),
     ]);
 
-    // Buffered contribution is added in so the number here matches the live panel rather than
-    // trailing it by up to a flush interval.
     const embed = buildCommunityEmbed({ challenge, pending: pendingTotal(guildId), top });
 
     const amount = mine?.amount ?? 0;

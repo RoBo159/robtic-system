@@ -127,9 +127,7 @@ questClaimSchema.index(
     { unique: true, partialFilterExpression: { status: "active" } }
 );
 questClaimSchema.index({ guildId: 1, questId: 1, discordId: 1 }, { unique: true });
-// The expiry sweep. status first: the active set is tiny next to accumulated history.
 questClaimSchema.index({ status: 1, expiresAt: 1 });
-// Statistics: completion rates per tier over a period.
 questClaimSchema.index({ guildId: 1, tier: 1, outcome: 1, resolvedAt: -1 });
 questClaimSchema.index({ guildId: 1, discordId: 1, resolvedAt: -1 });
 

@@ -31,7 +31,6 @@ export async function resumeCommunityPanels(client: Client): Promise<number> {
             .fetch(challenge.messageId)
             .catch((err: { code?: number }) => (err.code === 10008 ? null : undefined));
 
-        // undefined means "could not tell" — leave it for next boot rather than duplicating.
         if (message === undefined) continue;
 
         if (message === null) {

@@ -17,7 +17,7 @@ import { TICKET_CREATED_COLOR, TICKET_REPORT_CHANNEL_ID, TICKET_MANAGER_EMOJI } 
 
 function makeTicketId(a: string, b: string): string {
     const input = `${a}|${b}`;
-    let hash = 2166136261; // FNV-1a seed
+    let hash = 2166136261;
     for (let i = 0; i < input.length; i++) {
         hash ^= input.charCodeAt(i);
         hash = Math.imul(hash, 16777619);
@@ -99,7 +99,6 @@ export const ticketOpenModalHandler: ComponentHandler<ModalSubmitInteraction> = 
                 openLock: true,
             });
         } catch (err) {
-            // Duplicate-key on openLock — lost a concurrent-open race. Clean up the orphaned channel.
             if ((err as { code?: number }).code === 11000) {
                 await channel.delete().catch(() => null);
                 const stillOpen = await TicketRepository.findOpenByUser(interaction.user.id, guild.id);

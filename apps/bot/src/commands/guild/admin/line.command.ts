@@ -86,7 +86,6 @@ export default {
             return;
         }
 
-        // remove
         const channelId = interaction.options.getString("channel", true);
         await ServerConfigRepository.removeLineChannel(interaction.guildId, channelId);
 

@@ -107,7 +107,6 @@ export default {
             return;
         }
 
-        // sub === "role-list" || sub === "status"
         const config = await PunishConfigRepository.findOrCreate(guildId);
         const embed = new EmbedBuilder()
             .setTitle("🔧 Punish Config")

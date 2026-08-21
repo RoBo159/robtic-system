@@ -56,9 +56,6 @@ export function detectConversationPartner(
         break;
     }
 
-    // Continuity bias toward the partner the author is already in an active combo with — an ongoing
-    // conversation should reliably keep scoring on its own, not depend on landing a fast reply every
-    // time — scaled up further the stronger that existing conversation already is.
     const activePartner = getActivePartner(authorId);
     if (activePartner) {
         const scoreWeight = Math.min(activePartner.score / COMBO_DETECTION_WEIGHTS.continuityScoreCeiling, 1)

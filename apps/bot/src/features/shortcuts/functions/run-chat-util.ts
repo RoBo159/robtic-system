@@ -34,7 +34,6 @@ export async function runChatUtilShortcut(
     const key = command as ChatUtilKey;
     const invokedIn = message.channel as GuildTextBasedChannel;
 
-    // Parsed first, so a stray sentence costs no permission lookups.
     const parsed = await parseChatUtilArgs(key, args, invokedIn, message.guild!);
     if (!parsed) return false;
 
@@ -44,9 +43,6 @@ export async function runChatUtilShortcut(
         const result = await execute(key, parsed, message);
         if (!result) return false;
 
-        // A `clear` in this channel takes the triggering message with it, so its confirmation has to
-        // be a plain send rather than a reply to a message that no longer exists. Clearing somewhere
-        // else leaves the trigger alone, and a reply is the clearer answer there.
         const clearedHere = key === "clear" && parsed.channel.id === invokedIn.id;
         const notice = clearedHere
             ? await invokedIn.send({ content: result })

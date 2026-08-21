@@ -28,8 +28,6 @@ export const post: FeatureSubcommandHandler = async (interaction, client) => {
 
     const guildId = interaction.guildId!;
 
-    // The cycle key is what makes a quest unique per occasion. A Special has no occasion, so the
-    // timestamp is it — two posted in the same minute are still distinct rows.
     const cycleKey = `special#${Date.now()}`;
 
     const quest = await buildQuest(guildId, "special", cycleKey);

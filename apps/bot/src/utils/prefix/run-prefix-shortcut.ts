@@ -63,9 +63,6 @@ export async function runPrefixShortcut(invocation: PrefixInvocation): Promise<b
         return false;
     }
 
-    // Checked after parsing rather than before, because which subcommand was named is only known
-    // once the arguments have been read. Refusing here is the difference between "use the slash
-    // command" and `interaction.showModal is not a function`.
     const subcommand = interaction.options.getSubcommand(false);
     if (subcommand && command.modalOnlySubcommands?.includes(subcommand)) {
         await notice(PREFIX_MESSAGES.modalOnlySubcommand(commandName, subcommand));

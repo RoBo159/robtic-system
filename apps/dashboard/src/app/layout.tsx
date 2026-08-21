@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     return (
         <html lang="en">
             <body>
-                {/* Read on the server on every request, so the same image serves any environment. */}
+                {}
                 <ApiConfigProvider value={publicApiUrl()}>{children}</ApiConfigProvider>
             </body>
         </html>

@@ -61,7 +61,6 @@ async function tickGuild(guild: Guild, settings: Awaited<ReturnType<typeof Voice
         const xp = await grantVoiceXp(guild, member.id, member.user.username, eligibility.multiplier, TICK_MINUTES);
         session.xpEarned += xp;
 
-        // Active seconds, not connected — the voice-time leaderboards rank participation.
         await PeriodicStatRepository.incrementAllPeriods(guild.id, "voiceTime", member.id, TICK_SECONDS);
         publishMetric({
             guildId: guild.id,

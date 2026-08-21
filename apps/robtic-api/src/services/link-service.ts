@@ -46,10 +46,6 @@ export class LinkService {
 
         const expiresAt = new Date(Date.now() + MINECRAFT_LINK_CODE.ttlMs);
 
-        // `generateLinkCode` documents that uniqueness is the index's job and that callers retry on
-        // a duplicate — but nothing did, so a collision escaped as an unhandled driver error, became
-        // a 500, and reached the player as "the economy is temporarily unavailable" with no way to
-        // tell it from an outage. Retried here, which is what that contract always meant.
         for (let attempt = 0; attempt < ISSUE_ATTEMPTS; attempt++) {
             try {
                 const code = await MinecraftLinkCodeRepository.issue(
@@ -71,7 +67,6 @@ export class LinkService {
             }
         }
 
-        // Unreachable: the loop either returns or throws. Present so the type is honest.
         throw ApiError.internal("Could not issue a link code");
     }
 
@@ -148,9 +143,6 @@ export class LinkService {
             MinecraftConfigRepository.get(guildId),
         ]);
 
-        // Live from Discord, with the projection as an outage fallback. This is the read the plugin
-        // resolves a rank from, so an empty answer here is what makes /admin refuse — it must mean
-        // "Discord says none", never "nobody ever wrote the row".
         const roleIds = link
             ? await DiscordRoleService.rolesOrFallback(guildId, link.discordId, roleState?.roleIds ?? [])
             : [];

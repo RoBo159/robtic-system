@@ -7,6 +7,5 @@ export async function awardMessagePoint(guildId: string, discordId: string, user
     const rates = await getPointRates(guildId);
     const earned = await PointsRepository.addProgress(guildId, discordId, username, "message", 1, rates.messagesPerPoint);
 
-    // Premium tops up the whole units, never the progress, so the carry stays exact.
     return earned + await awardPremiumPointBonus(guildId, discordId, username, earned, "messages");
 }

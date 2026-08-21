@@ -51,8 +51,6 @@ export default {
 
     requiredPermission: 80,
 
-    // `create` collects three fields in a modal. `remove` and `list` are ordinary and stay usable
-    // from chat, so this cannot be a whole-command `modalOnly`.
     modalOnlySubcommands: ["create"],
 
     async run(interaction: ChatInputCommandInteraction, client: BotClient) {

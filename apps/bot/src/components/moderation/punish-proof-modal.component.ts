@@ -13,7 +13,6 @@ import { executeMute } from "@bot/commands/guild/admin/moderation/mute.command";
 import { executeBan } from "@bot/commands/guild/admin/moderation/jail.command";
 import { parseProofCustomId, postProof, requestApproval, getOptionalUploadedFileUrl, getOptionalText } from "../../utils/moderation/punish-flow";
 
-// Handles the standalone proof modal — reached from ban/mute/warn's run() directly, or via the DM button flow (punishShortcutDM.ts).
 export default {
     customId: /^punish_proof_(warn|mute|ban)_/,
 

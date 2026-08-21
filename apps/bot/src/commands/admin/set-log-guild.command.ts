@@ -45,8 +45,6 @@ export default {
         const previous = await GlobalConfigRepository.get("server_log_guild");
         await GlobalConfigRepository.set("server_log_guild", guildId);
 
-        // Backfill: provision log categories/channels for every server the bot is already in, not
-        // just ones it joins from now on.
         let backfilled = 0;
         for (const sourceGuild of client.guilds.cache.values()) {
             if (sourceGuild.id === guildId) continue;

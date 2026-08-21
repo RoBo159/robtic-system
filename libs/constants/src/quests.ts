@@ -17,8 +17,6 @@ export const TIER_SLOT: Record<QuestTier, QuestSlot> = {
     hard: "long",
     golden: "long",
     vip: "vip",
-    // Its own slot, and an uncapped one: a Special never competes with a quest a member is already
-    // on, which is the whole point of an event quest an admin drops on the server.
     special: "special",
 };
 
@@ -161,7 +159,6 @@ export const QUEST_TIER_SPECS: Record<QuestTier, QuestTierSpec> = {
     vip: {
         missions: 2,
         reward: 50,
-        // Unlimited, as VIP quests are a perk rather than a race.
         slots: null,
         durationHours: { min: 24, max: 24 },
         graceHours: 0,

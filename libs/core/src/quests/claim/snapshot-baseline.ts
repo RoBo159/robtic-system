@@ -62,7 +62,6 @@ export async function snapshotBaseline(
     }
 
     if (wanted.has("streak")) {
-        // A level metric: progress is the value reached, so the baseline is only informational.
         const streak = await StreakRepository.find(discordId, guildId);
         baseline.streak = streak?.currentStreak ?? 0;
     }

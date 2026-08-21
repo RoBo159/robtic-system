@@ -22,7 +22,6 @@ export async function getLeaderboardPage(
     pageSize = ACTIVITY_LEADERBOARD_LIMIT,
 ): Promise<LeaderboardResponse> {
     const offset = (page - 1) * pageSize;
-    // Fetch one extra entry past the requested page to learn whether another page exists.
     const ranked = await getTopEntries(guildId, category, period, offset + pageSize + 1);
     const hasMore = ranked.length > offset + pageSize;
     const entries = ranked.slice(offset, offset + pageSize);

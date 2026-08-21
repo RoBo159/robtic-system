@@ -16,7 +16,6 @@ export const view: FeatureSubcommandHandler = async (interaction, _client) => {
     const target = interaction.options.getUser("user") ?? interaction.user;
     const isSelf = target.id === interaction.user.id;
 
-    // Prefer the roles already in hand for the caller; anyone else goes through the engine's cache.
     const member = interaction.member as GuildMember | null;
     const benefits = isSelf && member
         ? await benefitsForRoles(guildId, target.id, [...member.roles.cache.keys()])
@@ -101,7 +100,6 @@ export const tiers: FeatureSubcommandHandler = async (interaction, _client) => {
         .setColor(COLORS.info)
         .setFooter({ text: "The same everywhere the bot runs · /premium view shows what you hold" });
 
-    // Ascending, so the ladder reads as a ladder rather than as a ranking.
     for (const tier of [...tierRows].sort((a, b) => a.rank - b.rank).slice(0, 25)) {
         const perks = values
             .filter(row => row.tierKey === tier.key)
@@ -116,7 +114,6 @@ export const tiers: FeatureSubcommandHandler = async (interaction, _client) => {
         });
     }
 
-    // Kept out of the loop: a member reading this wants the perks, not the taxonomy.
     if (premiumFeaturesByModule().size === 0) embed.setDescription("No perks are registered.");
 
     await interaction.editReply({ embeds: [embed] });

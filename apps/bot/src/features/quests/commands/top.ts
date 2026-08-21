@@ -30,7 +30,6 @@ export const top: FeatureSubcommandHandler = async (interaction, _client) => {
         .setColor(COLORS.activity)
         .setDescription(lines.join("\n"));
 
-    // Only worth a query when they are not already on the board.
     if (!rows.some(row => row.discordId === interaction.user.id)) {
         const rank = await QuestStatsRepository.getRank(guildId, interaction.user.id);
         embed.setFooter({ text: rank > 0 ? text.yourRank(rank) : text.unranked });

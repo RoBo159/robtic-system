@@ -12,7 +12,6 @@ export function buildOpenApiDocument(routes: readonly Route[]): Record<string, u
     const paths: Record<string, Record<string, unknown>> = {};
 
     for (const route of routes) {
-        // A pattern route is documented by its templated form, which is what a reader needs.
         const path =
             typeof route.path === "string"
                 ? route.path

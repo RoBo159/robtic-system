@@ -37,8 +37,6 @@ async function auditRoleChange(
             .setTimestamp(),
     );
 
-    // One security event per role: the anti-nuke rules count individual grants, so collapsing a
-    // five-role change into one event would let a mass grant slip under any configured limit.
     for (const role of roles) {
         await recordSecurityEvent({
             client,

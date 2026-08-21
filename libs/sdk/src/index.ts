@@ -15,10 +15,8 @@
  * describes the contract, it does not implement either side of it.
  */
 
-// Discord Embedded App SDK — browser only.
 export { createDiscordSdk } from "./client/create-discord-sdk";
 export { authenticateUser } from "./authentication/authenticate-user";
 export type { DiscordAuth, DiscordSession } from "./types/discord-auth";
 
-// Robtic API contract.
 export * from "./api";

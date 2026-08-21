@@ -6,10 +6,6 @@ import { isReachableTarget } from "../functions/report-orphan-shortcuts";
 import { targetLabel } from "../utils/build-shortcut-embed";
 
 export const add: FeatureSubcommandHandler = async (interaction, client) => {
-    // Read without `required: true`. Discord *should* enforce both, but a client showing a stale
-    // copy of this command — a leftover global registration alongside the guild one — submits
-    // whatever options that older copy declared, and the required getter throws a raw
-    // `Required option "trigger" not found` at the member instead of saying anything useful.
     const command = interaction.options.getString("command")?.trim().replace(/\s+/g, " ") ?? "";
     const trigger = interaction.options.getString("trigger")?.trim() ?? "";
     const argsTemplate = interaction.options.getString("args")?.trim() ?? "";
@@ -36,8 +32,6 @@ export const add: FeatureSubcommandHandler = async (interaction, client) => {
         return;
     }
 
-    // Slash usage can only send a valid choice, but the prefix parser passes through whatever word
-    // sits in that position without checking it against the list.
     if (!isShortcutDeleteMode(deleteMode)) {
         await interaction.editReply({
             embeds: [new EmbedBuilder().setColor(COLORS.error).setDescription(

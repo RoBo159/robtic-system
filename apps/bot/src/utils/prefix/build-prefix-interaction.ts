@@ -28,9 +28,6 @@ export async function buildPrefixInteraction(
     let subcommandGroup: string | null = null;
     let subcommand: string | null = null;
 
-    // Top-level options can be a mix of bare subcommands and subcommand-group siblings
-    // (e.g. streak-config has both `channel <sub>`/`reminder <sub>` groups AND flat
-    // subcommands like `settings`/`return`/`sync`) — resolve whichever the first word matches.
     const isSubOrGroup = (o: OptionJSON) =>
         o.type === ApplicationCommandOptionType.Subcommand || o.type === ApplicationCommandOptionType.SubcommandGroup;
 

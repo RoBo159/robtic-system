@@ -46,7 +46,6 @@ export default buildFeatureCommands(shortcutsFeature, {
             const query = focused.value.toLowerCase();
 
             if (focused.name === "command") {
-                // `includes`, not `startsWith`, so typing "add" still finds "warn add".
                 const targets = [...new Set([...CHAT_UTIL_COMMANDS, ...allCommandPaths(client)])]
                     .filter(c => c.toLowerCase().includes(query))
                     .sort()

@@ -99,8 +99,6 @@ export const QUEST_MESSAGES = {
             tier === "vip"
                 ? `${objectiveCount} · VIP members only · progress tracks itself once claimed`
                 : tier === "special"
-                    // Worth saying out loud: every other tier competes for a slot, and members have
-                    // learned to expect that.
                     ? `${objectiveCount} · claimable even if you are already on a quest`
                     : `${objectiveCount} · progress tracks itself once claimed · /quest to see yours`,
     },

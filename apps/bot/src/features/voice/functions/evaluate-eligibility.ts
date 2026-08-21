@@ -45,8 +45,6 @@ export async function evaluateEligibility(
 
     if (settings.excludedChannelIds.includes(channel.id)) return INELIGIBLE("excluded-channel");
 
-    // An empty tracked list means "everywhere", so a guild does not have to enumerate its channels
-    // before the feature does anything.
     if (settings.trackedChannelIds.length && !settings.trackedChannelIds.includes(channel.id)) {
         return INELIGIBLE("not-tracked");
     }
@@ -61,8 +59,6 @@ export async function evaluateEligibility(
         return { eligible: false, reason: "afk", multiplier: 0, humans };
     }
 
-    // Alone still earns, just far less — a member sitting in an empty channel is present, but they
-    // are not doing the thing voice rewards are meant to encourage.
     const alone = humans < settings.minMembersForFullRate;
 
     return { eligible: true, multiplier: alone ? settings.aloneMultiplier : 1, humans };

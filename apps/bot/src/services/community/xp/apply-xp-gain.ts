@@ -33,14 +33,12 @@ export async function applyXpGain(
 ): Promise<XpGainResult> {
     await PeriodicStatRepository.incrementAllPeriods(guildId, "xp", discordId, xp);
 
-    // Both chat and voice funnel through here, so one publish covers every source of XP.
     publishMetric({ guildId, discordId, username, metric: "xp", value: xp });
 
     const newLevel = calculateLevel(updated.totalXP);
     const leveledUp = newLevel > previousLevel;
 
     if (leveledUp) {
-        // A count of levels gained, not the level reached — "level up 3 times" is the mission shape.
         publishMetric({ guildId, discordId, username, metric: "levelUp", value: newLevel - previousLevel });
 
         Logger.debug(`${username} leveled up: ${previousLevel} → ${newLevel} (totalXP: ${updated.totalXP})`, ctx);

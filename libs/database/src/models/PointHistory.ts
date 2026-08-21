@@ -68,7 +68,6 @@ const pointHistorySchema = new Schema<IPointHistory>(
 pointHistorySchema.index({ guildId: 1, discordId: 1, createdAt: -1 });
 pointHistorySchema.index({ guildId: 1, source: 1, createdAt: -1 });
 
-// Partial, so the millions of rows without a key do not collide on null.
 pointHistorySchema.index(
     { idempotencyKey: 1 },
     { unique: true, partialFilterExpression: { idempotencyKey: { $type: "string" } } }

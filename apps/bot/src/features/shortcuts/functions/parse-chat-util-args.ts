@@ -74,12 +74,9 @@ export async function parseChatUtilArgs(
             continue;
         }
 
-        // lock / unlock / hide / show take a channel and nothing else.
         return null;
     }
 
-    // Required rather than defaulted to "0": a bare `slowmode` reads as "I meant to type a duration"
-    // far more often than "turn slowmode off", and silently clearing it is the destructive guess.
     if (key === "slowmode" && duration === null) return null;
 
     return { channel, amount, duration: duration ?? "0" };

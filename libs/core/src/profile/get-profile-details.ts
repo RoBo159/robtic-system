@@ -46,7 +46,6 @@ export async function getProfileDetails(input: DetailsInput): Promise<ProfileDet
         record.staff.staffChatPoints +
         record.staff.moderationPoints;
 
-    // Role checks need a gateway client; a nonzero staff record is the repository-level proxy for "is staff".
     const staff: ProfileStaffDetails | null = staffPointsTotal > 0 || record.staff.penalties > 0
         ? {
             supportPoints: record.staff.supportPoints,

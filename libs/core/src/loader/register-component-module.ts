@@ -45,8 +45,6 @@ export function registerComponentModule(client: BotClient, mod: Record<string, u
     if (isComponentIndex(mod.default)) {
         const { feature, handlers } = mod.default;
 
-        // A key with no manifest would make isFeatureEnabled fall through to "allowed", quietly
-        // disabling the gate for every handler here — so say so rather than let it pass.
         if (!getFeatureManifest(feature)) {
             report.invalid.push({ path, reason: `component index names feature "${feature}", which has no manifest` });
         }
@@ -58,9 +56,6 @@ export function registerComponentModule(client: BotClient, mod: Record<string, u
         return;
     }
 
-    // Every export, `default` included, and arrays flattened. Scanning all of them rather than
-    // stopping at the default matters: profile-settings-buttons.ts ships one handler as its default
-    // and two more as named exports, and taking only the default would silently unbind two buttons.
     const seen = new Set<ComponentHandler>();
 
     for (const value of Object.values(mod)) {

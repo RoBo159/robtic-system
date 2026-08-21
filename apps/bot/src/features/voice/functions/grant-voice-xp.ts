@@ -39,8 +39,6 @@ export async function grantVoiceXp(
 
     await applyXpGain(discordId, guild.id, username, guild, xp, record.level, updated, CTX);
 
-    // Voice XP is also tracked on its own metric, so "voice XP earned" is answerable without
-    // unpicking it from chat XP on the shared counter.
     await PeriodicStatRepository.incrementAllPeriods(guild.id, "voiceXp", discordId, xp);
     publishMetric({ guildId: guild.id, discordId, username, metric: "voiceXp", value: xp });
 

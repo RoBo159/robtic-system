@@ -36,7 +36,37 @@ apps/
                 functions/           Domain orchestration and event bodies
                 utils/               Embeds and feature-local helpers
                 lib/                 Re-export barrel over the matching libs/core domain
-    dashboard/                   Web dashboard scaffold
+    dashboard/                   Next.js web dashboard — a client of dashboard-api and nothing else
+    dashboard-api/               NestJS API behind the dashboard. Feature first, kind second:
+        src/
+            main.ts              Bootstrap: validate env, connect Mongo, CORS, pipes, listen
+            app.module.ts        Composition root — imports only, no controllers of its own
+            config/              configuration.ts, env.validation.ts, configuration.module.ts
+            common/              Shared by two or more features: constants/, decorators/, dto/,
+                                 filters/, interfaces/, utils/
+            auth/                Sessions, OAuth, and both guards
+            guilds/  settings/  moderation/  quests/  economy/  health/
+
+        Every feature folder has the same internal shape — omit what the feature
+        does not need:
+
+            <feature>/
+                controllers/         Transport only: read params, call one service, return
+                services/            Business logic and response projection
+                repositories/        The only place that touches @database/*
+                dto/                 Request DTOs (classes, validated) and response shapes
+                interfaces/          Feature-local types
+                constants/           Feature-local static values
+                <feature>.module.ts
+                index.ts
+
+        Dependency direction is Controller → Service → Repository → MongoDB/Discord.
+        auth/ and config/ are @Global(); every other module declares no imports.
+        See apps/dashboard-api/README.md.
+
+        test/route-check.ts      Builds the app and asserts every guild-scoped
+                                 controller carries GuildAccessGuard. No DB, no port.
+    robtic-api/                  Platform API — owns MongoDB; bot and Minecraft servers are clients
     minecraft-plugin/            Paper plugin (Java/Maven) — Minecraft client for the shared MongoDB
         src/main/java/org/robtic/minecraft/
             config/              Immutable config.yml snapshot
@@ -84,10 +114,22 @@ docs/
     database/                    Database docs
     bot/                         Feature docs (combo, economy, streak, voice, ...)
 
+infra/                           All infrastructure definitions. Docker today; Terraform,
+    docker/                      Ansible and Kubernetes get siblings of docker/.
+        dockerfiles/             One per service, named for it. Build context is the
+                                 repository root for all but minecraft-plugin.
+        compose/                 docker-compose.yml (production) and .local.yml (developer)
+        scripts/build.sh         Builds any one image, from anywhere in the repo
+        configs/                 Reserved — see .gitkeep
+        README.md                Contexts, and why .dockerignore is not in here
+
 scripts/
     monitor/                     PM2 crash monitor, memory monitor
 
 images/                          Bot-attached assets (cwd-relative at runtime)
+
+.dockerignore                    Stays at the repository root: Docker reads it from the
+                                 build context root, never from beside the Dockerfile.
 ```
 
 ## Conventions

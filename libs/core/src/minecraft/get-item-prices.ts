@@ -24,8 +24,6 @@ export async function getItemPrices(guildId: string): Promise<MinecraftPriceEntr
 
     let rows = await MinecraftItemPriceRepository.list(guildId);
 
-    // A guild with no price rows at all gets the catalog seeded once. The plugin only ever reads
-    // stored prices, so without this the in-game exchange would start out empty.
     if (rows.length === 0) {
         await MinecraftItemPriceRepository.seedMissing(
             guildId,

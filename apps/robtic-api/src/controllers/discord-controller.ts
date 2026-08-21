@@ -58,13 +58,8 @@ export const discordRoutes: Route[] = [
             const serverId = requireServerId(context, body.serverId);
 
             const { duplicate } = await withIdempotency(body.requestId, guildId, "discord.chat", async () => {
-                // Queued rather than posted inline: the bot owns the Discord connection and the
-                // channel routing, and the existing drain already handles rate limits and retries.
                 await publishBridgeEvent({
                     guildId,
-                    // This line came *from* the game, so it belongs in the queue the bot drains.
-                    // Without this the bot never sees it and the plugin's own poller claims it
-                    // instead, echoing the player's message back into the game.
                     direction: "to_discord",
                     type: body.channel === "staff" ? "staff_chat" : "chat",
                     serverKey: null,
@@ -134,7 +129,6 @@ export const discordRoutes: Route[] = [
 
             await publishBridgeEvent({
                 guildId,
-                // The bot renders the panel, so this is a request aimed at Discord.
                 direction: "to_discord",
                 type: "server_status",
                 serverKey: null,
@@ -155,7 +149,6 @@ export const discordRoutes: Route[] = [
             const serverId = requireServerId(context);
             const limit = intQueryParam(context, "limit", MINECRAFT_BRIDGE.batchSize, MINECRAFT_BRIDGE.batchSize);
 
-            // Claiming is per-server, so a broadcast reaches every server in the guild exactly once.
             const events = await MinecraftBridgeRepository.claimForServer(guildId, serverId, limit);
 
             return ok({

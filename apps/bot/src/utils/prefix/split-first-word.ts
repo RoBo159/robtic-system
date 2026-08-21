@@ -2,8 +2,8 @@
 const QUOTE_PAIRS = new Map([
     ['"', '"'],
     ["'", "'"],
-    ["“", "”"], // “ ” — what phone keyboards produce
-    ["«", "»"], // « » — and Arabic/French keyboards
+    ["“", "”"],
+    ["«", "»"],
 ]);
 
 /**

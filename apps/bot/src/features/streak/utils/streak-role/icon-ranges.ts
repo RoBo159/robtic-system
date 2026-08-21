@@ -43,7 +43,6 @@ export function getIconPathForLevel(level: number): string | null {
     const exact = ranges.find(r => level >= r.min && level <= r.max);
     if (exact) return exact.filePath;
 
-    // Gap between defined ranges, or beyond the highest range: carry forward the last applicable icon.
     const applicable = [...ranges].reverse().find(r => r.min <= level);
     return applicable ? applicable.filePath : ranges[0].filePath;
 }

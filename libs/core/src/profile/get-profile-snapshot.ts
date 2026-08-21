@@ -40,7 +40,6 @@ export async function getProfileSnapshot(input: SnapshotInput): Promise<ProfileS
     const isPrivate = !isSelf && await UserRepository.getPrivateProfile(targetId);
     const displayName = await UserRepository.getDisplayName(targetId) ?? username;
     const customization = await UserRepository.getCustomization(targetId);
-    // Global — the same balance whichever server this profile is viewed from.
     const coinRecord = await CoinsRepository.get(targetId);
 
     const xpRecord = await ActivityRepository.findOrCreate(targetId, guildId, username);
@@ -63,15 +62,12 @@ export async function getProfileSnapshot(input: SnapshotInput): Promise<ProfileS
         ? (bestActive.userLowId === targetId ? bestActive.userHighId : bestActive.userLowId)
         : null;
 
-    // Absent records are normal — a member who has never joined voice or earned a point has none.
     const voiceStat = await VoiceRepository.getStat(guildId, targetId);
     const voiceRank = voiceStat ? await VoiceRepository.getRankByActiveTime(guildId, targetId) : 0;
 
     const pointRecord = await PointsRepository.get(guildId, targetId);
     const pointRank = pointRecord ? await PointsRepository.getRank(guildId, targetId) : 0;
 
-    // Reads the same summary the bot's profile field and quest tab use, so no surface can compute
-    // a completion rate its own way.
     const quests = await getQuestSummary(guildId, targetId);
 
     const comboStats = await ComboUserStatsRepository.get(guildId, targetId);

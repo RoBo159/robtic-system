@@ -21,9 +21,6 @@ function isManifest(value: unknown): value is FeatureManifest {
  * writes the declared key, while the folder name is what a person reads.
  */
 export function registerManifestModule(mod: Record<string, unknown>, path: string, report: LoadReport): void {
-    // Default or named, because the manifest is imported by the feature's own command and message
-    // files — `import { topFeature } from "./top"` reads better there than a default import, and
-    // requiring one shape over the other would buy nothing.
     const candidate = isManifest(mod.default) ? mod.default : Object.values(mod).find(isManifest);
 
     if (!isManifest(candidate)) {

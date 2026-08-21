@@ -29,9 +29,6 @@ export function startQuestProgress(): void {
         contributeFromMetric(event);
     });
 
-    // Every write that changes a member's live claims drops their cache entry. Registered as a
-    // callback because the cache lives here and the repository lives a layer down — the same
-    // "no write path can forget to invalidate" discipline the cached settings repositories use.
     unsubscribeMutations = QuestClaimRepository.onMutation(invalidateMemberClaims);
 
     setCompletionHandler(handleCompletions);

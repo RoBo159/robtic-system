@@ -106,9 +106,6 @@ export default {
                 )
         )
 
-        
-
-        
         .addSubcommandGroup(group =>
             group
                 .setName("apikey")
@@ -152,10 +149,6 @@ export default {
             await handleApiKeySubcommand(interaction, guildId, sub);
             return;
         }
-
-        
-
-        
 
         if (sub === "link") {
             const code = interaction.options.getString("code", true);
@@ -231,7 +224,6 @@ export default {
             return;
         }
 
-        // sub === "history"
         const target = interaction.options.getUser("user");
         const limit = interaction.options.getInteger("limit") ?? MINECRAFT_HISTORY_DEFAULT_LIMIT;
 

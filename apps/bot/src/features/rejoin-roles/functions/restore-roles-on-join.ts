@@ -31,21 +31,15 @@ export async function restoreRolesOnJoin(member: GuildMember): Promise<void> {
 
     const restore: string[] = [];
 
-    // Snapshots written before the staff/other split only carry the flat `roles` field. Treat those
-    // as ordinary roles rather than guessing which of them were staff.
     const isLegacy = saved.staffRoles.length === 0 && saved.otherRoles.length === 0 && saved.roles.length > 0;
     const ordinary = isLegacy ? saved.roles : saved.otherRoles;
 
     if (elapsed <= config.retentionHours * HOUR_MS) restore.push(...ordinary);
     if (!isLegacy && elapsed <= config.staffRetentionHours * HOUR_MS) restore.push(...saved.staffRoles);
 
-    // Excluded again on the way out: a role can be excluded after the snapshot was taken.
     const grantable = restore.filter(id => !excluded.has(id) && member.guild.roles.cache.has(id));
     if (grantable.length === 0) return;
 
-    // One at a time, not a single array call: the other guildMemberAdd listeners grant roles in the
-    // same tick, and a multi-role add() writes the member's whole role list from a cache snapshot,
-    // which silently drops whatever another listener just added.
     for (const roleId of grantable) {
         await member.roles.add(roleId).catch(err => {
             Logger.warn(`Could not restore role ${roleId} for ${member.id} in ${member.guild.id}: ${err}`, CTX);

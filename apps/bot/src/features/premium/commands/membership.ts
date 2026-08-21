@@ -22,8 +22,6 @@ export const grant: FeatureSubcommandHandler = async (interaction, _client) => {
         return;
     }
 
-    // No days means permanent. Stored as null rather than a far-future date so "forever" is a fact
-    // in the data rather than a number someone has to interpret.
     const expiresAt = days && days > 0 ? new Date(Date.now() + days * 24 * 60 * 60 * 1000) : null;
 
     await PremiumRepository.grantMembership({

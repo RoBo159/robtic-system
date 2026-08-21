@@ -36,7 +36,6 @@ export async function authenticate(request: Request): Promise<ApiKeyIdentity> {
     });
 
     if (!record) {
-        // Logged without the token so a leaked log file cannot be used to authenticate.
         Logger.warn(`Rejected a request carrying an unknown or revoked API key`, CTX);
         throw ApiError.unauthorized();
     }

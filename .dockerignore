@@ -12,3 +12,12 @@ dist
 *.md
 # Java plugin — built with Maven, never part of the bot image.
 apps/minecraft-plugin
+# The Docker definitions themselves. Nothing COPYs them, and the Dockerfile named by `-f` is read
+# from the host filesystem rather than out of the context, so excluding this directory cannot hide
+# the file currently being built.
+#
+# This file stays at the repository root, which is the build context for every image except the
+# Minecraft plugin — Docker reads .dockerignore from the context root, never from beside the
+# Dockerfile, so moving it into infra/docker/ would silently stop it applying. See
+# infra/docker/README.md.
+infra

@@ -46,7 +46,6 @@ const TEMPLATES: MissionTemplate[] = [
         key: "voice-minutes",
         metric: "voiceTime",
         accumulation: "sum",
-        // Seconds under the hood; the label converts. Voice is slower than chat by design.
         tiers: ["easy", "normal", "hard", "golden", "vip"],
         targetFor: tier => Math.round(15 * 60 * SCALE[tier]),
         label: QUEST_MISSION_LABELS["voice-minutes"],
@@ -64,7 +63,6 @@ const TEMPLATES: MissionTemplate[] = [
     {
         key: "combo-score",
         metric: "comboScore",
-        // A level, not a counter — the member must *reach* this score in one conversation.
         accumulation: "max",
         tiers: ["easy", "normal", "hard", "golden"],
         targetFor: tier => Math.round(40 * SCALE[tier]),
@@ -82,7 +80,6 @@ const TEMPLATES: MissionTemplate[] = [
         key: "reach-streak",
         metric: "streak",
         accumulation: "max",
-        // Not on easy: a streak is days long, so it cannot be started and finished inside 24h.
         tiers: ["hard", "golden"],
         targetFor: tier => (tier === "golden" ? 14 : 5),
         label: QUEST_MISSION_LABELS["reach-streak"],

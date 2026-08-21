@@ -98,8 +98,6 @@ export class ClientManager {
         this.client.messageCommands.clear();
         clearFeatureRegistry();
         clearProfileTabs();
-        // Consumers re-subscribe as their modules re-import; without this a reload would leave the
-        // old closures attached and every metric would be handled twice.
         clearMetricListeners();
 
         await this.initialize();

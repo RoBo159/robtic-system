@@ -31,8 +31,6 @@ export async function grantXP(
 
     const record = await ActivityRepository.findOrCreate(discordId, guildId, username);
 
-    // Both perks come from the Premium Engine, never from a role: a member with no tier gets a
-    // reduction of 0 and a multiplier of 1, which is the arithmetic this path always had.
     const [cooldownCut, xpBonus] = await Promise.all([
         getFeatureValue(guildId, discordId, PremiumFeature.XP_COOLDOWN_REDUCTION),
         getMultiplier(guildId, discordId, PremiumFeature.MESSAGE_XP_BONUS),
@@ -51,9 +49,6 @@ export async function grantXP(
         return null;
     }
 
-    // Tracked separately from the shared `xp` counter so "XP from talking" and "XP from voice" are
-    // two boards rather than one total nobody can decompose. `applyXpGain` still records the
-    // combined figure, which is what the level system reads.
     await PeriodicStatRepository.incrementAllPeriods(guildId, "messageXp", discordId, xp);
 
     return applyXpGain(discordId, guildId, username, guild, xp, record.level, updated, CTX);

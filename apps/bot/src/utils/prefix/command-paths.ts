@@ -29,7 +29,6 @@ export function commandPaths(json: CommandJSON): string[] {
         }
     }
 
-    // No subcommands — the command itself is the only path.
     return paths.length ? paths : [json.name];
 }
 
@@ -42,7 +41,6 @@ export function allCommandPaths(client: BotClient): string[] {
         if (typeof data.toJSON !== "function") continue;
 
         const json = data.toJSON();
-        // Context-menu entries have no typed form, so they cannot back a shortcut.
         if (json.type !== undefined && json.type !== 1) continue;
 
         paths.push(...commandPaths(json));

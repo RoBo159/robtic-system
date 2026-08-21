@@ -74,8 +74,6 @@ export default {
             return;
         }
 
-        // The guild guard makes the bot leave any server not on the allowlist. Adopting an
-        // unlisted guild would publish commands to a server the bot is about to walk out of.
         if (!(await AllowedGuildRepository.isAllowed(guildId))) {
             await interaction.editReply({
                 embeds: [new EmbedBuilder().setColor(COLORS.error).setDescription(

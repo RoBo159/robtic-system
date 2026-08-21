@@ -61,7 +61,6 @@ const ticketSchema = new Schema<ITicket>(
 
 ticketSchema.index({ guildId: 1, status: 1 });
 ticketSchema.index({ userId: 1, status: 1 });
-// One open panel-created ticket per user per guild — see the `openLock` doc comment above.
 ticketSchema.index(
     { guildId: 1, userId: 1, openLock: 1 },
     { unique: true, partialFilterExpression: { openLock: { $eq: true } } }

@@ -54,7 +54,6 @@ export function enumerateOccurrences(
             if (!window.enabled) continue;
 
             const startMs = dayStart + window.startHour * HOUR_MS;
-            // An end hour at or before the start reads as crossing midnight.
             const endHour = window.endHour > window.startHour ? window.endHour : window.endHour + 24;
             const endMs = dayStart + endHour * HOUR_MS;
 
@@ -83,7 +82,6 @@ export function localWeekKey(atMs: number, utcOffsetMinutes: number): string {
     const shifted = new Date(atMs + utcOffsetMinutes * 60_000);
     const target = new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()));
 
-    // ISO-8601: week 1 is the one containing the first Thursday, and weeks start on Monday.
     const dayNumber = (target.getUTCDay() + 6) % 7;
     target.setUTCDate(target.getUTCDate() - dayNumber + 3);
 

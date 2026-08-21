@@ -51,8 +51,6 @@ export const returnStreak: FeatureSubcommandHandler = async (interaction, _clien
         return;
     }
 
-    // Restore clears pendingReturnUntil, which unfreezes them — from here their next qualifying
-    // message continues the streak rather than being ignored.
     await StreakRepository.restore(user.id, guildId, recovery.currentStreak, recovery.bestStreak);
     await StreakRecoveryRepository.delete(user.id, guildId);
 

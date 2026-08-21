@@ -3,7 +3,6 @@ import type { BotClient } from "@core/bot-client";
 import type { ComponentHandler } from "@typings/command";
 import { parseShortcutButtonCustomId, buildProofModal } from "../../utils/moderation/punish-flow";
 
-// A real ButtonInteraction (unlike the shortcut message that triggered the DM), so it can showModal().
 export default {
     customId: /^punish_shortcut_(warn|mute|ban)_/,
 

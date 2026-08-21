@@ -23,12 +23,6 @@ export async function syncMemberPermissions(member: GuildMember, reason: string)
     const roleIds = [...member.roles.cache.keys()];
     const groups = await resolveLuckPermsGroups(member.guild.id, roleIds);
 
-    // Projected durably before the event is queued.
-    //
-    // A bridge event is transient — once consumed it cannot answer "is this player staff?" when
-    // they run /admin an hour later, and the plugin has no Discord API access of its own. This
-    // row is what the API reads to resolve staff rank on demand, so Discord stays the source of
-    // truth while the answer survives a restart.
     await MinecraftRoleStateRepository.upsert({
         guildId: member.guild.id,
         discordId: member.id,

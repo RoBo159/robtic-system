@@ -25,8 +25,6 @@ export const HandlingComponent = async (interaction: Interaction, client: BotCli
                     : new RegExp(`^${handler.customId}$`);
 
             if (pattern.test(customId)) {
-                // A live message keeps its buttons after its feature is switched off, so say so
-                // rather than running the handler against a feature the guild has disabled.
                 if (handler.feature && interaction.guildId && !(await isFeatureEnabled(interaction.guildId, handler.feature))) {
                     const manifest = getFeatureManifest(handler.feature);
                     await interaction.reply({
@@ -45,7 +43,6 @@ export const HandlingComponent = async (interaction: Interaction, client: BotCli
                         `${client.botName}/InteractionCreate`
                     );
 
-                    // Interaction token already dead — replying would just fail the same way.
                     if (classified.category === "interaction_expired") return true;
 
                     try {
@@ -56,7 +53,6 @@ export const HandlingComponent = async (interaction: Interaction, client: BotCli
                             });
                         }
                     } catch {
-                        // Interaction already acknowledged or expired — suppress to avoid client error noise
                     }
                 }
                 return true;
@@ -69,7 +65,6 @@ export const HandlingComponent = async (interaction: Interaction, client: BotCli
                     flags: MessageFlags.Ephemeral,
                 });
             } catch {
-                // Ignore interaction lifecycle race conditions.
             }
         }
         return true;

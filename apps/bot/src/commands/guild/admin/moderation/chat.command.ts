@@ -68,10 +68,6 @@ export default {
                 ))
         ),
 
-    // setDefaultMemberPermissions only hides the slash command in clients that respect it, and does
-    // nothing at all for `!chat lock` — the prefix router never sees Discord's permission overwrite.
-    // Without a requiredPermission this command reached checkPermissions' permissive fallthrough,
-    // so any member could lock, hide or wipe a channel from chat. Staff tier is the real gate.
     requiredPermission: STAFF_TIER_THRESHOLDS.staff,
 
     async run(interaction: ChatInputCommandInteraction) {

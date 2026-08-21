@@ -45,12 +45,16 @@ check(
 
 // 3. In each Dockerfile's dependency stage. A missing COPY means the workspace's package.json is
 //    absent when `bun install --frozen-lockfile` runs, which the lockfile then disagrees with.
-const dockerfiles = [
-    "Dockerfile",
-    "apps/robtic-api/Dockerfile",
-    "apps/dashboard-api/Dockerfile",
-    "apps/dashboard/Dockerfile",
-].filter(p => existsSync(join(ROOT, p)));
+//    Discovered rather than listed, now that they all live in one directory: a fifth Bun service
+//    added to infra/docker/ is checked without anyone remembering to extend an array here. The
+//    Minecraft plugin is excluded because it is a Maven build with no workspace manifests at all.
+const DOCKER_DIR = "infra/docker/dockerfiles";
+const dockerfiles = readdirSync(join(ROOT, DOCKER_DIR))
+    .filter(name => name.endsWith(".Dockerfile") && name !== "minecraft-plugin.Dockerfile")
+    .map(name => `${DOCKER_DIR}/${name}`)
+    .sort();
+
+check("infra/docker/dockerfiles holds a Dockerfile per Bun service", dockerfiles.length === 4, dockerfiles.join(", "));
 
 for (const path of dockerfiles) {
     const body = read(path);

@@ -16,7 +16,6 @@ export function getCooldownKey(interaction: ChatInputCommandInteraction): string
         const sub = interaction.options.getSubcommand(false);
         if (sub) parts.push(sub);
     } catch {
-        // Command has no subcommands defined — fall back to the base command name.
     }
     return parts.join(":");
 }

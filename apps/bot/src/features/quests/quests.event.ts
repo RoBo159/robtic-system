@@ -20,8 +20,6 @@ export default [
         name: Events.ClientReady,
         once: true,
         execute: async client => {
-            // Before the scheduler, so the first cycle already reads the folded channel rather than
-            // posting nowhere for one tick.
             await migrateQuestChannels();
             startQuestScheduler(client);
         },

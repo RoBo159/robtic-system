@@ -6,7 +6,6 @@
  * import from here (the `@sdk` alias) so that dependency never reaches a Bun process.
  */
 
-// Errors
 export { ApiError } from "./errors/api-error";
 export {
     API_ERROR_CODES,
@@ -16,7 +15,6 @@ export {
     type ApiErrorCode,
 } from "./errors/error-codes";
 
-// Constants
 export { API_ROUTES } from "./constants/api-routes";
 export {
     API_CACHE_TTL_MS,
@@ -35,7 +33,6 @@ export {
     type StaffStatKey,
 } from "./constants/staff-actions";
 
-// Auth
 export {
     API_SCOPES,
     PLUGIN_DEFAULT_SCOPES,
@@ -47,7 +44,6 @@ export {
     type ApiScope,
 } from "./auth/api-key";
 
-// Validation
 export { v, validateBody, type Validator } from "./validation/validator";
 export {
     ITEM_KEY_PATTERN,
@@ -59,15 +55,12 @@ export {
     schema,
 } from "./validation/schemas";
 
-// Transport
 export { HttpClient, type HttpClientOptions, type RequestOptions } from "./api-client/http-client";
 export { RobticApiClient } from "./api-client/robtic-api-client";
 
-// Utilities
 export { deterministicRequestId, newRequestId } from "./utils/request-id";
 export { formatDuration, parseDuration } from "./utils/format-duration";
 
-// Data transfer objects
 export type * from "./dto/common";
 export type * from "./dto/minecraft";
 export type * from "./dto/economy";

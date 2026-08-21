@@ -30,8 +30,6 @@ export const board: FeatureSubcommandHandler = async (interaction, _client) => {
     const heldQuestIds = new Set(claims.map(claim => String(claim.questId)));
     const busySlots = new Set(claims.map(claim => claim.slot));
 
-    // Display order is tier order, not generation order: a member scanning the board wants the
-    // rare ones to sit where they expect them, not wherever the scheduler happened to fire.
     const ordered = [...quests].sort(
         (a, b) => QUEST_TIERS.indexOf(a.tier as QuestTier) - QUEST_TIERS.indexOf(b.tier as QuestTier)
     );

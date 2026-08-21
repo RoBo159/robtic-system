@@ -52,12 +52,12 @@ jobs:
       environment-name: 'Robtic Server'
       environment-url: 'https://dashboard.robtic.org'
       server-label: 'core.robtic.org'
-      dockerfile: 'apps/dashboard-api/Dockerfile'
+      dockerfile: 'infra/docker/dockerfiles/dashboard-api.Dockerfile'
       image-name: 'ghcr.io/robticorg/robtic-dashboard-api'
       compose-project-name: 'robtic-system'
       compose-env-file: '/home/robtic/robtic-system/.env'
-      compose-pull-command: 'docker compose -p robtic-system --env-file /home/robtic/robtic-system/.env pull robtic-dashboard-api'
-      compose-up-command: 'docker compose -p robtic-system --env-file /home/robtic/robtic-system/.env up -d robtic-dashboard-api'
+      compose-pull-command: 'docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env pull robtic-dashboard-api'
+      compose-up-command: 'docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env up -d robtic-dashboard-api'
     secrets:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 

@@ -41,7 +41,6 @@ export function peekClaims(guildId: string, discordId: string): ClaimRuntime[] |
         return undefined;
     }
 
-    // Refresh recency for the LRU trim: re-inserting moves it to the end of the Map's order.
     cache.delete(key);
     cache.set(key, entry);
 
@@ -67,7 +66,6 @@ export function fillClaims(
     void (async () => {
         try {
             if (!(await isFeatureEnabled(guildId, "quests"))) {
-                // The answer cannot change while the feature is off, so trust it for longer.
                 store(key, { claims: null, expiresAt: Date.now() + QUEST_CONFIG.disabledCacheMs });
                 return;
             }
@@ -79,8 +77,6 @@ export function fillClaims(
             }
 
             const claims = rows.map(toRuntime);
-            // Positive entries live until the earliest claim ends; after that a re-read is required
-            // anyway to see whether it expired or completed.
             const soonest = Math.min(...claims.map(claim => claim.expiresAt));
             store(key, { claims, expiresAt: soonest });
 
@@ -96,9 +92,6 @@ export function fillClaims(
 function store(key: string, entry: CacheEntry): void {
     cache.set(key, entry);
 
-    // A guild where everyone holds a VIP quest is the only unbounded axis in the design. Lazy
-    // filling means this tracks active talkers rather than claim count, and the cap stops a raid
-    // from turning that into memory pressure. An evicted member simply re-fills on their next event.
     if (cache.size > QUEST_CONFIG.claimCacheMax) {
         const oldest = cache.keys().next().value;
         if (oldest !== undefined) cache.delete(oldest);

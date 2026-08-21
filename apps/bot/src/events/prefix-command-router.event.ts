@@ -77,11 +77,6 @@ export default {
             return;
         }
 
-        // A *.message.ts handler runs in front of the normal pipeline and may decline: returning
-        // false hands the message straight on, so it only has to describe what the option parser
-        // can't — chiefly a bare `!coins`, which deserves a list of subcommands rather than a
-        // "missing subcommand" error. Placed after the channel gate so a bare command in the wrong
-        // channel is still deleted rather than answered.
         if (messageCommand && (await messageCommand.run({ message, client, prefix, argString, command }))) return;
         if (!command) return;
 

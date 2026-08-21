@@ -22,9 +22,6 @@ export const windows: FeatureSubcommandHandler = async (interaction, _client) =>
         ? current.returnWindowHours
         : clamp(returnInput, STREAK_LIMITS.returnWindowHours);
 
-    // A streak that expires before it can next be claimed could never be continued, so expiry is
-    // pushed past the claim window rather than the command being rejected — the admin's intent is
-    // clear either way, and refusing would just make them do the arithmetic themselves.
     const expireDays = Math.max(claimDays + 1, requestedExpire);
 
     await StreakSettingsRepository.setWindows(guildId, claimDays, expireDays, returnWindowHours);

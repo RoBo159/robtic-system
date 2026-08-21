@@ -110,8 +110,6 @@ export class HttpClient {
                 signal: controller.signal,
             });
         } catch (error) {
-            // A network failure or timeout is indistinguishable from a restarting API, so it is
-            // classified as upstream — which makes it retryable and queueable.
             throw ApiError.upstream(`Could not reach the Robtic API: ${error}`);
         } finally {
             clearTimeout(timeout);

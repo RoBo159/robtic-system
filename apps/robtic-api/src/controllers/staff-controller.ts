@@ -48,8 +48,6 @@ export const staffRoutes: Route[] = [
                 uuid: schema.uuid(),
                 username: schema.username(),
                 snapshot: schema.inventorySnapshot(),
-                // The rank the server resolved from its own roles.yml. Optional so a plugin older
-                // than this route keeps working against the API-side ladder.
                 rank: v.optional(
                     v.object({
                         roleId: schema.snowflake(),
@@ -109,8 +107,6 @@ export const staffRoutes: Route[] = [
             const guildId = requireGuildId(context, body.guildId);
             const serverId = requireServerId(context, body.serverId);
 
-            // Deliberately not idempotency-wrapped: a replay must hand the snapshot back again,
-            // because the first attempt may be exactly the one that failed to restore it.
             const result = await StaffService.disable({
                 guildId,
                 uuid: body.uuid,
@@ -162,9 +158,6 @@ export const staffRoutes: Route[] = [
             const guildId = requireGuildId(context, body.guildId);
             const serverId = requireServerId(context, body.serverId);
 
-            // The backup is deleted only here, never in `disable`. If this call never arrives the
-            // snapshot survives and the player's next join restores it again — a duplicate restore
-            // is recoverable, a missing one is not.
             await StaffService.confirmRestore(guildId, body.uuid, serverId);
 
             return ok({ acknowledged: true as const, requestId: body.requestId });
@@ -300,8 +293,6 @@ export const staffRoutes: Route[] = [
                 guildId: schema.snowflake(),
                 targetUuid: schema.uuid(),
                 direction: v.oneOf(["promote", "demote"] as const),
-                // The outcome the game server worked out from its own roles.yml. The ladder is not
-                // duplicated here, so the concrete roles have to arrive with the request.
                 grantRoleId: v.optional(schema.snowflake()),
                 revokeRoleId: v.optional(schema.snowflake()),
                 fromRank: v.optional(v.string({ max: 32 })),
@@ -326,8 +317,6 @@ export const staffRoutes: Route[] = [
                     to: body.toRank ?? null,
                 });
 
-                // The game server holds LuckPerms groups, not Discord roles, so the rank change is
-                // only half-applied until this reaches it.
                 await publishBridgeEvent({
                     guildId,
                     type: "role_sync",

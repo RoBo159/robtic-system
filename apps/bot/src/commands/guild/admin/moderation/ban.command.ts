@@ -27,8 +27,6 @@ export default {
         .addUserOption(opt =>
             opt.setName("target").setDescription("The user to ban").setRequired(true)
         )
-        // Last, and the only string option, so `!ban @user spamming in general` takes the whole
-        // trailing text as the reason instead of just the first word.
         .addStringOption(opt =>
             opt.setName("reason").setDescription("Why they are being banned").setRequired(false)
         ),
@@ -65,8 +63,6 @@ export default {
             return;
         }
 
-        // A user who already left can still be banned, so a missing member is not an error here —
-        // it only means there is no hierarchy to check.
         const member = guild.members.cache.get(target.id) ?? await guild.members.fetch(target.id).catch(() => null);
         if (member) {
             if (!canActOn(interaction.member as GuildMember, member)) {

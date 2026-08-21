@@ -108,8 +108,6 @@ export const profileMenuHandler: ComponentHandler<StringSelectMenuInteraction> =
             return;
         }
 
-        // Feature-contributed tabs render through the registry, so profile never imports a
-        // feature's embed builders and a tab whose feature is switched off says so.
         const tab = getProfileTab(selected);
         if (tab) {
             if (!(await isFeatureEnabled(interaction.guildId!, tab.feature))) {

@@ -39,9 +39,6 @@ export async function buildQuest(
     const missions = rollMissions(tier, rollQuestRange(spec.missions));
     if (missions.length === 0) return null;
 
-    // Rolled when the tier declares a range, taken as-is when it declares a number. Either way both
-    // are copied onto the document, so retuning the table later cannot change a quest already
-    // posted — and two Specials posted an hour apart genuinely differ.
     const reward = rollQuestRange(spec.reward);
     const slotsTotal = spec.slots === null ? null : rollQuestRange(spec.slots);
     const durationHours = randomInt(spec.durationHours.min, spec.durationHours.max);
@@ -54,15 +51,12 @@ export async function buildQuest(
             status: "open",
             missions,
             reward,
-            // Unlimited tiers get a sentinel rather than a special case, so the reservation stays
-            // one indexed predicate: `slotsRemaining > 0`.
             slotsRemaining: slotsTotal ?? QUEST_UNLIMITED_SLOTS,
             slotsTaken: 0,
             slotsTotal,
             endsAt: new Date(now.getTime() + durationHours * HOUR_MS),
         });
     } catch (err) {
-        // Another worker won the same cycle key; theirs is the quest.
         if ((err as { code?: number }).code === 11000) return null;
         throw err;
     }

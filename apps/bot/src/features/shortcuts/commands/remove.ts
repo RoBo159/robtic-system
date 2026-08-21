@@ -8,7 +8,6 @@ export const remove: FeatureSubcommandHandler = async (interaction, _client) => 
     const guildId = interaction.guildId!;
     const typed = interaction.options.getString("trigger", true);
 
-    // Accepts `c` or `?c`: both fire the shortcut, so both have to be able to remove it.
     const trigger = await resolveTrigger(guildId, typed);
     const removed = await ShortcutRepository.remove(guildId, trigger);
 

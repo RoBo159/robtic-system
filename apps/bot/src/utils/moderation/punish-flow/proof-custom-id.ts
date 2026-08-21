@@ -1,7 +1,6 @@
 import type { PunishType, PunishCustomIdParts } from "@typings/punishment";
 import { PUNISH_CUSTOM_ID_SEGMENTS, PUNISH_EXTRA_NONE } from "@constants";
 
-// Kept short — a Discord customId caps at 100 chars and this packs five IDs/slugs into one string.
 export function proofModalCustomId(
     type: PunishType,
     guildId: string,

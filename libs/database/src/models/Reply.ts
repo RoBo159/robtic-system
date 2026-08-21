@@ -43,7 +43,6 @@ const replySchema = new Schema<IReply>(
     { timestamps: true }
 );
 
-// One document per trigger per guild, and the pair is how every lookup reads it.
 replySchema.index({ guildId: 1, trigger: 1 }, { unique: true });
 
 export const Reply = model<IReply>("Reply", replySchema);

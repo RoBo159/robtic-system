@@ -10,11 +10,8 @@ export interface ClassifiedError {
     userMessage: string;
 }
 
-// 10062/40060 mean the interaction token is already dead — nothing we send back will land.
 const EXPIRED_INTERACTION_CODES = new Set([10062, 40060]);
 
-// Duck-typed by name rather than importing every class — some (MongoServerSelectionError etc.)
-// come from the `mongodb` package mongoose re-exports, not mongoose's own error module.
 const DATABASE_ERROR_NAME_PATTERN = /^Mongo|^(Validation|Cast|Version|DocumentNotFound|StrictMode|ParallelSave|OverwriteModel)Error$/;
 
 export function classifyError(err: unknown): ClassifiedError {

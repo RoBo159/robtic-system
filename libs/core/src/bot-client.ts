@@ -44,10 +44,6 @@ export class BotClient extends Client {
         this.botName = name;
         this.token_ = token;
 
-        // Node warns past ten listeners on one event as a leak heuristic. Here they are deliberate:
-        // messageCreate alone carries the prefix router, shortcuts, the channel guard, message
-        // stats, combo, streak, community XP, auto-replies and presence tracking. Raised rather
-        // than removed, so a genuine runaway still trips it.
         this.setMaxListeners(MAX_LISTENERS_PER_EVENT);
     }
 
@@ -92,8 +88,6 @@ export class BotClient extends Client {
         const commandGuildId = process.env.COMMAND_GUILD_ID?.trim();
         const adminGuildId = await getAdminGuildId();
 
-        // One test server for everything is the normal dev setup, and two puts to the same route
-        // would leave only whichever landed second. Merge instead.
         if (adminGuildId && adminGuildId === commandGuildId) {
             await putCommandRoute(
                 rest,

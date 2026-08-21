@@ -31,23 +31,33 @@ common=(
     scripts/deploy-signature.sh
     apps/*/package.json
     libs/*/package.json
+    # The production topology. Not previously signed, which was a gap: editing a port mapping or a
+    # healthcheck changed what runs on the server while every signature stayed the same, so the
+    # deploy that would have applied it was skipped as "unchanged". The local stack is deliberately
+    # absent — it never runs on the server.
+    infra/docker/compose/docker-compose.yml
 )
 
 # One entry per service, matching what its Dockerfile actually copies into the image.
+#
+# Each names its own Dockerfile under infra/docker/ explicitly. They used to be picked up implicitly,
+# by sitting inside the app directory already being hashed — moving them to infra/ ended that, and an
+# unlisted Dockerfile is the worst kind of miss here: editing it would leave the signature unchanged,
+# so the deploy would be skipped as "already deployed" and the edit would never ship.
 case "$service" in
     bot)
-        paths=("${common[@]}" Dockerfile apps/bot libs images)
+        paths=("${common[@]}" infra/docker/dockerfiles/bot.Dockerfile apps/bot libs images)
         ;;
     platform-api)
-        paths=("${common[@]}" apps/robtic-api libs)
+        paths=("${common[@]}" infra/docker/dockerfiles/platform-api.Dockerfile apps/robtic-api libs)
         ;;
     dashboard-api)
-        paths=("${common[@]}" apps/dashboard-api libs)
+        paths=("${common[@]}" infra/docker/dockerfiles/dashboard-api.Dockerfile apps/dashboard-api libs)
         ;;
     # No `libs`: the dashboard imports nothing from them — it is a client of dashboard-api and
     # nothing else. Including them would rebuild the web image on every repository change.
     dashboard)
-        paths=("${common[@]}" apps/dashboard)
+        paths=("${common[@]}" infra/docker/dockerfiles/dashboard.Dockerfile apps/dashboard)
         ;;
     *)
         echo "unknown service: $service" >&2

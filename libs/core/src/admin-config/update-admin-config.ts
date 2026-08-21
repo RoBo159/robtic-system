@@ -78,8 +78,6 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
             await StreakSettingsRepository.setMinMessageLength(guildId, clampInt(v.minMessageLength, ADMIN_CONFIG_LIMITS.streakMinMessageLength));
             await StreakSettingsRepository.setAnnounceChannel(guildId, idOrEmpty(v.announceChannelId) || null);
 
-            // Expiry is forced above the claim window rather than rejected — a streak that dies
-            // before it can next be claimed could never be continued.
             const claimDays = clampInt(v.claimDays, STREAK_LIMITS.claimDays);
             const expireDays = Math.max(claimDays + 1, clampInt(v.expireDays, STREAK_LIMITS.expireDays));
             await StreakSettingsRepository.setWindows(
@@ -133,7 +131,6 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
                         points: clampInt(r.points, { min: 1, max: 10000 }),
                     }))
                 : [];
-            // One payout per day-count — last entry for a duplicate streak wins.
             const rewards = [...new Map(cleaned.map(r => [r.streak, r])).values()]
                 .sort((a, b) => a.streak - b.streak)
                 .slice(0, POINT_STREAK_REWARDS_MAX);
@@ -155,7 +152,6 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
                     trackedChannelIds: cleanIds(v.trackedChannelIds, ADMIN_CONFIG_LIMITS.maxChannelsPerField),
                     excludedChannelIds: cleanIds(v.excludedChannelIds, ADMIN_CONFIG_LIMITS.maxChannelsPerField),
                     allowedRoleIds: cleanIds(v.allowedRoleIds, ADMIN_CONFIG_LIMITS.maxRolesPerField),
-                    // A fraction, not an integer — clampInt would round 0.25 away.
                     aloneMultiplier: clampFloat(v.aloneMultiplier, VOICE_LIMITS.aloneMultiplier),
                     afkTimeoutMinutes: clampInt(v.afkTimeoutMinutes, VOICE_LIMITS.afkTimeoutMinutes),
                     minMembersForFullRate: clampInt(v.minMembersForFullRate, VOICE_LIMITS.minMembersForFullRate),
@@ -168,8 +164,6 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
             const v = values as AdminConfigUpdate["features"];
             const known = new Set((await FeatureCatalogRepository.list()).map(entry => entry.key));
 
-            // Only keys the running bot actually published. A stale panel could otherwise write
-            // rows for features that no longer exist, which nothing would ever clean up.
             for (const [key, enabled] of Object.entries(v.states ?? {})) {
                 if (!known.has(key)) continue;
                 await GuildFeatureRepository.set(guildId, key, Boolean(enabled), actorId);
@@ -191,8 +185,6 @@ export async function updateAdminConfig<S extends AdminConfigSection>(
                 cleanIds(v.staffRoleIds, cap),
             );
 
-            // The staff window has to stay the shorter of the two. Rather than reject the whole
-            // write, keep the previous pair — the panel shows the unchanged values back.
             if (staffHours < memberHours) {
                 await RejoinRolesConfigRepository.setWindows(guildId, memberHours, staffHours);
             } else {

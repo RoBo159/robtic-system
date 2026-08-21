@@ -38,8 +38,6 @@ export default {
             return;
         }
 
-        // A server with hundreds of roles overflows the embed, so fill it to the limit and say so
-        // in the footer rather than letting Discord reject the whole message.
         const lines: string[] = [];
         let length = 0;
         for (const role of roles) {

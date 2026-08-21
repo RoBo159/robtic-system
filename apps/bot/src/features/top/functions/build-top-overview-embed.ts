@@ -45,7 +45,6 @@ export async function buildTopOverviewEmbed(
         embed.addFields({
             name: `${TOP_CATEGORY_EMOJI[category]} ${t(`top.category_${category}`, lang)}`,
             value: (lines.join("\n") || t("top.no_entries", lang)).slice(0, 1024),
-            // Two or three boards side by side; a fourth would wrap and break the columns.
             inline: true,
         });
     }

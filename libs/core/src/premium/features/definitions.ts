@@ -10,7 +10,6 @@ import { registerPremiumFeature } from "./registry";
  * did before this system existed, and a feature nobody has configured must never change a number.
  */
 export const PremiumFeature = {
-    // Quests
     VIP_QUEST_ACCESS: "VIP_QUEST_ACCESS",
     QUEST_REWARD_BONUS: "QUEST_REWARD_BONUS",
     EXTRA_QUEST_SLOT: "EXTRA_QUEST_SLOT",
@@ -18,21 +17,17 @@ export const PremiumFeature = {
     QUEST_PRIORITY: "QUEST_PRIORITY",
     COMMUNITY_PROGRESS_BONUS: "COMMUNITY_PROGRESS_BONUS",
 
-    // XP
     MESSAGE_XP_BONUS: "MESSAGE_XP_BONUS",
     XP_COOLDOWN_REDUCTION: "XP_COOLDOWN_REDUCTION",
 
-    // Voice
     VOICE_XP_BONUS: "VOICE_XP_BONUS",
     VOICE_TIME_BONUS: "VOICE_TIME_BONUS",
     VOICE_CHANNEL_EFFECTS: "VOICE_CHANNEL_EFFECTS",
 
-    // Streak
     STREAK_SHIELD: "STREAK_SHIELD",
     STREAK_RECOVERY_WINDOW: "STREAK_RECOVERY_WINDOW",
     STREAK_SKIP_DAY: "STREAK_SKIP_DAY",
 
-    // Economy
     POINT_BONUS: "POINT_BONUS",
     POINT_TO_RC_DISCOUNT: "POINT_TO_RC_DISCOUNT",
     SHOP_DISCOUNT: "SHOP_DISCOUNT",
@@ -40,10 +35,8 @@ export const PremiumFeature = {
     TRANSFER_FEE_DISCOUNT: "TRANSFER_FEE_DISCOUNT",
     DOUBLE_DAILY_REWARD: "DOUBLE_DAILY_REWARD",
 
-    // Combo
     COMBO_SCORE_BONUS: "COMBO_SCORE_BONUS",
 
-    // Cosmetics
     PROFILE_BADGE: "PROFILE_BADGE",
     PROFILE_THEME: "PROFILE_THEME",
     ANIMATED_PROFILE: "ANIMATED_PROFILE",
@@ -74,8 +67,6 @@ registerPremiumFeature({
 
 registerPremiumFeature({
     key: PremiumFeature.EXTRA_QUEST_SLOT,
-    // Additive on purpose: an extra slot from two sources really is two extra slots, and this is
-    // the one place where "highest wins" would feel like a bug rather than a rule.
     type: "count",
     baseline: 0,
     stacking: "sum",

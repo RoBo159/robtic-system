@@ -32,8 +32,6 @@ export default buildFeatureCommands(replyFeature, {
             const focused = interaction.options.getFocused(true);
             const query = focused.value.toLowerCase();
 
-            // `id` completes to a reply, showing the trigger and the text — nobody memorises ids,
-            // they recognise the reply and want the id that belongs to it.
             if (focused.name === "id") {
                 const rows = await ReplyRepository.listAll(interaction.guildId!);
                 const matches = rows

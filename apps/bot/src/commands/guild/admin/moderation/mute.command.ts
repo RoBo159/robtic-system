@@ -165,7 +165,6 @@ export default {
             const durationHours = interaction.options.getInteger("duration") ?? 24;
             const modMember = interaction.member as GuildMember;
 
-            // Must precede any deferReply()/reply() — showModal() has to be the first response.
             if (await needsProof(modMember)) {
                 if ((interaction as any).isPrefix) {
                     const sent = await sendShortcutProofDM(client, interaction.user.id, "mute", interaction.guildId!, target.id, reasonKey, String(durationHours));

@@ -26,8 +26,6 @@ export function setPremiumRoleProvider(provider: RoleProvider | null): void {
     roleProvider = provider;
 }
 
-// ── Caches ───────────────────────────────────────────────────────────────────
-
 /**
  * Three caches, because the data has three different lifetimes.
  *
@@ -121,8 +119,6 @@ export function startPremiumEngine(): () => void {
     });
 }
 
-// ── The API ──────────────────────────────────────────────────────────────────
-
 async function resolve(guildId: string, discordId: string, roleIds: readonly string[]): Promise<PremiumBenefits> {
     const [config, guild, memberships] = await Promise.all([
         loadGlobalConfig(),
@@ -168,8 +164,6 @@ export async function getBenefits(guildId: string, discordId: string): Promise<P
         try {
             roleIds = await roleProvider(guildId, discordId);
         } catch (err) {
-            // A departed member or a gateway hiccup. Falling back to memberships alone is safe: it
-            // grants nothing that was not owned, and the entry expires in seconds.
             Logger.debug(`Could not read roles for ${discordId} in ${guildId}: ${err}`, CTX);
         }
     }

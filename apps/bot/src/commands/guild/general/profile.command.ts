@@ -93,20 +93,15 @@ export default {
         const customization = await UserRepository.getCustomization(target.id);
         const coinSummary = await getCoinSummary(target.id);
 
-        // Voice and points sit alongside the other activity figures rather than in their own
-        // command, so a profile answers "how active is this member" in one place.
         const [pointSummary, voiceStat, voiceWeek] = await Promise.all([
             getPointSummary(guildId, target.id),
             VoiceRepository.getStat(guildId, target.id),
             PeriodicStatRepository.getValue(guildId, "weekly", "voiceTime", target.id),
         ]);
 
-        // Quests are opt-in, so a server that has never switched them on gets neither the field nor
-        // the menu entry — an empty "0 completed" row on every profile would be worse than silence.
         const questsEnabled = await isFeatureEnabled(guildId, "quests");
         const questSummary = questsEnabled ? await getQuestSummary(guildId, target.id) : null;
 
-        // The user's chosen accent color styles their profile unless a punishment tier overrides it.
         const profileColor = customization.profileColor && /^#[0-9a-f]{6}$/i.test(customization.profileColor)
             ? Number.parseInt(customization.profileColor.slice(1), 16)
             : null;
@@ -114,7 +109,6 @@ export default {
             : !isPrivate && punishmentLevel >= 20 ? COLORS.warning
             : profileColor ?? COLORS.info;
 
-        // Achievement crowns next to the name — same badges the Activity shows.
         const badges = await getProfileBadges(guildId, target.id, streak.record.currentStreak);
         const badgeSuffix = [
             badges.some(b => b.id === "top-combo") ? "👑💬" : "",
@@ -194,8 +188,6 @@ export default {
             { label: t("profile.menu_activity", lang), description: t("profile.menu_activity_desc", lang), value: "activity", emoji: emoji.status },
             { label: t("profile.menu_streak", lang), description: t("profile.menu_streak_desc", lang), value: "streak", emoji: "🔥" },
             { label: t("profile.menu_combo", lang), description: t("profile.menu_combo_desc", lang), value: "combo", emoji: "💬" },
-            // Registered by features/quests/quests.component.ts; the menu entry is what makes it
-            // reachable, and it only appears where the feature is on.
             ...(questsEnabled ? [{ label: "Quests", description: "Quest record, difficulties and community share", value: "quests", emoji: "🗺️" }] : []),
             ...(memberIsStaff ? [{ label: t("profile.menu_staff_activity", lang), description: t("profile.menu_staff_activity_desc", lang), value: "staff_activity", emoji: emoji.trophy }] : []),
             { label: t("profile.menu_notes", lang), description: t("profile.menu_notes_desc", lang), value: "notes", emoji: emoji.info },

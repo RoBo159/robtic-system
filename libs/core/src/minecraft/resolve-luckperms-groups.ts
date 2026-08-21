@@ -27,7 +27,6 @@ export async function resolveLuckPermsGroups(guildId: string, roleIds: string[])
 
     return {
         grant: [...grant],
-        // A group mapped to two roles is only revoked when the member holds neither.
         revoke: [...managed].filter(group => !grant.has(group)),
         managed: [...managed],
     };

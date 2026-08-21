@@ -21,7 +21,6 @@ export async function finalizeCombo(pair: ICombo): Promise<void> {
     const userAId = pair.userLowId;
     const userBId = pair.userHighId;
 
-    // A pair that never actually exchanged a qualifying message shouldn't count as a conversation day.
     const roll = pair.messages > 0
         ? rollConversationStreak(pair.streakCurrent, pair.streakBest, pair.lastStreakDateKey, now)
         : { streakCurrent: pair.streakCurrent, streakBest: pair.streakBest, dateKey: pair.lastStreakDateKey };

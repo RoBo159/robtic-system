@@ -35,10 +35,7 @@ const communityContributionSchema = new Schema<ICommunityContribution>(
 );
 
 communityContributionSchema.index({ guildId: 1, weekKey: 1, discordId: 1 }, { unique: true });
-// The top-five query, and the settlement cursor walks this too.
 communityContributionSchema.index({ guildId: 1, weekKey: 1, amount: -1 });
-// One member's whole contribution history, for the profile. Without it that sum is a collection
-// scan over every week the server has ever run.
 communityContributionSchema.index({ guildId: 1, discordId: 1 });
 
 export const CommunityContribution = model<ICommunityContribution>(

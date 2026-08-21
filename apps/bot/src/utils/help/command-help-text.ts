@@ -44,7 +44,6 @@ export function findHelpTarget(client: BotClient, context: HelpContext, input: s
     const wanted = normalize(input);
     if (!wanted) return null;
 
-    // A trigger the guild configured wins: someone who only knows `c` should be able to ask about it.
     for (const [path, triggers] of context.shortcutsByTarget) {
         if (triggers.some(trigger => trigger.toLowerCase() === wanted)) return resolvePath(client, path);
     }
@@ -130,7 +129,6 @@ function usageForms(context: HelpContext, target: HelpTarget): string[] {
     const entries = commandUsageEntries(context.prefix, target.command);
     const scoped = entries.filter(entry => entry.path === target.path);
 
-    // A bare command name documents all of its forms; a named subcommand documents only itself.
     const shown = scoped.length ? scoped : entries;
     return shown.map(form => (form.description ? `${form.usage} — ${form.description}` : form.usage));
 }
@@ -138,8 +136,6 @@ function usageForms(context: HelpContext, target: HelpTarget): string[] {
 function chatUtilForms(context: HelpContext, name: ChatUtilName): string[] {
     const examples = CHAT_UTIL_EXAMPLES[name];
 
-    // The shortest trigger is the form a moderator actually types; the `!chat …` form is listed
-    // after it, and is the only form when the guild has configured no trigger at all.
     const triggers = context.shortcutsByTarget.get(name) ?? [];
     const shortest = [...triggers].sort((a, b) => a.length - b.length)[0];
 

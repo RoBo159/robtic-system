@@ -12,6 +12,5 @@ export async function awardVoicePoint(guildId: string, discordId: string, userna
     const rates = await getPointRates(guildId);
     const earned = await PointsRepository.addProgress(guildId, discordId, username, "voice", activeMinutes, rates.voiceMinutesPerPoint);
 
-    // Premium tops up the whole units, never the progress, so the carry stays exact.
     return earned + await awardPremiumPointBonus(guildId, discordId, username, earned, "voice");
 }

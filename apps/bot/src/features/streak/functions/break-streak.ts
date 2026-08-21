@@ -25,9 +25,6 @@ export async function breakStreak(member: GuildMember, reason: string): Promise<
 
     const { returnWindowHours } = resolveStreakWindows(await StreakSettingsRepository.get(guildId));
 
-    // Premium lengthens the window rather than replacing it, so a guild that shortens its own
-    // window still shortens it for everyone — the perk is "more time than the server gives", not
-    // "a window of my own".
     const extraHours = await getFeatureValue(guildId, member.id, PremiumFeature.STREAK_RECOVERY_WINDOW);
 
     await StreakRecoveryRepository.create(member.id, guildId, record.currentStreak, record.bestStreak);

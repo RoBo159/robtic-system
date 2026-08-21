@@ -46,9 +46,6 @@ export async function getStreakSummary(discordId: string, guildId: string, usern
     const pendingUntil = record.pendingReturnUntil?.getTime() ?? 0;
     const pendingReturnMs = pendingUntil > Date.now() ? pendingUntil - Date.now() : null;
 
-    // The lost value lives on the recovery row — the streak's own counter was zeroed on expiry.
-    // Only fetched while a return is actually pending, which is rare, so the common path stays at
-    // three queries.
     const pending = pendingReturnMs !== null
         ? await StreakRecoveryRepository.find(discordId, guildId)
         : null;

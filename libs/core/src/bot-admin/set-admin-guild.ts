@@ -37,8 +37,6 @@ export async function setAdminGuild(client: BotClient, guildId: string | null): 
             await client.rest_().put(Routes.applicationGuildCommands(client.user.id, previous), { body: [] });
             Logger.info(`Cleared admin commands from previous admin guild ${previous}`, client.botName);
         } catch (error) {
-            // A guild the bot has since left cannot be cleared, and that is not a reason to refuse
-            // the change — the commands are unreachable there anyway.
             Logger.warn(`Could not clear admin commands from ${previous}: ${error}`, client.botName);
         }
     }

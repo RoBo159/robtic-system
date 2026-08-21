@@ -18,8 +18,6 @@ const CTX = "quests";
 export async function runQuestCycle(client: Client): Promise<void> {
     const now = new Date();
 
-    // Claim expiry and stuck-completion recovery are global rather than per guild — the indexes are
-    // keyed on status, so one query finds what is due everywhere.
     try {
         const summary = await expireDueClaims(now);
         if (summary.expired || summary.rescued || summary.resumed) {
@@ -43,15 +41,12 @@ export async function runQuestCycle(client: Client): Promise<void> {
         }
     }
 
-    // Firing is global too: the lease query does not care which guild a row belongs to, and doing
-    // it once avoids a scan per guild.
     try {
         await fireDueGenerations(quest => postQuest(client, quest), now);
     } catch (err) {
         Logger.warn(`Quest generation failed: ${err}`, CTX);
     }
 
-    // After the per-guild pass, so a challenge opened this tick already has its metric registered.
     try {
         await flushCommunityProgress(client);
     } catch (err) {

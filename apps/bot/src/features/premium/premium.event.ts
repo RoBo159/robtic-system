@@ -34,7 +34,6 @@ export default [
                 return member ? [...member.roles.cache.keys()] : [];
             });
 
-            // Every premium write announces its guild; this is what turns that into cache eviction.
             stopEngine = startPremiumEngine();
             Logger.info("Premium engine started", CTX);
         },

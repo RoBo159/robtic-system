@@ -23,12 +23,8 @@ export function startQuestScheduler(client: Client): void {
 
     startQuestProgress();
 
-    // Before the first cycle: expiry runs inside it, and a claim that resolves on that pass should
-    // reach the member rather than fall into an unregistered notifier.
     registerQuestNotifier(client);
 
-    // Re-attach to live challenge embeds before the first cycle, so a restart mid-week keeps
-    // editing the same message rather than posting a second one.
     void resumeCommunityPanels(client).catch(err =>
         Logger.warn(`Could not resume community panels: ${err}`, CTX)
     );
@@ -56,6 +52,5 @@ export function stopQuestScheduler(): void {
     if (timer) clearInterval(timer);
     timer = null;
     stopQuestProgress();
-    // Dropped with the client it was bound to, so a reload cannot DM through a dead one.
     setQuestNotifier(null);
 }

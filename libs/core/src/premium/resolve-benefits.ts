@@ -117,16 +117,12 @@ export function resolveBenefits(config: GlobalPremiumConfig, input: MemberPremiu
 
     const take = (tierKey: string, source: PremiumSource, expiresAt: Date | null) => {
         const tier = byKey.get(tierKey);
-        // An unknown or disabled tier key grants nothing — a stale role map or a membership for a
-        // deleted tier must not resolve to something.
         if (!tier || seen.has(tier.key)) return;
 
         seen.add(tier.key);
         holdings.push({ tier: toView(tier), source, expiresAt });
     };
 
-    // Memberships first, so a tier held both ways is reported as the membership — the thing the
-    // member actually owns, rather than the server role that happens to mirror it.
     for (const membership of input.membershipTiers) take(membership.tierKey, "membership", membership.expiresAt);
     for (const tierKey of input.roleTiers) take(tierKey, "role", null);
 

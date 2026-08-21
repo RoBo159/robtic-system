@@ -21,7 +21,7 @@ import { visibleCommands, isFromDisabledFeature, type HelpContext } from "./help
  *
  * Everything below is budgeted instead of truncated: a category that does not fit becomes pages.
  */
-const EMBED_CHAR_BUDGET = 5200; // 6000, minus room for title, footer and field names
+const EMBED_CHAR_BUDGET = 5200;
 const DESCRIPTION_LIMIT = 4096;
 const COMMANDS_PER_PAGE = 12;
 
@@ -175,8 +175,6 @@ export function buildCategoryEmbed(
         return embed;
     }
 
-    // Budgeted rather than sliced: lines are added while they fit and the remainder is reported,
-    // so a page can never be silently short.
     const lines: string[] = [];
     let used = 0;
     let dropped = 0;

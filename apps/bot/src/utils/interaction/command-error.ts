@@ -13,7 +13,6 @@ export const commandError = async (error: unknown, intract: Interaction, client:
         `${client.botName}/InteractionCreate`
     );
 
-    // Already dead — a reply attempt would just fail the same way and add a misleading second log.
     if (classified.category === "interaction_expired") return;
 
     const reply: InteractionReplyOptions = {
@@ -30,6 +29,5 @@ export const commandError = async (error: unknown, intract: Interaction, client:
             scheduleDeletion(() => interaction.deleteReply());
         }
     } catch {
-        // Interaction already acknowledged or expired — suppress to avoid client error noise
     }
 };

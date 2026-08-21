@@ -42,7 +42,7 @@ export async function reconcileClaim(claim: IQuestClaim): Promise<boolean> {
         if (current === undefined) continue;
 
         const derived = mission.accumulation === "max"
-            ? current                                        // a level: the value reached is the progress
+            ? current
             : Math.max(0, current - (claim.baseline?.[metric] ?? 0));
 
         const stored = claim.progress?.[mission.missionId] ?? 0;
@@ -51,8 +51,6 @@ export async function reconcileClaim(claim: IQuestClaim): Promise<boolean> {
 
     if (Object.keys(maxes).length === 0) return false;
 
-    // `$max` rather than `$set`: a concurrent flush may have written something higher between the
-    // read and this write, and reconciliation must never move progress backwards.
     await QuestClaim.updateOne({ _id: claim._id, status: "active" }, { $max: maxes });
     return true;
 }

@@ -5,16 +5,34 @@
 Each service has its own workflow. All delegate to the shared `robticorg/robtic-actions` Docker
 deploy workflow on the self-hosted runner (`robtic-deploy`, `core.robtic.org`):
 
+Dockerfile paths below are relative to `infra/docker/dockerfiles/`.
+
 | Workflow | Trigger | Image | Dockerfile | Compose service |
 |---|---|---|---|---|
-| `deploy-platform-api.yml` | push to `main` | `ghcr.io/robticorg/robtic-platform-api` | `apps/robtic-api/Dockerfile` | `robtic-platform-api` |
-| `deploy-bot.yml` | the platform API workflow finishing | `ghcr.io/robticorg/robtic-system` | `Dockerfile` | `robtic-system` |
-| `deploy-dashboard-api.yml` | push to `main` | `ghcr.io/robticorg/robtic-dashboard-api` | `apps/dashboard-api/Dockerfile` | `robtic-dashboard-api` |
-| `deploy-dashboard.yml` | the dashboard API workflow finishing | `ghcr.io/robticorg/robtic-dashboard` | `apps/dashboard/Dockerfile` | `robtic-dashboard` |
+| `deploy-platform-api.yml` | push to `main` | `ghcr.io/robticorg/robtic-platform-api` | `platform-api.Dockerfile` | `robtic-platform-api` |
+| `deploy-bot.yml` | the platform API workflow finishing | `ghcr.io/robticorg/robtic-system` | `bot.Dockerfile` | `robtic-system` |
+| `deploy-dashboard-api.yml` | push to `main` | `ghcr.io/robticorg/robtic-dashboard-api` | `dashboard-api.Dockerfile` | `robtic-dashboard-api` |
+| `deploy-dashboard.yml` | the dashboard API workflow finishing | `ghcr.io/robticorg/robtic-dashboard` | `dashboard.Dockerfile` | `robtic-dashboard` |
+
+Every Docker artefact — Dockerfiles, both Compose files, the build script — lives under
+`infra/docker/`; see [`infra/docker/README.md`](../infra/docker/README.md) for the layout and for the
+build contexts, which are the repository root rather than the directory the Dockerfile sits in.
+
+Each workflow's `compose-pull-command` and `compose-up-command` name the topology explicitly:
+
+```bash
+docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system \
+  --env-file /home/robtic/robtic-system/.env up -d <service>
+```
+
+The `-f` is not optional any more. These commands used to run without it and resolve a
+`docker-compose.yml` in the deploy working directory on the server, which is why that directory must
+now contain the repository tree at `infra/docker/compose/docker-compose.yml`.
 
 Every workflow except the bot's pulls/ups **only its own service** (full-command overrides, since
-the shared workflow does not append project args to overridden commands); the bot workflow runs the
-default full `compose pull` + `up -d`, by which point every image exists in GHCR.
+the shared workflow does not append project args to overridden commands); the bot workflow's
+commands name no service at all, so its `compose pull` + `up -d` covers the whole stack — by which
+point every image exists in GHCR.
 
 ### Two chains, and how they stay in order
 
@@ -55,14 +73,25 @@ A push touching one service used to rebuild and redeploy everything. Now each se
 
 | Service | Signature covers |
 |---|---|
-| `bot` | `Dockerfile` · `apps/bot` · `libs` · `images` |
-| `platform-api` | `apps/robtic-api` (incl. its Dockerfile) · `libs` |
-| `dashboard-api` | `apps/dashboard-api` (incl. its Dockerfile) · `libs` |
-| `dashboard` | `apps/dashboard` (incl. its Dockerfile) — **no `libs`** |
+| `bot` | `infra/docker/dockerfiles/bot.Dockerfile` · `apps/bot` · `libs` · `images` |
+| `platform-api` | `infra/docker/dockerfiles/platform-api.Dockerfile` · `apps/robtic-api` · `libs` |
+| `dashboard-api` | `infra/docker/dockerfiles/dashboard-api.Dockerfile` · `apps/dashboard-api` · `libs` |
+| `dashboard` | `infra/docker/dockerfiles/dashboard.Dockerfile` · `apps/dashboard` — **no `libs`** |
+
+Each Dockerfile is named explicitly. Three of them used to be covered incidentally, by sitting
+inside the app directory already being hashed; once they moved to `infra/docker/` that stopped being
+true, and an unlisted Dockerfile is the worst thing to miss here — editing it would leave the
+signature unchanged, so the deploy would be skipped as *already deployed* and the edit would never
+ship.
 
 Plus, for all four: `package.json` · `bun.lock` · `tsconfig.json` · `.dockerignore` ·
 `apps/*/package.json` · `libs/*/package.json` · `.github/workflows/deploy-*.yml` ·
-`scripts/deploy-signature.sh`.
+`scripts/deploy-signature.sh` · `infra/docker/compose/docker-compose.yml`.
+
+The production Compose file is in that list as of the `infra/docker` move, and was not before. That
+was a real gap: editing a port mapping or a healthcheck changed what runs on the server while every
+signature stayed identical, so the deploy that would have applied it was skipped as *unchanged*. The
+local stack is deliberately absent — it never runs on the server.
 
 Each image copies only the app it runs rather than all of `apps`, so a change confined to one app
 cannot produce a different image for another and force a pointless redeploy of it. The web dashboard
@@ -109,7 +138,7 @@ ladder, and how to localise a failure to the container, Nginx or DNS.
 
 **Server env file** (`/home/robtic/robtic-system/.env`), in addition to the bot variables:
 - `ROBTIC_API_PORT` — optional, defaults to 3002. If changed, the port mapping in
-  `docker-compose.yml` and the Nginx `proxy_pass` must change with it.
+  `infra/docker/compose/docker-compose.yml` and the Nginx `proxy_pass` must change with it.
 
 Dashboard stack — all required before `robtic-dashboard-api` will start, which it announces by
 name rather than failing later at the first login attempt:

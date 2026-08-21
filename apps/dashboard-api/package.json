@@ -6,7 +6,7 @@
     "dev": "bun --preload ../../libs/shared/src/preload.ts --watch src/main.ts",
     "start": "NODE_ENV=production bun --preload ../../libs/shared/src/preload.ts src/main.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test:routes": "bun --preload ../../libs/shared/src/preload.ts src/route-check.ts"
+    "test:routes": "bun --preload ../../libs/shared/src/preload.ts test/route-check.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.6",

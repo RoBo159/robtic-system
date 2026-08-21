@@ -37,8 +37,6 @@ export function recordMetric(event: MetricEvent): void {
     const claims = peekClaims(event.guildId, event.discordId);
 
     if (claims === undefined) {
-        // Never seen this member. Load them, and replay this event once they are known so the
-        // message that prompted the load is not the one message that fails to count.
         fillClaims(event.guildId, event.discordId, loaded => {
             for (const runtime of loaded) apply(runtime, event);
         });
@@ -62,7 +60,6 @@ function apply(runtime: ClaimRuntime, event: MetricEvent): void {
         if (mission.accumulation === "sum") {
             mission.pending += event.value;
         } else {
-            // A level: the producer publishes the value reached, so keep the high-water mark.
             if (event.value <= effectiveValue(mission)) continue;
             mission.pending = event.value;
         }
@@ -157,8 +154,6 @@ export async function flushProgress(): Promise<number> {
     const now = new Date();
     const operations = drained.map(({ runtime, incs, maxes }) => ({
         updateOne: {
-            // `status: "active"` means progress arriving after a claim resolved is discarded, which
-            // is what we want and costs nothing.
             filter: { _id: runtime.claimId, status: "active" as const },
             update: {
                 ...(Object.keys(incs).length ? { $inc: incs } : {}),
@@ -182,7 +177,6 @@ export async function flushProgress(): Promise<number> {
 /** Puts the deltas of failed operations back, so they are retried rather than lost. */
 function restoreFailed(drained: DrainedClaim[], err: unknown): void {
     const writeErrors = (err as { writeErrors?: { index: number }[] }).writeErrors;
-    // No per-operation detail means the whole batch is suspect; restore all of it.
     const failedIndices = writeErrors?.length
         ? new Set(writeErrors.map(e => e.index))
         : new Set(drained.map((_, index) => index));
@@ -219,7 +213,7 @@ async function handleCompletions(): Promise<void> {
     const ready: ClaimRuntime[] = [];
 
     for (const [claimId, runtime] of completionCandidates) {
-        if (dirty.has(claimId)) continue;   // restored by a failed write; try again next flush
+        if (dirty.has(claimId)) continue;
         ready.push(runtime);
         completionCandidates.delete(claimId);
     }

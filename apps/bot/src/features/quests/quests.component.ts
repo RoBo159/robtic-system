@@ -14,8 +14,6 @@ registerProfileTab({
     feature: "quests",
     render: async (guild, target) => {
         const summary = await getQuestSummary(guild.id, target.id);
-        // The profile select menu is disabled for anyone but the profile's owner, so the reader of
-        // this tab is always the member it describes.
         return buildQuestStatsEmbed(summary, target, true);
     },
 });

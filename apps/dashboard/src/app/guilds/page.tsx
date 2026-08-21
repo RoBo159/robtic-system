@@ -10,8 +10,6 @@ export default async function GuildPickerPage() {
     try {
         guilds = await apiGet<GuildSummary[]>("/guilds");
     } catch (error) {
-        // The session expired or was never established. Sending them to the landing page is the
-        // only useful answer; rendering an error tells them nothing they can act on.
         if (error instanceof ApiError && error.status === 401) redirect("/");
         throw error;
     }

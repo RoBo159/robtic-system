@@ -24,7 +24,6 @@ const announced = new Map<string, Set<number>>();
 export async function runCommunityCycle(client: Client, guild: Guild, now: Date): Promise<void> {
     const challenge = await ensureWeeklyChallenge(guild.id, now);
 
-    // Publish it to the metric path, which is synchronous and cannot look it up itself.
     setActiveChallenge(challenge, guild.id);
 
     if (challenge && !challenge.messageId) {

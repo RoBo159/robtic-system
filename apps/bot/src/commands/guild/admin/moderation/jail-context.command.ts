@@ -36,7 +36,6 @@ export default {
         const requireProof = await needsProof(interaction.member as GuildMember);
 
         if (requireProof) {
-            // Below Manager+ — fully Label-based rather than mixing with the legacy ActionRow style.
             const reasonLabel = new LabelBuilder()
                 .setLabel("Reason for Jail")
                 .setDescription("Enter the reason or reason key")

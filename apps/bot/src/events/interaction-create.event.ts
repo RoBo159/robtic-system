@@ -31,11 +31,10 @@ export default {
 
         if (!interaction.isCommand()) return;
 
-        // Running a command is deliberate participation, so it counts toward presence.
         if (interaction.guildId) touchActivity(interaction.guildId, interaction.user.id, "command");
 
         const command = client.commands.get(interaction.commandName);
-        
+
         if (!command) {
             Logger.warn(`Command "${interaction.commandName}" not found`, client.botName);
             return;
@@ -57,8 +56,6 @@ export default {
             try {
                 await command.run(interaction, client);
             } catch (error) {
-                // The command didn't actually complete (e.g. threw before/while replying,
-                // interaction expired) — don't charge the cooldown for a no-op attempt.
                 releaseCooldown(interaction);
                 throw error;
             }

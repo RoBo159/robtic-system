@@ -25,7 +25,7 @@ Host 192.168.1.127  ── Nginx (host, ports 80/443)
 
 ## Why the port binding looks "wrong" and isn't
 
-`docker-compose.yml` publishes the API as:
+`infra/docker/compose/docker-compose.yml` publishes the API as:
 
 ```yaml
 ports:
@@ -49,8 +49,8 @@ Work down it. Stop at the first failure; each step assumes the ones above it pas
 ### 1. Is the container healthy?
 
 ```bash
-docker compose -p robtic-system ps robtic-platform-api
-docker compose -p robtic-system logs --tail=30 robtic-platform-api
+docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system ps robtic-platform-api
+docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system logs --tail=30 robtic-platform-api
 ```
 
 Expected:

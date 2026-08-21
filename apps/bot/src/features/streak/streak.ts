@@ -34,9 +34,6 @@ export const streakFeature = defineFeature({
             access: "general",
             category: "Streak",
         },        {
-            // access "general" so assigned roles can reach the handler; the handler itself gates on
-            // administrator-or-assigned-role. Declaring "admin" here would lock those roles out
-            // before any of our code ran.
             name: "streak-return",
             description: "Give a member their expired streak back (staff only)",
             scope: "guild",

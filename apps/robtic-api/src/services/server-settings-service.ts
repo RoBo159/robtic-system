@@ -92,14 +92,9 @@ export class ServerSettingsService {
             );
         }
 
-        // Both caches key off this document, and neither would otherwise notice it changed until
-        // its own TTL lapsed — leaving a freshly pushed log channel or price unused for a minute
-        // after an operator reloaded specifically to apply it.
         DiscordLogService.invalidate(guildId);
         invalidatePriceCache(guildId);
 
-        // Tells every other server in the guild to drop its cached prices and profiles, so a change
-        // pushed from one server does not sit stale on the rest until they restart.
         await publishBridgeEvent({
             guildId,
             type: "config_invalidate",

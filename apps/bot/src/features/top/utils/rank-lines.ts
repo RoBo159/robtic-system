@@ -44,7 +44,6 @@ export async function buildRankPage(
     const { page = 0, pageSize, viewerId } = options;
     const offset = page * pageSize;
 
-    // One read covers the page and the viewer's rank: the scan limit is the same list, just longer.
     const scanned = await getTopEntries(guildId, category, period, Math.max(offset + pageSize, VIEWER_RANK_SCAN_LIMIT));
     const slice = scanned.slice(offset, offset + pageSize);
 
@@ -57,8 +56,6 @@ export async function buildRankPage(
     const onThisPage = viewerRank > offset && viewerRank <= offset + slice.length;
 
     if (viewerRank > 0 && !onThisPage && viewerRank > offset) {
-        // Only ever appended *below* the page: a viewer ranked above it is already visible on the
-        // page they came from, and repeating them there would be noise.
         if (viewerRank > offset + slice.length + 1) lines.push(TOP_RANK_GAP_SEPARATOR);
         lines.push(formatRow(viewerRank, scanned[viewerIndex]!, category, unit, true));
     }

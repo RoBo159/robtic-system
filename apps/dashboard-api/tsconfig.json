@@ -43,6 +43,6 @@
   // The ambient globals in libs/types (BotName, StatusType, …) are declared in a .d.ts with no
   // import, so they only exist for a program that includes the file. The root tsconfig gets them
   // by including all of `libs`; this one has to name it.
-  "include": ["src/**/*.ts", "../../libs/types/**/*.d.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "../../libs/types/**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

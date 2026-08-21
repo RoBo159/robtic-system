@@ -8,8 +8,6 @@ export class DiscordErrorHandler {
     constructor(private client: BotClient) {}
 
     public init(): void {
-        // uncaughtException/unhandledRejection are global process events, not per-client — a second
-        // handler would log the same real error twice.
         if (!processHandlersRegistered) {
             processHandlersRegistered = true;
 

@@ -38,8 +38,6 @@ export const punishModalHandler: ComponentHandler<ModalSubmitInteraction> = {
         }
 
         const reasonRaw = getOptionalText(interaction.fields, "reason").trim();
-        // Since modals can't do autocomplete, we'll try to find a reason key
-        // If not found, we use the raw text as both key and label.
         let reason = reasonRaw;
         let reasonAr = reasonRaw;
         let reasonKey = reasonRaw;
@@ -51,8 +49,6 @@ export const punishModalHandler: ComponentHandler<ModalSubmitInteraction> = {
             reasonAr = reasonDoc.labelAr;
         }
 
-        // Only present when the context-menu command included the proof file-upload label
-        // (banContext.ts/muteContext.ts/warnContext.ts add it for below-Manager+ moderators).
         const proofUrl = getOptionalUploadedFileUrl(interaction.fields, "proof");
         const proofNote = getOptionalText(interaction.fields, "note");
         if (proofUrl) {

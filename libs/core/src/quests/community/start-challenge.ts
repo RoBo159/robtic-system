@@ -27,8 +27,6 @@ export async function ensureWeeklyChallenge(guildId: string, now = new Date()): 
     const templates = communityTemplates();
     if (templates.length === 0) return null;
 
-    // Rolled freshly. The challenge document is the record of what was chosen, and the unique
-    // (guildId, weekKey) index means a retry either finds the existing week or creates the only one.
     const template = templates[Math.floor(Math.random() * templates.length)]!;
     const target = Math.max(1, Math.round(template.communityTarget?.() ?? 1000));
 

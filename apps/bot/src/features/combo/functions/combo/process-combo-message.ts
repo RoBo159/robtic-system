@@ -35,7 +35,6 @@ export async function processComboMessage(message: Message): Promise<void> {
 
     const content = message.content.trim();
     if (!isAcceptableMessage(content, COMBO_CONFIG.minMessageLength)) {
-        // Presence still counts for alternation/continuity, but low-quality messages earn no score.
         cachePartners(guildId, authorId, partnerId, pair.currentScore);
         return;
     }
@@ -46,7 +45,6 @@ export async function processComboMessage(message: Message): Promise<void> {
     const { min: minScore, max: maxScore } = await getScoreRange(guildId);
     let scoreGain = Math.round(minScore + (maxScore - minScore) * confidence);
 
-    // A high punishment level makes it harder (not impossible) for that user to grow shared combo score.
     const punishmentLevel = await PunishmentRepository.getPunishmentLevel(authorId);
     if (punishmentLevel >= COMBO_CONFIG.punishmentGateThreshold) {
         scoreGain = Math.max(1, Math.round(scoreGain * COMBO_CONFIG.punishmentGateMultiplier));
@@ -63,9 +61,6 @@ export async function processComboMessage(message: Message): Promise<void> {
 
     cachePartners(guildId, authorId, partnerId, updated.currentScore);
 
-    // Credited to the author only, matching awardComboPoint — a combo is a pair, but progress is
-    // personal. Score and heat are the pair's *new absolute values*, not deltas: both are levels a
-    // member reaches, so their missions accumulate with `max`.
     const username = message.author.username;
     publishMetric({ guildId, discordId: authorId, username, metric: "comboScore", value: updated.currentScore });
     publishMetric({ guildId, discordId: authorId, username, metric: "comboHeat", value: updated.heat });

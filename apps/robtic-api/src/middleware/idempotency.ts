@@ -26,8 +26,6 @@ export async function withIdempotency<T>(
     const existing = await ApiRequestLogRepository.claim(requestId, guildId, route);
     if (existing) {
         Logger.debug(`Replayed request ${requestId} on ${route}`, CTX);
-        // The stored body is whatever the first attempt returned for this exact route, so the
-        // cast is sound: only the same handler can ever have written under this id.
         return { result: existing as T, duplicate: true };
     }
 

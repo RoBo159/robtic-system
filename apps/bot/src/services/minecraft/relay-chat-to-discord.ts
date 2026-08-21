@@ -45,8 +45,6 @@ async function resolveWebhook(
     const target = await client.channels.fetch(channelId).catch(() => null);
     if (!target?.isTextBased() || target.isDMBased()) return null;
 
-    // A thread cannot own a webhook — its parent does, and the message is aimed back at the thread
-    // with `threadId` on send. Bridging into a thread is unusual but costs one branch to support.
     const channel = target.isThread() ? target.parent : target;
     if (!channel || !("createWebhook" in channel)) return null;
 
@@ -113,7 +111,6 @@ export async function relayChatToDiscord(
         const sent = await resolved.webhook
             .send({
                 content: text,
-                // Discord rejects a webhook username containing "discord", and truncates past 80.
                 username: username.slice(0, 80).replace(/discord/gi, "d1scord"),
                 avatarURL: minecraftUuid ? avatarUrl(minecraftUuid) : undefined,
                 threadId: resolved.threadId,
@@ -121,8 +118,6 @@ export async function relayChatToDiscord(
             })
             .then(() => true)
             .catch((error: unknown) => {
-                // Most likely the webhook was deleted in Discord. Forget it so the next message
-                // creates a fresh one rather than failing forever against a dead handle.
                 webhooks.delete(resolved.webhook.channelId);
                 Logger.warn(`Minecraft chat webhook send failed, falling back: ${error}`, "Minecraft");
                 return false;
@@ -131,8 +126,6 @@ export async function relayChatToDiscord(
         if (sent) return;
     }
 
-    // Fallback: the original bot-authored form. Used when the bot lacks Manage Webhooks, so a
-    // missing permission degrades the presentation rather than dropping the message.
     const channel = await client.channels.fetch(config.chatChannelId).catch(() => null);
     if (!channel?.isTextBased() || !channel.isSendable()) return;
 

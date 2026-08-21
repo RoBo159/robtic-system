@@ -11,8 +11,6 @@ export function checkRoleAssignable(guild: Guild, executor: GuildMember, role: R
     if (!me?.permissions.has(PermissionFlagsBits.ManageRoles)) return MSG.rolesMissingPermission;
     if (role.comparePositionTo(me.roles.highest) >= 0) return MSG.roleUnmanageable(role.name);
 
-    // A moderator handing out a role at or above their own is how an escalation happens, so the
-    // executor is held to the same hierarchy rule as the bot.
     const exempt = executor.id === guild.ownerId || isGuildOperator(executor);
     if (!exempt && role.comparePositionTo(executor.roles.highest) >= 0) return MSG.roleAboveExecutor(role.name);
 

@@ -19,8 +19,6 @@ const comboHistorySchema = new Schema<IComboHistory>(
         guildId: { type: String, required: true, index: true },
         userAId: { type: String, required: true },
         userBId: { type: String, required: true },
-        // Mirrors [userAId, userBId] so a single indexed query (participants: userId) can
-        // find a user's history without an $or across two separate fields.
         participants: { type: [String], required: true },
         score: { type: Number, required: true },
         level: { type: String, required: true },

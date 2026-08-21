@@ -31,8 +31,6 @@ export const list: FeatureSubcommandHandler = async (interaction, _client) => {
         return;
     }
 
-    // Grouped by trigger, because a trigger with four replies is one thing with four answers rather
-    // than four unrelated rows.
     const grouped = new Map<string, typeof rows>();
     for (const row of rows) grouped.set(row.trigger, [...(grouped.get(row.trigger) ?? []), row]);
 

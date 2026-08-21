@@ -24,8 +24,6 @@ export async function onTriggerMessage(message: Message): Promise<void> {
     const trigger = message.content.trim();
     if (!trigger) return;
 
-    // Cached membership test first: almost no message is a trigger, and this keeps the common
-    // case in memory instead of a query per message.
     if (!(await ReplyRepository.hasTrigger(message.guild.id, trigger))) return;
 
     const reply = await ReplyRepository.getRandomReply(message.guild.id, trigger);

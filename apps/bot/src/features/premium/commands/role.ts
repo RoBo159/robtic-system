@@ -71,8 +71,6 @@ export const roleList: FeatureSubcommandHandler = async (interaction, _client) =
         return;
     }
 
-    // Grouped by tier rather than listed per role: an admin checking this wants to see the ladder,
-    // not an alphabetical list of roles.
     const grouped = new Map<string, string[]>();
     for (const row of rows) {
         const bucket = grouped.get(row.tierKey) ?? [];

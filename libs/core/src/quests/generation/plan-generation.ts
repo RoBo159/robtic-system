@@ -41,8 +41,6 @@ export async function planGeneration(guildId: string, now = new Date()): Promise
 
         const spec = QUEST_TIER_SPECS[tier];
 
-        // Special is posted by an admin, never scheduled. Without this it would fall through to the
-        // "one per window" default below and start appearing on its own.
         if (spec.manual) continue;
 
         const eligible = spec.dailyCount
@@ -66,13 +64,8 @@ async function planOne(
     nowMs: number,
 ): Promise<boolean> {
     const spec = QUEST_TIER_SPECS[tier];
-    // Rolled here and stored on the row. A later tick that reaches the same occasion loses the
-    // insert on the unique index, so the first roll is the one that stands.
     const scheduledAt = pickInstantIn(occurrence);
 
-    // A window that closed while the bot was down, past whatever grace the tier allows, is written
-    // straight in as a tombstone. It occupies the unique key so it can never be planned again, and
-    // it never fires — firing a "morning" daily at midnight is worse than skipping it.
     const elapsed = occurrence.endMs + spec.graceHours * HOUR_MS < nowMs;
 
     return QuestGenerationRepository.plan({
@@ -127,9 +120,6 @@ async function dailySlots(
         for (let index = 0; index < count; index++) {
             const window = inDay[index % inDay.length]!;
 
-            // A distinct key per slot: it is the generation row's unique key and the quest's
-            // cycleKey. Without the suffix the second Easy of the day would collide with the first
-            // and silently never exist.
             slots.push({ ...window, windowKey: `${window.windowKey}#${index}` });
         }
     }
@@ -155,8 +145,6 @@ async function dailyCountFor(
         tier,
         windowKey: dateKey,
         scheduledAt: new Date(dayStartMs),
-        // `generated` rather than `scheduled`: this row records a decision, it is not itself a
-        // quest waiting to fire, and the firing query must never lease it.
         status: "generated",
         reason: "day-plan",
         plannedCount: count,
@@ -167,8 +155,6 @@ async function dailyCountFor(
         return count;
     }
 
-    // Another worker rolled it between the read and the write. Theirs is the day's number — the
-    // whole point of persisting it is that there is exactly one answer.
     const winner = await QuestGenerationRepository.findPlan(guildId, tier, dateKey);
     return winner?.plannedCount ?? 0;
 }
@@ -202,9 +188,6 @@ async function weeklyChosenOccurrences(
         return thisWeek.filter(o => chosen.has(o.windowKey));
     }
 
-    // The count may legitimately roll zero — that is how a weekly tier stays rare. Persisted with
-    // the rest of the plan, so a week that rolled "no Golden" stays that way instead of re-rolling
-    // on the next tick until it succeeds.
     const count = Math.min(thisWeek.length, randomInt(spec.weeklyCount.min, spec.weeklyCount.max));
     const chosen = shuffle([...thisWeek]).slice(0, count).sort((a, b) => a.startMs - b.startMs);
 
@@ -220,7 +203,6 @@ async function weeklyChosenOccurrences(
     });
 
     if (!claimed) {
-        // Someone else planned the week between our read and our write. Their choice is authoritative.
         const winner = await QuestGenerationRepository.findPlan(guildId, tier, weekKey);
         const keys = new Set(winner?.chosenWindowKeys ?? []);
         return thisWeek.filter(o => keys.has(o.windowKey));

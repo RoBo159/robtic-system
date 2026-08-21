@@ -26,7 +26,6 @@ export const communitySettings: FeatureSubcommandHandler = async (interaction, _
         embeds: [new EmbedBuilder()
             .setTitle(TEXT.title)
             .setColor(enabled ? COLORS.success : COLORS.warning)
-            // The rank bonus comes from the panel's own copy, so the two cannot drift apart.
             .setDescription(TEXT.description(enabled, reward, minimum, QUEST_COMMUNITY_MESSAGES.rankBonus))
             .setFooter({ text: TEXT.footer })],
     });

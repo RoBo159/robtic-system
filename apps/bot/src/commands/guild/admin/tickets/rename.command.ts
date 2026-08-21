@@ -16,7 +16,6 @@ export default {
         if (!(await requireTicketStaff(interaction, resolved.category))) return;
 
         const rawName = interaction.options.getString("name", true);
-        // Discord channel names support Unicode — don't strip non-ASCII letters like the old regex did.
         const sanitized = rawName
             .trim()
             .toLowerCase()

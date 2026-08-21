@@ -85,7 +85,7 @@ const serverConfigSchema = new Schema<IServerConfig>(
             },
             default: {},
         },
-        lineChannelId: { type: String }, // legacy single-channel field, kept for migration fallback
+        lineChannelId: { type: String },
         lineChannelIds: { type: [String], default: [] },
         prefix: { type: String },
         commandsChannelId: { type: String },

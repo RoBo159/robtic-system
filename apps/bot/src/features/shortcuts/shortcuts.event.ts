@@ -15,7 +15,6 @@ export default [
         name: Events.ClientReady,
         once: true,
         execute: async client => {
-            // Migrate before auditing, or every legacy row reads as an orphan.
             await migrateLegacyShortcuts();
             await reportOrphanShortcuts(client as BotClient);
         },

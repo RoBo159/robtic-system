@@ -13,8 +13,6 @@ export const offset: FeatureSubcommandHandler = async (interaction, _client) => 
     const minutes = interaction.options.getInteger("minutes", true);
     await QuestSettingsRepository.setUtcOffset(interaction.guildId!, minutes);
 
-    // The bot's own idea of "now" in the new offset, so an admin can sanity-check it against a wall
-    // clock instead of trusting the arithmetic.
     const localNow = new Date(Date.now() + minutes * 60_000).toISOString().slice(11, 16);
 
     await interaction.editReply({

@@ -50,7 +50,6 @@ const voiceSessionSchema = new Schema<IVoiceSession>(
 );
 
 voiceSessionSchema.index({ guildId: 1, discordId: 1, joinedAt: -1 });
-// Finding sessions a crash left open, on boot.
 voiceSessionSchema.index({ closed: 1, lastTickAt: 1 });
 
 export const VoiceSession = model<IVoiceSession>("VoiceSession", voiceSessionSchema);

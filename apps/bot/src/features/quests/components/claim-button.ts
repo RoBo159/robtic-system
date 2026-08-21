@@ -55,7 +55,6 @@ const handler: ComponentHandler<ButtonInteraction> = {
                 : FAILURE_TEXT[result.reason ?? "error"] ?? FAILURE_TEXT.error!;
 
             await interaction.followUp({ content: text, flags: MessageFlags.Ephemeral });
-            // Redraw anyway: if it filled up, the public message is now wrong.
             refreshQuestMessage(client, questId);
             return;
         }

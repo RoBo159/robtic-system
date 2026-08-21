@@ -38,8 +38,6 @@ const premiumMembershipSchema = new Schema<IPremiumMembership>(
     { timestamps: true }
 );
 
-// One membership per tier per member: re-granting the same tier extends it rather than stacking
-// duplicate rows, and someone may legitimately hold two different tiers at once.
 premiumMembershipSchema.index({ discordId: 1, tierKey: 1 }, { unique: true });
 premiumMembershipSchema.index({ expiresAt: 1 });
 

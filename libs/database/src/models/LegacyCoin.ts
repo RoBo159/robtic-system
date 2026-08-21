@@ -35,7 +35,6 @@ const legacyCoinSchema = new Schema<ILegacyCoin>(
 );
 
 legacyCoinSchema.index({ guildId: 1, discordId: 1 }, { unique: true });
-// The claim query: unconsumed rows with something left to claim, for one guild.
 legacyCoinSchema.index({ guildId: 1, migratedAt: 1 });
 
 export const LegacyCoin = model<ILegacyCoin>("LegacyCoin", legacyCoinSchema);

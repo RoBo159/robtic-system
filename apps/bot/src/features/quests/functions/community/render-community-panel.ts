@@ -63,8 +63,6 @@ export function refreshCommunityPanel(client: Client, challengeId: string, miles
                     embeds: [buildCommunityEmbed({ challenge: fresh, pending: pendingTotal(fresh.guildId) })],
                 });
             } catch (err) {
-                // Only a positive "this message does not exist" justifies reposting. A transient 500
-                // must not spawn a second challenge embed halfway through the week.
                 if ((err as { code?: number }).code !== UNKNOWN_MESSAGE) throw err;
 
                 forgetThrottle(fresh.messageId);

@@ -29,7 +29,7 @@ export function scheduleEdit(messageId: string, minIntervalMs: number, render: (
 
     if (existing) {
         existing.render = render;
-        if (existing.timer) return;   // a trailing edit is already armed
+        if (existing.timer) return;
 
         const wait = existing.lastEditAt + Math.max(minIntervalMs, existing.backoffMs) - Date.now();
         if (wait <= 0) {
@@ -59,7 +59,6 @@ async function run(messageId: string, entry: ThrottleState): Promise<void> {
         const code = (err as { code?: number }).code;
 
         if (code === UNKNOWN_MESSAGE) {
-            // Genuinely gone. The caller reposts and re-registers under a new id.
             state.delete(messageId);
             return;
         }
@@ -70,7 +69,6 @@ async function run(messageId: string, entry: ThrottleState): Promise<void> {
             return;
         }
 
-        // Anything else — a 500, a network blip — keeps the entry so the next change retries.
         Logger.warn(`Could not edit ${messageId}: ${err}`, CTX);
     }
 }

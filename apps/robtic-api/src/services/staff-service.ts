@@ -42,9 +42,6 @@ export class StaffService {
         const link = await MinecraftLinkRepository.getByUuid(input.guildId, uuid);
         if (!link) throw ApiError.notLinked();
 
-        // Read from Discord, not from the projection. See DiscordRoleService for why: an unwritten
-        // projection row is indistinguishable from a member holding no roles, and that is exactly
-        // what told staff with a visible Discord role that they had no rank.
         const roleState = await MinecraftRoleStateRepository.getByDiscordId(input.guildId, link.discordId);
         const held = await DiscordRoleService.rolesOrFallback(
             input.guildId,
@@ -88,8 +85,6 @@ export class StaffService {
 
         const baseGroup = config?.baseStaffGroup ?? "staff";
 
-        // Written and awaited before the plugin is allowed to clear anything. Everything else in
-        // this method is recoverable; losing an inventory is not.
         await StaffBackupRepository.put({
             guildId: input.guildId,
             minecraftUuid: uuid,

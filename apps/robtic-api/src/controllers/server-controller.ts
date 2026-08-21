@@ -171,8 +171,6 @@ export const serverRoutes: Route[] = [
             const guildId = requireGuildId(context, body.guildId);
             const serverId = requireServerId(context, body.serverId);
 
-            // Not idempotency-wrapped: this is a read-shaped call whose response the join handler
-            // needs every time, including on a reconnect that reuses a request id.
             const state = await ServerService.playerJoin({
                 guildId,
                 serverId,
@@ -180,17 +178,6 @@ export const serverRoutes: Route[] = [
                 username: body.username,
             });
 
-            // Announced to Discord, which is also what re-projects the player's roles.
-            //
-            // The bot's drain has handled `player_join` since this system was written, and nothing
-            // has ever published one — so the join announcement never fired, and neither did the
-            // role sync hanging off it. That sync is the only thing that repairs a member whose
-            // roles were never projected: linking projects them once, and if the guild's role
-            // mappings were configured *after* that, the projection is empty for good. The player
-            // then holds their Discord staff role, has it written in roles.yml, and is still told
-            // "no permission" by /admin, because the API is serving an empty role list.
-            //
-            // Published on every join so that state repairs itself the next time they log in.
             await publishBridgeEvent({
                 guildId,
                 direction: "to_discord",
@@ -220,8 +207,6 @@ export const serverRoutes: Route[] = [
             const { duplicate } = await withIdempotency(body.requestId, guildId, "server.playerLeave", async () => {
                 await ServerService.playerLeave({ guildId, uuid: body.uuid });
 
-                // The other half of the pair above: the bot has always known how to announce a
-                // quit and has never been sent one.
                 await publishBridgeEvent({
                     guildId,
                     direction: "to_discord",

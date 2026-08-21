@@ -81,9 +81,7 @@ const questSchema = new Schema<IQuest>(
     { timestamps: true }
 );
 
-// One quest per tier per generation occasion — the guard against a retry posting a duplicate.
 questSchema.index({ guildId: 1, tier: 1, cycleKey: 1 }, { unique: true });
-// The expiry sweep: status first so resolved history is discarded by the index prefix.
 questSchema.index({ status: 1, endsAt: 1 });
 questSchema.index({ guildId: 1, status: 1, tier: 1 });
 

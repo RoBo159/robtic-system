@@ -56,13 +56,11 @@ const minecraftJailSchema = new Schema<IMinecraftJail>(
     { timestamps: true }
 );
 
-// A player can only be serving one sentence at a time; historic rows are exempt from the index.
 minecraftJailSchema.index(
     { guildId: 1, minecraftUuid: 1 },
     { unique: true, partialFilterExpression: { released: false } }
 );
 minecraftJailSchema.index({ guildId: 1, minecraftUuid: 1, jailedAt: -1 });
-// Drives the release sweep: only unreleased, timed sentences are ever scanned.
 minecraftJailSchema.index({ released: 1, releaseAt: 1 });
 
 export const MinecraftJail = model<IMinecraftJail>("MinecraftJail", minecraftJailSchema);

@@ -19,12 +19,8 @@ export const BOT_DEFINITION: BotDefinition<GatewayIntentBits, Partials> = {
         GatewayIntentBits.GuildModeration,
         GatewayIntentBits.DirectMessages,
         GatewayIntentBits.MessageContent,
-        // Voice activity cannot see anyone without this — no join/leave events, no channel
-        // membership, so no session tracking at all.
         GatewayIntentBits.GuildVoiceStates,
-        // Reactions count as presence for AFK detection.
         GatewayIntentBits.GuildMessageReactions,
     ],
-    // Reaction, so a reaction on a message the bot never cached still reports who added it.
     partials: [Partials.Channel, Partials.Message, Partials.Reaction],
 };

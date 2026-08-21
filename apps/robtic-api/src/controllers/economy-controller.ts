@@ -19,7 +19,6 @@ export const economyRoutes: Route[] = [
         tag: "Economy",
         handler: async context => {
             const guildId = requireGuildId(context);
-            // Taken from the path rather than the query, so the route reads as the resource it is.
             const uuid = context.url.pathname.split("/").pop() ?? "";
             return ok(await EconomyService.balance(guildId, uuid));
         },
@@ -176,8 +175,6 @@ export const economyRoutes: Route[] = [
             const guildId = requireGuildId(context, body.guildId);
 
             if (body.price !== undefined) {
-                // Attributed to the key rather than to a person: a price edit through the API has
-                // no Discord user behind it, and the key label is what the audit trail can act on.
                 await setItemPrice(guildId, body.itemKey, body.price, context.identity.label);
             }
 

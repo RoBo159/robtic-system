@@ -65,8 +65,6 @@ export class DiscordRoleService {
             return null;
         }
 
-        // A member who has left the guild is a definite answer, not an outage: they hold nothing.
-        // Cached like any other result so a departed member does not cost a call per check.
         if (response.status === 404) {
             roleCache.set(key, []);
             return [];

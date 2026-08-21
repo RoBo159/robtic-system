@@ -74,7 +74,6 @@ const staffBackupSchema = new Schema<IStaffBackup>(
     { timestamps: true }
 );
 
-// One outstanding backup per player per server: a second /admin cannot overwrite the first.
 staffBackupSchema.index({ guildId: 1, minecraftUuid: 1, serverId: 1 }, { unique: true });
 
 export const StaffBackup = model<IStaffBackup>("StaffBackup", staffBackupSchema);

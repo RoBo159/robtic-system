@@ -82,8 +82,6 @@ export async function flushContributions(): Promise<ContributionFlush[]> {
                     member.amount,
                 );
 
-                // Individual quests can carry a "contribute to the challenge" objective, so the
-                // contribution is itself a metric.
                 publishMetric({
                     guildId: entry.guildId,
                     discordId,

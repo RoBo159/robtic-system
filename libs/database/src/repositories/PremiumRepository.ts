@@ -31,8 +31,6 @@ export class PremiumRepository {
         return () => listeners.delete(listener);
     }
 
-    // ── Tiers (global) ───────────────────────────────────────────────────────
-
     static async listTiers(): Promise<IPremiumTier[]> {
         return PremiumTier.find().sort({ rank: -1 }).lean<IPremiumTier[]>();
     }
@@ -100,8 +98,6 @@ export class PremiumRepository {
         return true;
     }
 
-    // ── Feature values (global) ──────────────────────────────────────────────
-
     static async listValues(): Promise<IPremiumFeatureValue[]> {
         return PremiumFeatureValue.find().lean<IPremiumFeatureValue[]>();
     }
@@ -127,8 +123,6 @@ export class PremiumRepository {
         if (result.deletedCount > 0) announce({ scope: "global" });
         return result.deletedCount > 0;
     }
-
-    // ── Role mappings (per guild) ────────────────────────────────────────────
 
     static async listRoleMaps(guildId: string): Promise<IPremiumRoleMap[]> {
         return PremiumRoleMap.find({ guildId }).lean<IPremiumRoleMap[]>();
@@ -159,8 +153,6 @@ export class PremiumRepository {
         if (result.deletedCount > 0) announce({ scope: "guild", guildId });
         return result.deletedCount > 0;
     }
-
-    // ── Memberships (global, per member) ─────────────────────────────────────
 
     /** Live memberships only — an expired row stays as history but grants nothing. */
     static async listMemberships(discordId: string, now = new Date()): Promise<IPremiumMembership[]> {
@@ -215,8 +207,6 @@ export class PremiumRepository {
             .limit(limit)
             .lean<IPremiumMembership[]>();
     }
-
-    // ── Settings (per guild) ─────────────────────────────────────────────────
 
     static async getSettings(guildId: string): Promise<IPremiumSettings> {
         return await PremiumSettings.findOneAndUpdate(

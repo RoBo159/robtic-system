@@ -58,9 +58,6 @@ export class ReplyRepository {
             if (remaining.length === 0) {
                 await Reply.deleteOne({ _id: doc._id });
             } else {
-                // The whole array is rewritten rather than `$pull`-ed, because a legacy document
-                // holds plain strings that no pull predicate could name — and this is the moment
-                // the rest of them become entries.
                 await Reply.updateOne({ _id: doc._id }, { $set: { replies: remaining } });
             }
 

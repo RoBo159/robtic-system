@@ -30,7 +30,6 @@ export async function settleChallenge(challenge: ICommunityChallenge): Promise<S
     const completed = challenge.total >= challenge.target;
     const result: SettlementResult = { paid: 0, totalPoints: 0, completed };
 
-    // A challenge nobody finished still closes, it just pays nothing.
     if (!completed) {
         await CommunityChallengeRepository.markSettled(challenge._id);
         return result;

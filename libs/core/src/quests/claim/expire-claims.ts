@@ -37,7 +37,6 @@ export async function expireDueClaims(now = new Date()): Promise<ExpirySummary> 
 
     summary.resumed = await resumeStuckCompletions(now);
 
-    // One flush for the whole batch rather than per claim.
     await flushProgress();
 
     for (;;) {
@@ -69,9 +68,6 @@ async function resolveOne(claim: IQuestClaim, now: Date): Promise<boolean> {
 
     const runtime = toRuntime(refreshed);
 
-    // A last chance: the deadline has passed, but the lease allows it because the row still says
-    // active and every threshold is met. `expiresAt: { $gt: now }` inside leaseCompletion would
-    // refuse, so the check is done here with the claim's own thresholds.
     const allMet = runtime.missions.every(mission => mission.persisted >= mission.target);
 
     if (allMet) {
@@ -79,7 +75,6 @@ async function resolveOne(claim: IQuestClaim, now: Date): Promise<boolean> {
             refreshed._id,
             thresholdsOf(runtime),
             now,
-            // Deadline already passed; the lease's own freshness check would reject it otherwise.
             new Date(refreshed.expiresAt.getTime() - 1),
         );
 
@@ -96,8 +91,6 @@ async function resolveOne(claim: IQuestClaim, now: Date): Promise<boolean> {
         await QuestStatsRepository.recordFailure(refreshed.guildId, refreshed.discordId).catch(() => null);
         invalidateMemberClaims(refreshed.guildId, refreshed.discordId);
 
-        // The claim is over; the quest is not. Only this member's attempt is resolved here — the
-        // quest keeps its slot count and its message until its own `endsAt` passes.
         announceExpired({
             guildId: refreshed.guildId,
             discordId: refreshed.discordId,

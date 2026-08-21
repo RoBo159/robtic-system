@@ -37,7 +37,6 @@ export function classifyModuleFile(absolutePath: string, root: string): ModuleKi
     const relative = path.startsWith(`${rootPath}/`) ? path.slice(rootPath.length + 1) : path;
     const segments = relative.split("/");
 
-    // features/<key>/<key>.ts — the manifest, and the only unsuffixed file the loader reads.
     if (segments[0] === "features") {
         const key = segments[1];
         return segments.length === 3 && key && segments[2] === `${key}.ts` ? "manifest" : null;

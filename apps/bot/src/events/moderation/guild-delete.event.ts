@@ -9,8 +9,6 @@ const CTX = "moderation:guild-delete";
 export default {
     name: Events.GuildDelete,
     async execute(guild: Guild, client: BotClient) {
-        // discord.js only emits guildDelete for an actual kick/leave — a server outage emits
-        // the separate guildUnavailable event instead, so no availability check is needed here.
         const logGuildId = await GlobalConfigRepository.get("server_log_guild");
         if (!logGuildId || logGuildId === guild.id) return;
 
