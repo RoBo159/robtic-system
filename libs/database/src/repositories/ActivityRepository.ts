@@ -87,30 +87,6 @@ export class ActivityRepository {
         await ActivityXP.updateOne({ discordId, guildId }, { spamCount: 0 });
     }
 
-    static async addStaffPublicPoints(discordId: string, guildId: string, amount: number): Promise<IActivityXP | null> {
-        return ActivityXP.findOneAndUpdate(
-            { discordId, guildId },
-            {
-                $inc: { "staff.publicChatPoints": amount },
-                "decay.lastActiveAt": new Date(),
-                "decay.inactiveDays": 0,
-            },
-            { returnDocument: "after" }
-        );
-    }
-
-    static async addStaffChatPoints(discordId: string, guildId: string, amount: number): Promise<IActivityXP | null> {
-        return ActivityXP.findOneAndUpdate(
-            { discordId, guildId },
-            {
-                $inc: { "staff.staffChatPoints": amount },
-                "decay.lastActiveAt": new Date(),
-                "decay.inactiveDays": 0,
-            },
-            { returnDocument: "after" }
-        );
-    }
-
     static async addSupportPoints(discordId: string, guildId: string, amount: number): Promise<IActivityXP | null> {
         return ActivityXP.findOneAndUpdate(
             { discordId, guildId },

@@ -82,7 +82,7 @@ libs/
             bot-client.ts        Discord.js client wrapper
             client-manager.ts    Client lifecycle: initialize, start, reload
             module-loader.ts     Dynamic command/event/component loading
-            ai/                  Groq-backed analyzers and prompts
+            ai/                  Rule-based message/activity classifiers (no external AI provider)
             loader/              Module scan and registration (commands, events, components, manifests)
             features/            Feature manifest registry and the enable/disable gate
             metrics/             The metric bus activity systems publish to and quests consume
@@ -114,8 +114,16 @@ docs/
     database/                    Database docs
     bot/                         Feature docs (combo, economy, streak, voice, ...)
 
-infra/                           All infrastructure definitions. Docker today; Terraform,
-    docker/                      Ansible and Kubernetes get siblings of docker/.
+infra/                           All infrastructure definitions. Terraform and Kubernetes
+                                 get siblings of docker/ and ansible/.
+    ansible/                     Automated deployment. Drives the Compose file below rather
+                                 than carrying its own copy.
+        inventory/               production.ini (core.robtic.org), development.ini (localhost)
+        group_vars/              vars.yml is public; vault.yml is encrypted and holds secrets
+        templates/env.j2         generates /home/robtic/robtic-system/.env, mode 0600
+        playbooks/               bootstrap (once per host), deploy (config+images), update (images)
+        roles/                   docker, security, deploy
+    docker/
         dockerfiles/             One per service, named for it. Build context is the
                                  repository root for all but minecraft-plugin.
         compose/                 docker-compose.yml (production) and .local.yml (developer)

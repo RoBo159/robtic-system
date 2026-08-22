@@ -1,0 +1,18 @@
+---
+# The only irreversible step, so it runs last — after verify has passed.
+
+- name: Remove dangling images
+  community.docker.docker_prune:
+    images: true
+    images_filters:
+      # Untagged layers only; a blanket prune would collect unrelated images.
+      dangling: true
+  register: deploy_prune_result
+  when: deploy_prune_images | bool
+
+- name: Report reclaimed space
+  ansible.builtin.debug:
+    msg: >-
+      Reclaimed {{ (deploy_prune_result.images_space_reclaimed | default(0) / 1024 / 1024) | round(1) }} MB
+      from {{ deploy_prune_result.images | default([]) | length }} image(s).
+  when: deploy_prune_images | bool

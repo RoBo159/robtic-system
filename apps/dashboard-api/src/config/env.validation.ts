@@ -1,5 +1,5 @@
 import { plainToInstance, Transform } from "class-transformer";
-import { IsBoolean, IsInt, IsNotEmpty, IsString, IsUrl, Max, Min, validateSync } from "class-validator";
+import { IsBoolean, IsInt, IsNotEmpty, IsString, Matches, Max, Min, validateSync } from "class-validator";
 
 /**
  * The environment this service reads, as a validated schema.
@@ -27,12 +27,24 @@ const toInt = ({ value }: { value: unknown }): unknown => {
     return Number.isInteger(parsed) ? parsed : value;
 };
 
-/** Same idea for booleans: only the two literals convert, so a typo fails loudly instead of reading false. */
-const toBoolean = ({ value }: { value: unknown }): unknown => {
-    if (value === "true" || value === true) return true;
-    if (value === "false" || value === false) return false;
-    return value;
-};
+const TRUE_SPELLINGS = new Set(["true", "1", "yes", "on"]);
+const FALSE_SPELLINGS = new Set(["false", "0", "no", "off"]);
+
+/**
+ * Booleans are already real booleans by the time they reach here — `normalise` resolves the
+ * spelling, because an unrecognised one falls back to a derived default rather than refusing to boot.
+ */
+const toBoolean = ({ value }: { value: unknown }): unknown => value;
+
+/**
+ * The URL rule is deliberately loose: a scheme and something after it.
+ *
+ * It replaced `@IsUrl`, whose heuristics reject hostnames that are perfectly valid here — a bare
+ * container name, a single-label host, an address with an unusual port. The mistake actually worth
+ * catching is a missing scheme (`dashboard-api.robtic.org`), because the OAuth `redirect_uri` is
+ * built by string concatenation and would silently become a relative path Discord rejects.
+ */
+const HTTP_URL = /^https?:\/\/\S+$/;
 
 export class EnvironmentVariables {
     @Transform(toInt)
@@ -46,11 +58,11 @@ export class EnvironmentVariables {
     MONGODB_URI: string;
 
     /** Where the browser reaches this API — the OAuth redirect is built from it. */
-    @IsUrl({ require_tld: false, protocols: ["http", "https"] })
+    @Matches(HTTP_URL, { message: "$property must start with http:// or https://" })
     DASHBOARD_API_URL: string;
 
     /** Where the browser reaches the Next.js app; also the only permitted CORS origin. */
-    @IsUrl({ require_tld: false, protocols: ["http", "https"] })
+    @Matches(HTTP_URL, { message: "$property must start with http:// or https://" })
     DASHBOARD_URL: string;
 
     @IsString()
@@ -61,19 +73,17 @@ export class EnvironmentVariables {
     @IsNotEmpty()
     DISCORD_CLIENT_SECRET: string;
 
-    /** Bot token, used to read which guilds the bot is actually in. */
-    @IsString()
-    @IsNotEmpty()
-    DISCORD_BOT_TOKEN: string;
-
     /** Signs session cookies. Rotating it logs everybody out, which is the intended emergency stop. */
     @IsString()
     @IsNotEmpty()
     DASHBOARD_SESSION_SECRET: string;
 
+    // No lower bound beyond "a positive number of milliseconds". A very short session is a strange
+    // choice rather than a broken one, and refusing to start over it turns a preference into an
+    // outage.
     @Transform(toInt)
     @IsInt()
-    @Min(60_000)
+    @Min(1)
     DASHBOARD_SESSION_TTL_MS: number;
 
     /** False for local http development, where a Secure cookie would never be stored. */
@@ -91,7 +101,32 @@ const provided = (value: unknown): string | undefined => {
 const withoutTrailingSlashes = (url: string): string => url.replace(/\/+$/, "");
 
 /**
- * Narrows the ambient environment to the ten variables this service actually reads, filling in
+ * Resolves a boolean variable, falling back rather than failing.
+ *
+ * An earlier version of this file accepted only the exact strings "true" and "false" and refused to
+ * start on anything else. That is the wrong trade for a flag with a sensible derived default:
+ * `DASHBOARD_SECURE_COOKIES=1` is obviously intended to mean true, and turning it into a container
+ * that will not boot costs an outage to punish a spelling. The fallback is announced, so a typo is
+ * still visible in the startup log instead of silently reading as false — which is what the original
+ * `=== "true"` comparison did.
+ */
+function resolveBoolean(raw: string | undefined, fallback: boolean, name: string): boolean {
+    if (raw === undefined) return fallback;
+
+    const normalised = raw.trim().toLowerCase();
+    if (TRUE_SPELLINGS.has(normalised)) return true;
+    if (FALSE_SPELLINGS.has(normalised)) return false;
+
+    console.warn(
+        `[config] ${name}="${raw}" is not a recognised boolean — using ${fallback}. ` +
+        `Accepted: ${[...TRUE_SPELLINGS, ...FALSE_SPELLINGS].join(", ")}.`,
+    );
+
+    return fallback;
+}
+
+/**
+ * Narrows the ambient environment to the nine variables this service actually reads, filling in
  * defaults first.
  *
  * Picking the keys explicitly rather than spreading `process.env` matters: the result is what gets
@@ -108,11 +143,15 @@ function normalise(raw: Record<string, unknown>): Record<string, unknown> {
         DASHBOARD_URL: withoutTrailingSlashes(provided(raw.DASHBOARD_URL) ?? DEFAULT_DASHBOARD_URL),
         DISCORD_CLIENT_ID: provided(raw.DISCORD_CLIENT_ID),
         DISCORD_CLIENT_SECRET: provided(raw.DISCORD_CLIENT_SECRET),
-        DISCORD_BOT_TOKEN: provided(raw.DISCORD_BOT_TOKEN),
         DASHBOARD_SESSION_SECRET: provided(raw.DASHBOARD_SESSION_SECRET),
         DASHBOARD_SESSION_TTL_MS: provided(raw.DASHBOARD_SESSION_TTL_MS) ?? DEFAULT_SESSION_TTL_MS,
-        DASHBOARD_SECURE_COOKIES:
-            provided(raw.DASHBOARD_SECURE_COOKIES) ?? String(publicApiUrl.startsWith("https://")),
+        // The one default derived from another variable: an https API is being served over https, so
+        // a Secure cookie will be stored, and over http it never would be.
+        DASHBOARD_SECURE_COOKIES: resolveBoolean(
+            provided(raw.DASHBOARD_SECURE_COOKIES),
+            publicApiUrl.startsWith("https://"),
+            "DASHBOARD_SECURE_COOKIES",
+        ),
     };
 }
 

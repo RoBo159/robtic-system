@@ -1,7 +1,1 @@
-# Reserved for Docker-side configuration files that are mounted into containers or read by the
-# daemon — daemon.json, registry auth templates, buildx builder definitions, and the like.
-#
-# Empty on purpose. Nothing in this system has such a file today: the two configuration inputs that
-# exist are the host `.env` (a secret, never committed) and
-# `apps/minecraft-plugin/local-config/api.yml`, which stays with the plugin because it is the
-# plugin's own configuration and is versioned with the code that reads it.
+# Reserved for daemon.json, registry auth templates, buildx definitions. Empty on purpose.

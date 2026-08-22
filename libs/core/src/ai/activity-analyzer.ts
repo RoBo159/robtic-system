@@ -1,11 +1,11 @@
-import { AiClient } from "./ai-client";
-import { buildActivityPrompt, buildStaffActivityPrompt } from "./prompts";
-import { AI_CONFIG } from "@config";
 import type { AiAnalysisResult } from "@typings/ai";
 import { Logger } from "@logger";
 import { normalizeElongated } from "@utils";
 
-const CTX = "ai:activity";
+const CTX = "activity";
+
+/** Below this length a message is never worth XP, regardless of what it says. */
+const MIN_MESSAGE_LENGTH = 5;
 
 const LOW_EFFORT_EXACT = new Set([
     "ok", "okay", "yes", "no", "yeah", "nah", "sure", "idk",
@@ -18,7 +18,7 @@ const LOW_EFFORT_EXACT = new Set([
 function ruleBasedActivity(content: string): AiAnalysisResult {
     const trimmed = content.trim().toLowerCase();
 
-    if (trimmed.length < AI_CONFIG.minMessageLength) {
+    if (trimmed.length < MIN_MESSAGE_LENGTH) {
         return { meaningful: false, confidence: 0.9, fallback: true, reason: "too short" };
     }
 
@@ -43,111 +43,16 @@ function ruleBasedActivity(content: string): AiAnalysisResult {
     return { meaningful: true, confidence: 0.4, fallback: true, reason: "default allow" };
 }
 
-export async function analyzeActivity(content: string): Promise<AiAnalysisResult> {
+export function analyzeActivity(content: string): AiAnalysisResult {
     const trimmed = normalizeElongated(content.trim());
 
-    if (trimmed.length < AI_CONFIG.minMessageLength) {
+    if (trimmed.length < MIN_MESSAGE_LENGTH) {
         const result: AiAnalysisResult = { meaningful: false, confidence: 0.95, fallback: true, reason: "below min length" };
-        Logger.debug(`[activity] "${trimmed.slice(0, 20)}" → meaningful=${result.meaningful} (conf=${result.confidence.toFixed(2)}, fallback=true, reason=${result.reason})`, CTX);
+        Logger.debug(`[activity] "${trimmed.slice(0, 20)}" → meaningful=${result.meaningful} (conf=${result.confidence.toFixed(2)}, reason=${result.reason})`, CTX);
         return result;
     }
 
-    const ruleResult = ruleBasedActivity(content);
-    if (ruleResult.confidence >= 0.8) {
-        Logger.debug(`[activity] "${trimmed.slice(0, 40)}" → meaningful=${ruleResult.meaningful} (conf=${ruleResult.confidence.toFixed(2)}, fallback=true, reason=${ruleResult.reason})`, CTX);
-        return ruleResult;
-    }
-
-    if (!AI_CONFIG.enabled) {
-        Logger.debug(`[activity] "${trimmed.slice(0, 40)}" → meaningful=${ruleResult.meaningful} (conf=${ruleResult.confidence.toFixed(2)}, fallback=true, reason=AI disabled)`, CTX);
-        return ruleResult;
-    }
-
-    try {
-        const client = AiClient.getInstance();
-        const prompt = buildActivityPrompt(content);
-        const raw = await client.generate(prompt, 80, true);
-        const parsed = client.parseJsonResponse<{
-            meaningful: boolean;
-            confidence: number;
-            reason?: string;
-        }>(raw);
-
-        if (parsed && typeof parsed.meaningful === "boolean") {
-            const confidence = typeof parsed.confidence === "number" ? parsed.confidence : 0.7;
-            const result: AiAnalysisResult = {
-                meaningful: parsed.meaningful,
-                confidence: Math.min(Math.max(confidence, 0), 1),
-                fallback: false,
-                reason: parsed.reason,
-            };
-            Logger.debug(
-                `[activity] "${trimmed.slice(0, 40)}" → meaningful=${result.meaningful} (conf=${result.confidence.toFixed(2)}, fallback=false, ai, reason=${result.reason ?? "none"})`,
-                CTX,
-            );
-            return result;
-        }
-
-        Logger.debug(`[activity] AI returned invalid format for "${trimmed.slice(0, 40)}", falling back to rules`, CTX);
-    } catch (err) {
-        Logger.warn(`[activity] AI failed for "${trimmed.slice(0, 40)}": ${err}`, CTX);
-    }
-
-    Logger.debug(`[activity] "${trimmed.slice(0, 40)}" → meaningful=${ruleResult.meaningful} (conf=${ruleResult.confidence.toFixed(2)}, fallback=true, reason=AI error)`, CTX);
-    return ruleResult;
-}
-
-export async function analyzeStaffActivity(
-    content: string,
-    channelType: "public" | "staff",
-): Promise<AiAnalysisResult> {
-    const trimmed = normalizeElongated(content.trim());
-
-    if (trimmed.length < AI_CONFIG.minMessageLength) {
-        const result: AiAnalysisResult = { meaningful: false, confidence: 0.95, fallback: true, reason: "below min length" };
-        Logger.debug(`[staff-activity] (${channelType}) "${trimmed.slice(0, 20)}" → meaningful=${result.meaningful} (conf=${result.confidence.toFixed(2)}, fallback=true, reason=${result.reason})`, CTX);
-        return result;
-    }
-
-    const ruleResult = ruleBasedActivity(content);
-    if (ruleResult.confidence >= 0.8) {
-        Logger.debug(`[staff-activity] (${channelType}) "${trimmed.slice(0, 40)}" → meaningful=${ruleResult.meaningful} (conf=${ruleResult.confidence.toFixed(2)}, fallback=true, reason=${ruleResult.reason})`, CTX);
-        return ruleResult;
-    }
-
-    if (!AI_CONFIG.enabled) {
-        Logger.debug(`[staff-activity] (${channelType}) "${trimmed.slice(0, 40)}" → meaningful=${ruleResult.meaningful} (conf=${ruleResult.confidence.toFixed(2)}, fallback=true, reason=AI disabled)`, CTX);
-        return ruleResult;
-    }
-
-    try {
-        const client = AiClient.getInstance();
-        const prompt = buildStaffActivityPrompt(content, channelType);
-        const raw = await client.generate(prompt, 80, true);
-        const parsed = client.parseJsonResponse<{
-            meaningful: boolean;
-            confidence: number;
-        }>(raw);
-
-        if (parsed && typeof parsed.meaningful === "boolean") {
-            const confidence = typeof parsed.confidence === "number" ? parsed.confidence : 0.7;
-            const result: AiAnalysisResult = {
-                meaningful: parsed.meaningful,
-                confidence: Math.min(Math.max(confidence, 0), 1),
-                fallback: false,
-            };
-            Logger.debug(
-                `[staff-activity] (${channelType}) "${trimmed.slice(0, 40)}" → meaningful=${result.meaningful} (conf=${result.confidence.toFixed(2)}, fallback=false, ai)`,
-                CTX,
-            );
-            return result;
-        }
-
-        Logger.debug(`[staff-activity] AI returned invalid format for "${trimmed.slice(0, 40)}"`, CTX);
-    } catch (err) {
-        Logger.warn(`[staff-activity] AI failed for "${trimmed.slice(0, 40)}": ${err}`, CTX);
-    }
-
-    Logger.debug(`[staff-activity] (${channelType}) "${trimmed.slice(0, 40)}" → meaningful=${ruleResult.meaningful} (conf=${ruleResult.confidence.toFixed(2)}, fallback=true, reason=AI error)`, CTX);
-    return ruleResult;
+    const result = ruleBasedActivity(content);
+    Logger.debug(`[activity] "${trimmed.slice(0, 40)}" → meaningful=${result.meaningful} (conf=${result.confidence.toFixed(2)}, reason=${result.reason})`, CTX);
+    return result;
 }

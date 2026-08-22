@@ -1,0 +1,54 @@
+---
+# Full release: environment, images, containers, verification, cleanup. Idempotent.
+#   ansible-playbook playbooks/deploy.yml --ask-vault-pass
+
+- name: Deploy the Robtic stack
+  hosts: robtic
+  become: true
+  serial: 1
+  any_errors_fatal: true
+
+  # deploy_env comes from the inventory; a default here would be a recursive self-reference.
+  vars_files:
+    - "{{ playbook_dir }}/../group_vars/all.yml"
+    - "{{ playbook_dir }}/../group_vars/{{ deploy_env }}/vars.yml"
+
+  pre_tasks:
+    - name: Look for the encrypted secrets
+      ansible.builtin.stat:
+        path: "{{ playbook_dir }}/../group_vars/{{ deploy_env }}/vault.yml"
+      register: vault_file
+      delegate_to: localhost
+      become: false
+      changed_when: false
+
+    - name: Explain how to create the vault when it is missing
+      ansible.builtin.fail:
+        msg: |
+          No vault at group_vars/{{ deploy_env }}/vault.yml. Create it with:
+
+            bun run vault:init {{ deploy_env }}
+            $EDITOR infra/ansible/group_vars/{{ deploy_env }}/vault.yml
+            bun run vault:encrypt {{ deploy_env }}
+
+          The encrypted vault is meant to be committed. The vault password is not.
+      when:
+        - deploy_env == 'production'
+        - not vault_file.stat.exists
+
+    # Production must have one; development may, and falls back to the shell.
+    - name: Load the encrypted secrets
+      ansible.builtin.include_vars:
+        file: "{{ playbook_dir }}/../group_vars/{{ deploy_env }}/vault.yml"
+      no_log: true
+      when: vault_file.stat.exists
+
+    - name: Announce the target
+      ansible.builtin.debug:
+        msg: >-
+          Deploying {{ deploy_env }} to {{ inventory_hostname }} —
+          project {{ compose_project_name }}, {{ robtic_services | length }} services.
+
+  roles:
+    - role: deploy
+      tags: [deploy]

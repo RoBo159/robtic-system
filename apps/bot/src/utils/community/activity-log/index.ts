@@ -1,14 +1,10 @@
 export { logToChannel } from "./log-to-channel";
 export { xpGainEmbed } from "./xp-gain-embed";
 export { supportPointsEmbed } from "./support-points-embed";
-export { staffActivityEmbed } from "./staff-activity-embed";
 export { supportSessionEmbed } from "./support-session-embed";
 export { aiDecisionEmbed } from "./ai-decision-embed";
 export { decayEmbed } from "./decay-embed";
 export { staffPenaltyEmbed } from "./staff-penalty-embed";
 export { staffReminderEmbed } from "./staff-reminder-embed";
-export { sorryDmEmbed } from "./sorry-dm-embed";
-export { ratingFeedbackEmbed } from "./rating-feedback-embed";
 export { claimWarningEmbed } from "./claim-warning-embed";
 export { claimTakeoverEmbed } from "./claim-takeover-embed";
-export { dynamicSupportPointsEmbed } from "./dynamic-support-points-embed";

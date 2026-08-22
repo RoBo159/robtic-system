@@ -38,7 +38,7 @@ screen could exist.
 
 | Lib | Status | Purpose |
 |---|---|---|
-| `libs/core` | Live | Bot client infrastructure (`BotClient`, `ClientManager`, module loader, feature registry), AI clients, config, core utilities |
+| `libs/core` | Live | Bot client infrastructure (`BotClient`, `ClientManager`, module loader, feature registry), rule-based message classifiers, config, core utilities |
 | `libs/database` | Live | Mongoose models, repositories, connection — no business logic |
 | `libs/types` | Live | Shared ambient types and DTOs |
 | `libs/sdk` | Scaffold | Discord Embedded App SDK integration layer |

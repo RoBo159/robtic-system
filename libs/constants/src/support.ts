@@ -14,22 +14,22 @@ export const STAFF_CHAT_WARNING_THRESHOLD = 4;
 /** Window after which a staff member's claim-intrusion strikes reset. */
 export const CLAIM_INTRUSION_TIMEOUT_MS = 3_600_000;
 
-/** Point values for dynamic support-session scoring (speed + quality + sentiment). */
+export const SUPPORT_POINTS = {
+    fastResponseMs: 60_000,
+    fastResponsePoints: 5,
+    normalResponseMs: 300_000,
+    normalResponsePoints: 3,
+    slowResponseMs: 900_000,
+    slowResponsePoints: 1,
+    noResponsePenalty: -2,
+    claimAbandonPenalty: -3,
+} as const;
+
+/** Point values for support-session scoring. */
 export const SUPPORT_SCORING = {
     speedFastPoints: 2,
     speedNormalPoints: 1,
-    qualityProfessionalPoints: 2,
-    qualityNormalPoints: 1,
-    qualityBadPoints: -1,
-    sentimentNegativePoints: -1,
     takeoverPenalty: -1,
     intrusionPenalty: -1,
     staffChatPenalty: -1,
 } as const;
-
-/** Chance of DMing an apology / rating request after a session resolves. */
-export const SORRY_DM_PROBABILITY = 0.2;
-export const RATING_DM_PROBABILITY = 0.1;
-
-/** Staff hourly point trackers reset after this long. */
-export const STAFF_HOURLY_RESET_MS = 3_600_000;

@@ -5,7 +5,19 @@ One bot runs every system, with each system kept as a separate module in the cod
 
 ## Overview
 
-The system is built to manage community operations, staff workflows, moderation, and service access in a structured and automated way.
+The system manages community operations, staff workflows, moderation, and service access in a
+structured and automated way. It is no longer only a bot: a web dashboard, two HTTP APIs and a
+Minecraft plugin are all clients of the same MongoDB-backed domain.
+
+## Services
+
+| Service | What it is | Runs as |
+|---|---|---|
+| **Bot** | The Discord client. One login, one command tree, every module. | `robtic-system` |
+| **Platform API** | Owns MongoDB. The bot and every Minecraft server are its clients. | `robtic-platform-api` |
+| **Dashboard API** | NestJS. Discord OAuth sessions and per-guild authorization for the web app. | `robtic-dashboard-api` |
+| **Dashboard** | Next.js. Configure a guild from a browser instead of a dozen slash commands. | `robtic-dashboard` |
+| **Minecraft Plugin** | Paper plugin (Java/Maven). Makes a Minecraft server another client of the same economy. | — |
 
 ## Core Components
 
@@ -14,12 +26,14 @@ The system is built to manage community operations, staff workflows, moderation,
 * **HR** – staff management, recruitment, and promotions
 * **ModMail** – private communication between users and staff
 * **Community** – XP, activity tracking, and progression roles
+* **Quests** – rotating quest board, tiers and a weekly community challenge
+* **Economy** – one coin balance per person, shared across Discord and Minecraft
 * **Dev** – project sharing and review
-* **Minecraft Plugin** – Paper plugin that makes a Minecraft server another client of the same economy
 
 ## Key Features
 
 * Modular architecture — one client, one login, one command tree
+* Web dashboard for guild configuration, moderation history, quests and the leaderboard
 * Database-managed server whitelist (`!addserver <serverid>`)
 * Ticket and modmail systems
 * Staff management automation
@@ -31,28 +45,75 @@ The system is built to manage community operations, staff workflows, moderation,
 
 ## Technology
 
-* Bun (workspaces monorepo)
-* TypeScript
+* Bun (workspaces monorepo), TypeScript
 * Discord.js v14
-* Environment-based configuration
+* NestJS (dashboard API), Next.js (dashboard)
+* MongoDB via Mongoose
+* Java 21 + Maven + Paper (Minecraft plugin)
+* Docker Compose, GitHub Actions, Ansible
 
 ## Repository Layout
 
 ```
-apps/       Applications (bot and minecraft-plugin are live; activity, dashboard, api are scaffolds)
-libs/       Shared libraries (core, database, types, sdk, ...)
-docs/       All documentation
-scripts/    Operational scripts (monitors)
+apps/
+    bot/                Discord client — every module
+    robtic-api/         Platform API; owns MongoDB
+    dashboard-api/      NestJS API behind the dashboard
+    dashboard/          Next.js web dashboard
+    minecraft-plugin/   Paper plugin (Java/Maven)
+
+libs/                   Shared libraries: core, database, config, constants,
+                        logger, sdk, types, utils, cache, events, shared
+
+infra/
+    docker/             Every Dockerfile and Compose file
+    ansible/            Automated deployment, secrets via Ansible Vault
+
+docs/                   All documentation
+scripts/                Operational and CI checks
 ```
 
-See [docs/architecture.md](docs/architecture.md) and [docs/development.md](docs/development.md).
+See [docs/folder-structure.md](docs/folder-structure.md) for the full tree, and
+[docs/architecture.md](docs/architecture.md) for how the pieces fit together.
+
+## Getting Started
+
+```bash
+bun install
+cp .env.example .env          # fill in the required values
+bun run dev                   # the bot, in watch mode
+```
+
+The whole stack, in containers:
+
+```bash
+bun run docker:local -- up --build
+bun run docker:local -- --profile dashboard up -d   # dashboard + its API
+```
+
+See [docs/development.md](docs/development.md).
 
 ## Configuration
 
-The bot token and infrastructure settings live in `.env` (see `.env.example`). Everything
-operational — prefixes, log channels, the server whitelist, XP and streak settings — is stored in
-MongoDB and configured from Discord.
+Two layers, and the split is deliberate:
+
+* **Infrastructure** — tokens, database URI, public URLs — lives in `.env`. See `.env.example` for
+  every variable and which service reads it. In production this file is *generated* by Ansible from
+  an encrypted vault rather than edited by hand; see [infra/ansible](infra/ansible/README.md).
+* **Everything operational** — prefixes, log channels, the server whitelist, feature toggles, XP,
+  streak and quest settings — is stored in MongoDB and configured from Discord or the dashboard.
+
+## Deployment
+
+Images are built by GitHub Actions and published to GHCR, then run with Docker Compose on
+`core.robtic.org` behind Nginx. Each service is content-addressed, so a push only rebuilds and
+redeploys what actually changed.
+
+* [docs/deployment.md](docs/deployment.md) — the pipeline, per-service
+* [infra/docker/README.md](infra/docker/README.md) — Dockerfiles, build contexts, Compose
+* [infra/ansible/README.md](infra/ansible/README.md) — automated deploys and secret management
 
 ## Purpose
 
-Robtic System aims to provide a reliable automation backbone for developer-focused communities and services.
+Robtic System aims to provide a reliable automation backbone for developer-focused communities and
+services.

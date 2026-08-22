@@ -1,6 +1,6 @@
 export interface DiscordConfig {
     clientId: string;
     clientSecret: string;
-    /** Bot token, used to read which guilds the bot is actually in. */
+    /** The same bot token the bot process and the platform API use — see libs/config's `getMainBotToken`. */
     botToken: string;
 }

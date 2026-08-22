@@ -1,0 +1,41 @@
+---
+# Ordering is the safety property: prune is last, so rollback always has images to restore.
+
+- name: Preflight
+  ansible.builtin.include_tasks: preflight.yml
+  tags: [deploy, preflight]
+
+- name: Release
+  block:
+    - name: Generate the environment file
+      ansible.builtin.include_tasks: env.yml
+      when: not (deploy_skip_env | bool)
+      tags: [deploy, env]
+
+    - name: Pull and recreate
+      ansible.builtin.include_tasks: release.yml
+      tags: [deploy, release]
+
+    - name: Verify the stack is serving
+      ansible.builtin.include_tasks: verify.yml
+      tags: [deploy, verify]
+
+  rescue:
+    - name: Roll back to the previous release
+      ansible.builtin.include_tasks: rollback.yml
+      when:
+        - deploy_rollback_on_failure | bool
+        - deploy_rollback_map | default({}) | length > 0
+
+    - name: Fail without rolling back
+      ansible.builtin.fail:
+        msg: >-
+          Deploy failed and no rollback point exists. Inspect with:
+          docker compose -f {{ deploy_compose_file }} -p {{ deploy_compose_project }} ps
+      when: >-
+        not (deploy_rollback_on_failure | bool)
+        or deploy_rollback_map | default({}) | length == 0
+
+- name: Prune replaced images
+  ansible.builtin.include_tasks: prune.yml
+  tags: [deploy, prune]

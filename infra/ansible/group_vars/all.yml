@@ -1,0 +1,65 @@
+---
+# Shared by every environment. group_vars/<env>/vars.yml is loaded after and wins.
+
+# ─── docker role ───
+docker_apt_repo_url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}"
+docker_apt_key_url: "{{ docker_apt_repo_url }}/gpg"
+docker_apt_keyring: /etc/apt/keyrings/docker.asc
+
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# Docker group membership is equivalent to root.
+docker_users:
+  - "{{ app_user }}"
+
+# json-file logging has no cap by default.
+docker_daemon_options:
+  log-driver: json-file
+  log-opts:
+    max-size: "10m"
+    max-file: "5"
+  live-restore: true
+
+# ─── security role ───
+security_ssh_permit_root_login: "no"
+security_ssh_password_authentication: "no"
+security_ssh_port: 22
+
+security_unattended_upgrades: true
+security_unattended_reboot: false
+
+security_packages:
+  - unattended-upgrades
+  - fail2ban
+
+security_fail2ban_enabled: true
+security_fail2ban_bantime: 3600
+security_fail2ban_maxretry: 5
+
+# ─── deploy role ───
+deploy_compose_project: "{{ compose_project_name }}"
+deploy_compose_file: "{{ compose_file }}"
+deploy_env_file: "{{ env_file_path }}"
+
+# Pull before recreating, so a registry failure leaves the old containers serving.
+deploy_pull: true
+
+# Recreates only what actually changed.
+deploy_recreate: auto
+
+# Off: this host runs unrelated containers from earlier iterations.
+deploy_remove_orphans: false
+
+deploy_health_timeout: 180
+deploy_health_interval: 5
+
+deploy_prune_images: true
+deploy_rollback_on_failure: true
+
+# update.yml overrides this to true.
+deploy_skip_env: false

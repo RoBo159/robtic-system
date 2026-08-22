@@ -1,8 +1,4 @@
-# Build context: the repository root, not this directory.
-#
-#   docker build -f infra/docker/dockerfiles/platform-api.Dockerfile -t robtic-platform-api .
-#
-# Every COPY below is therefore repo-relative, and the root .dockerignore is what prunes the context.
+# Context: repository root.  docker build -f infra/docker/dockerfiles/platform-api.Dockerfile .
 FROM oven/bun:1.3.14 AS deps
 WORKDIR /app
 
@@ -33,16 +29,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
 COPY apps/robtic-api ./apps/robtic-api
 
-# Bun keeps a workspace's own dependencies in that workspace's node_modules rather than hoisting
-# them to the root. Today this is only the `@robtic/sdk` link, and nothing imports it by package
-# name — the code reaches libs/sdk through the `@sdk` tsconfig alias — so the image worked without
-# it. It is here so that stops being a thing anyone has to know: the first `import "@robtic/sdk"`
-# would otherwise fail at container start, long after the build went green.
+# Bun does not hoist workspace deps to the root; only the @robtic/sdk link today.
 COPY --from=deps /app/apps/robtic-api/node_modules ./apps/robtic-api/node_modules
 COPY libs ./libs
 
 EXPOSE 3002
 
-# --preload stubs node:v8 for BSON/mongoose on Bun, the same shim the bot and api use. This
-# service owns the database outright, so without it nothing starts at all.
+# --preload stubs node:v8 for BSON/mongoose on Bun.
 CMD ["bun", "--preload", "./libs/shared/src/preload.ts", "apps/robtic-api/src/index.ts"]

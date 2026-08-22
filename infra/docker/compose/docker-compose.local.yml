@@ -1,16 +1,5 @@
-# Local test stack — MongoDB, the bot, and a Paper server with the Minecraft plugin baked in.
-#
-# This file is for a developer machine only. The production topology lives beside it in
-# docker-compose.yml and is deployed by .github/workflows/deploy-*.yml; nothing here runs on the
-# server.
-#
-#   bun run docker:local            # from the repository root
-#   docker compose -f infra/docker/compose/docker-compose.local.yml up --build
-#
-# Relative paths below resolve against *this file's* directory, not against wherever you ran the
-# command — hence the `../../..` that walks back to the repository root.
-#
-# See ../../../docs/development.md for the walkthrough.
+# Developer stack. Paths resolve from this file, hence ../../.. for the repository root.
+#   bun run docker:local -- up --build
 
 name: robtic-local
 
@@ -19,7 +8,6 @@ services:
     image: mongo:7
     restart: unless-stopped
     ports:
-      # Exposed so you can point Compass or mongosh at the same data the stack uses.
       - "127.0.0.1:27017:27017"
     volumes:
       - mongo-data:/data/db
@@ -38,18 +26,16 @@ services:
     env_file:
       - ../../../.env
     environment:
-      # Overrides whatever .env says: inside the network the database is a service name, and
-      # development selects the TestBot token (see libs/config/src/bot-definitions.ts).
+      # Overrides .env: inside the network the database is a service name.
       MONGODB_URI: mongodb://mongo:27017/robtic
       NODE_ENV: development
     depends_on:
       mongo:
         condition: service_healthy
     volumes:
-      # Logs are written relative to cwd, so this surfaces them on the host.
+      # Logs are written relative to cwd.
       - ../../../logs:/app/logs
 
-  # The platform API. Everything else that needs data goes through this, including the plugin.
   robtic-api:
     build:
       context: ../../..
@@ -67,10 +53,7 @@ services:
       mongo:
         condition: service_healthy
 
-  # The dashboard's API. Opt-in, because it needs a Discord OAuth application configured and most
-  # bot work does not touch it:
-  #
-  #   bun run docker:local -- --profile dashboard up -d
+  # Opt-in: bun run docker:local -- --profile dashboard up -d
   dashboard-api:
     profiles: [dashboard]
     build:
@@ -84,8 +67,7 @@ services:
       DASHBOARD_API_PORT: 3003
       DASHBOARD_API_URL: http://localhost:3003
       DASHBOARD_URL: http://localhost:3000
-      # http locally, so a Secure cookie would never be stored and login would appear to succeed
-      # and then bounce straight back to the landing page.
+      # http locally, so a Secure cookie would never be stored.
       DASHBOARD_SECURE_COOKIES: "false"
       NODE_ENV: development
     ports:
@@ -110,9 +92,7 @@ services:
 
   minecraft:
     build:
-      # The one context that is not the repository root — see ../dockerfiles/minecraft-plugin.Dockerfile
-      # for why. `context` is relative to this file; `dockerfile` is then relative to the *context*,
-      # which is why the two climb by different amounts.
+      # dockerfile is relative to context, which is why the two climb by different amounts.
       context: ../../../apps/minecraft-plugin
       dockerfile: ../../infra/docker/dockerfiles/minecraft-plugin.Dockerfile
       target: server
@@ -122,18 +102,16 @@ services:
     ports:
       - "25565:25565"
     environment:
-      # Accepting Mojang's EULA is your call — set MINECRAFT_EULA=TRUE in .env to start the server.
+      # Set MINECRAFT_EULA=TRUE in .env to accept Mojang's EULA.
       EULA: ${MINECRAFT_EULA:-FALSE}
     depends_on:
       - robtic-api
     volumes:
       - minecraft-data:/data
-      # The plugin is configured through plugins/RobticMinecraft/api.yml, not environment
-      # variables — it holds an API key rather than a database URI, and a key belongs in a file
-      # you can rotate rather than in a process environment you have to restart to change.
+      # The plugin is configured through plugins/RobticMinecraft/api.yml, not env vars.
       - ../../../apps/minecraft-plugin/local-config:/config-seed:ro
 
-  # Opt-in database browser: bun run docker:local -- --profile tools up -d
+  # Opt-in: bun run docker:local -- --profile tools up -d
   mongo-express:
     image: mongo-express:1.0.2
     profiles: [tools]

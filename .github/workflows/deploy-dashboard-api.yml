@@ -61,12 +61,85 @@ jobs:
     secrets:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 
-  # Claims the signature, but only after the deploy actually succeeded — a failed run leaves it
-  # unclaimed so the next push retries instead of skipping a service that never shipped.
-  seal:
-    name: Record what was deployed
+  # `compose up -d` returns as soon as the container is *started*, which says nothing about whether
+  # the process inside it survived. This service exits at boot when a required variable is missing,
+  # so without this job the workflow went green while the API was dead — and the failure surfaced
+  # one workflow later as "dependency failed to start" on the dashboard, which names neither the
+  # broken service nor the reason.
+  verify:
+    name: Verify the API is serving
     needs: [changes, deploy]
     if: ${{ needs.deploy.result == 'success' }}
+    runs-on: [self-hosted, robtic-deploy]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for the container to report healthy
+        run: |
+          set -uo pipefail
+          compose="docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env"
+
+          cid=$($compose ps -q robtic-dashboard-api)
+          if [ -z "$cid" ]; then
+            echo "::error::robtic-dashboard-api has no container"
+            exit 1
+          fi
+
+          for attempt in $(seq 1 24); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' "$cid" 2>/dev/null || echo unknown)
+            running=$(docker inspect --format '{{.State.Running}}' "$cid" 2>/dev/null || echo false)
+
+            if [ "$status" = "healthy" ]; then
+              echo "healthy after $((attempt * 5))s"
+              exit 0
+            fi
+            if [ "$running" != "true" ]; then
+              echo "::error::container exited — it is crashing at startup, not merely slow"
+              exit 1
+            fi
+
+            sleep 5
+          done
+
+          echo "::error::robtic-dashboard-api never became healthy within 120s"
+          exit 1
+
+      # Only on failure, and only names — never values. A missing variable is by far the most common
+      # cause, and this turns a 20-minute log hunt into a line in the job summary.
+      - name: Report why
+        if: failure()
+        run: |
+          set -uo pipefail
+          compose="docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env"
+
+          echo "### robtic-dashboard-api failed to come up" >> "$GITHUB_STEP_SUMMARY"
+
+          missing=""
+          # MainBotToken rather than DISCORD_BOT_TOKEN: the dashboard API's Dockerfile hardcodes
+          # NODE_ENV=production, so it always reads the same MainBotToken the bot and platform API do.
+          for name in MONGODB_URI DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET MainBotToken \
+                      DASHBOARD_SESSION_SECRET DASHBOARD_API_URL DASHBOARD_URL; do
+            if ! grep -qE "^[[:space:]]*${name}=.+" /home/robtic/robtic-system/.env; then
+              missing="${missing} ${name}"
+            fi
+          done
+
+          if [ -n "$missing" ]; then
+            echo "Missing or empty in /home/robtic/robtic-system/.env:$missing" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Every required variable is present — see the container log below." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "--- last 120 log lines ---"
+          $compose logs --tail=120 --no-color robtic-dashboard-api || true
+
+  # Claims the signature, but only after the deploy succeeded *and* the API was observed serving.
+  # Sealing on `deploy` alone marked a dead service as shipped, so the next push skipped it as
+  # "unchanged" and the outage survived every subsequent deploy.
+  seal:
+    name: Record what was deployed
+    needs: [changes, deploy, verify]
+    if: ${{ needs.deploy.result == 'success' && needs.verify.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Write marker

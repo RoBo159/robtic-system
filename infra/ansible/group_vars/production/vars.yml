@@ -1,0 +1,60 @@
+---
+# Public config. Secrets are vault_* references, never literals.
+
+# app_dir must match the absolute env_file: path in docker-compose.yml.
+app_user: robtic
+app_group: robtic
+app_dir: /home/robtic/robtic-system
+
+compose_project_name: robtic-system
+compose_file: "{{ app_dir }}/infra/docker/compose/docker-compose.yml"
+env_file_path: "{{ app_dir }}/.env"
+
+ghcr_registry: ghcr.io
+ghcr_owner: robticorg
+
+# Deploy order: platform API first, bot last.
+robtic_services:
+  - robtic-platform-api
+  - robtic-dashboard-api
+  - robtic-dashboard
+  - robtic-system
+
+robtic_service_images:
+  robtic-system: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-system"
+  robtic-platform-api: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-platform-api"
+  robtic-dashboard-api: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-dashboard-api"
+  robtic-dashboard: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-dashboard"
+
+robtic_images: "{{ robtic_service_images.values() | list }}"
+
+node_env: production
+
+# TODO: supply before the first deploy — see README.
+bot_owner_id: ""
+command_guild_id: ""
+robtic_website_url: "https://robtic.org"
+robtic_discord_invite: "https://discord.gg/robtic"
+
+robtic_api_host: "0.0.0.0"
+robtic_api_port: 3002
+robtic_api_public_url: "https://minecraft.api.robtic.org"
+
+# dashboard_url and the browser origin are a CORS pair; they must match exactly.
+dashboard_api_url: "https://dashboard-api.robtic.org"
+dashboard_url: "https://dashboard.robtic.org"
+dashboard_public_api_url: "https://dashboard-api.robtic.org"
+dashboard_api_port: 3003
+dashboard_secure_cookies: true
+dashboard_session_ttl_ms: 604800000
+
+# ─── from vault.yml ───
+mongodb_uri: "{{ vault_mongodb_uri }}"
+main_bot_token: "{{ vault_main_bot_token }}"
+discord_client_id: "{{ vault_discord_client_id }}"
+discord_client_secret: "{{ vault_discord_client_secret }}"
+dashboard_session_secret: "{{ vault_dashboard_session_secret }}"
+
+# Only needed while the GHCR packages are private.
+ghcr_username: "{{ vault_ghcr_username | default('', true) }}"
+ghcr_token: "{{ vault_ghcr_token | default('', true) }}"

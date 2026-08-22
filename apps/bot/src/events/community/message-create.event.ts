@@ -5,7 +5,6 @@ import { analyzeSupportMessage } from "@core/ai";
 import { normalizeElongated } from "@utils";
 import { COMMUNITY_MESSAGES, SUPPORT_SCORING } from "@constants";
 import { grantXP, isXPChannel, hasAllowedRole } from "../../services/community/xp";
-import { trackPublicChat, trackStaffChat } from "../../services/community/staff-activity";
 import { isSupportChannel, createSession, recordResponse, autoClaimSession } from "../../services/community/support";
 import { SupportSessionRepository } from "@database/repositories/SupportSessionRepository";
 import { ActivityRepository } from "@database/repositories/ActivityRepository";
@@ -15,7 +14,6 @@ import {
     logToChannel,
     xpGainEmbed,
     supportSessionEmbed,
-    staffActivityEmbed,
     staffPenaltyEmbed,
     staffReminderEmbed,
     aiDecisionEmbed,
@@ -157,7 +155,7 @@ export default {
                         for (const session of openSessions) {
                             if (session.claimedBy === member.id) {
                                 await handleSessionResolution(
-                                    message, session, guildId, normalizedContent,
+                                    session, guildId,
                                     member.id, COMMUNITY_MESSAGES.resolutionReasons.aiConversationEndStaff, client,
                                 );
                                 resetClaimIntrusion(member.id, channelId);
@@ -191,7 +189,7 @@ export default {
                         for (const session of openSessions) {
                             if (session.userId === member.id) {
                                 await handleSessionResolution(
-                                    message, session, guildId, normalizedContent,
+                                    session, guildId,
                                     member.id, COMMUNITY_MESSAGES.resolutionReasons.memberEnded, client,
                                 );
                             }
@@ -218,23 +216,6 @@ export default {
                         Logger.debug(`[activity] Granted ${result.xp} XP to ${username} (levelUp=${result.leveledUp}, level=${result.newLevel})`, client.botName);
                         await logToChannel(client, "xp_gain", xpGainEmbed(
                             username, member.id, result.xp, result.leveledUp, result.newLevel,
-                        ));
-                    }
-                }
-            }
-
-            if (await isStaff(member)) {
-                Logger.debug(`[activity] Staff member ${username}, tracking staff activity`, client.botName);
-                const staffResult = await trackStaffChat(member, guildId, channelId, username, content);
-                if (staffResult) {
-                    await logToChannel(client, "staff_activity", staffActivityEmbed(
-                        member.id, username, staffResult, "staff",
-                    ));
-                } else if (isXPCh) {
-                    const publicResult = await trackPublicChat(member, guildId, username, content);
-                    if (publicResult) {
-                        await logToChannel(client, "staff_activity", staffActivityEmbed(
-                            member.id, username, publicResult, "public",
                         ));
                     }
                 }

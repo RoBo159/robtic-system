@@ -65,6 +65,34 @@ jobs:
     secrets:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 
+  # This web app declares `depends_on: robtic-dashboard-api: service_healthy`, so a dead API fails
+  # *this* deploy with "dependency failed to start: … is unhealthy" — a message about the dashboard
+  # that is never about the dashboard. This job says so out loud and points at the real service.
+  diagnose:
+    name: Why it failed
+    needs: [changes, deploy]
+    if: ${{ always() && needs.deploy.result == 'failure' }}
+    runs-on: [self-hosted, robtic-deploy]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dashboard API state and logs
+        run: |
+          set -uo pipefail
+          compose="docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env"
+
+          {
+            echo "### The dashboard waits on robtic-dashboard-api"
+            echo ""
+            echo "If this deploy failed on \`dependency failed to start\`, the fault is in the API,"
+            echo "not in the web app. Its log is below."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          $compose ps || true
+
+          echo "--- robtic-dashboard-api, last 120 lines ---"
+          $compose logs --tail=120 --no-color robtic-dashboard-api || true
+
   # Claims the signature, but only after the deploy actually succeeded — a failed run leaves it
   # unclaimed so the next push retries instead of skipping a service that never shipped.
   seal:

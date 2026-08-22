@@ -24,7 +24,9 @@ const check = (name: string, ok: boolean, detail = "") => {
 process.env.MONGODB_URI ??= "mongodb://127.0.0.1:27017/route-check";
 process.env.DISCORD_CLIENT_ID ??= "0";
 process.env.DISCORD_CLIENT_SECRET ??= "x";
-process.env.DISCORD_BOT_TOKEN ??= "x";
+// Bot token: same variable the bot reads, picked by NODE_ENV (see libs/config's BOT_DEFINITION).
+process.env.MainBotToken ??= "x";
+process.env.TestBot ??= "x";
 process.env.DASHBOARD_SESSION_SECRET ??= "route-check";
 
 const { AppModule } = await import("../src/app.module");

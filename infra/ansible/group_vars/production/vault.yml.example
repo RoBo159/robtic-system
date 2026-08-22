@@ -1,0 +1,23 @@
+---
+# Template only — holds no real values. Create the real vault with:
+#   bun run vault:init production && bun run vault:encrypt production
+
+# Full connection string, credentials included.
+vault_mongodb_uri: "mongodb://user:password@127.0.0.1:27017/robtic?authSource=admin"
+
+# Rendered as MainBotToken — mixed case, read via process.env[tokenKey]. The same token is used by
+# the platform API and the dashboard API (guild roles/channels) — there is no separate bot token.
+vault_main_bot_token: "REPLACE_ME"
+
+# Discord Developer Portal → your application → Application ID. Not secret, but kept alongside the
+# other Discord credentials so there is one place that holds all of them.
+vault_discord_client_id: "REPLACE_ME"
+
+vault_discord_client_secret: "REPLACE_ME"
+
+# openssl rand -hex 32. Rotating it signs everybody out.
+vault_dashboard_session_secret: "REPLACE_ME"
+
+# Optional: only while the GHCR packages are private. Use a read:packages token.
+vault_ghcr_username: ""
+vault_ghcr_token: ""

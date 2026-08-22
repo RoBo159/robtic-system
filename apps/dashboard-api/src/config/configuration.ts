@@ -1,4 +1,5 @@
 import { registerAs } from "@nestjs/config";
+import { getMainBotToken } from "@config";
 import { validate } from "./env.validation";
 import type { AppConfig, DatabaseConfig, DiscordConfig, SessionConfig } from "./interfaces";
 
@@ -37,7 +38,9 @@ export const discordConfig = registerAs("discord", (): DiscordConfig => {
     return {
         clientId: env.DISCORD_CLIENT_ID,
         clientSecret: env.DISCORD_CLIENT_SECRET,
-        botToken: env.DISCORD_BOT_TOKEN,
+        // Same token the bot and the platform API use — `MainBotToken`/`TestBot`, picked by
+        // `NODE_ENV` in libs/config. There is no separate dashboard bot token to configure.
+        botToken: getMainBotToken(),
     };
 });
 

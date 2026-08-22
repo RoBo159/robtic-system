@@ -1,9 +1,4 @@
-# Build context: the repository root, not this directory.
-#
-#   docker build -f infra/docker/dockerfiles/bot.Dockerfile -t robtic-system .
-#
-# Every COPY below is therefore repo-relative, and the root .dockerignore is what prunes the context.
-# That file has to stay at the context root to be read at all — see infra/docker/README.md.
+# Context: repository root.  docker build -f infra/docker/dockerfiles/bot.Dockerfile .
 FROM oven/bun:1.3.14 AS deps
 WORKDIR /app
 
@@ -32,9 +27,7 @@ ENV NODE_ENV=production
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
-# Only the bot's own source. It imports nothing from apps/api, apps/activity or apps/robtic-api —
-# copying all of `apps` put their source in this image and, worse, made every Activity-only change
-# produce a different bot image, which the deploy signature would then have to rebuild for.
+# The bot's own source only; it imports nothing from the other apps.
 COPY apps/bot ./apps/bot
 COPY libs ./libs
 COPY images ./images

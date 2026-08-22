@@ -1,0 +1,18 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 120
+    level: warning
+
+  # yes/no are meaningful in sshd and apt templates.
+  truthy:
+    allowed-values: ["true", "false"]
+    check-keys: false
+
+  comments:
+    min-spaces-from-content: 1
+
+  braces:
+    max-spaces-inside: 1

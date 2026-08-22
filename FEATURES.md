@@ -646,9 +646,8 @@ Routes each log kind to a channel. Eleven kinds:
 | `xp_gain_log` | XP gains and level-ups |
 | `rewards_log` | Reward distribution |
 | `support_points_log` | Support staff points |
-| `staff_activity_log` | Staff activity |
 | `decay_log` | XP decay |
-| `ai_log` | AI decisions |
+| `ai_log` | Support-message classification decisions (rule-based) |
 
 Configurable per key from the command or the admin panel's Logs section.
 

@@ -91,20 +91,6 @@ export class SupportSessionRepository {
         );
     }
 
-    static async setSessionQuality(
-        userMessageId: string,
-        quality: "professional" | "normal" | "bad",
-    ): Promise<void> {
-        await SupportSession.updateOne({ userMessageId }, { sessionQuality: quality });
-    }
-
-    static async setUserSentiment(
-        userMessageId: string,
-        sentiment: "positive" | "negative" | "neutral",
-    ): Promise<void> {
-        await SupportSession.updateOne({ userMessageId }, { userSentiment: sentiment });
-    }
-
     static async getAverageResponseTime(staffId: string): Promise<number> {
         const result = await SupportSession.aggregate([
             { $match: { claimedBy: staffId, responseTimeMs: { $ne: null } } },

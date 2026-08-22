@@ -1,11 +1,8 @@
-import { AiClient } from "./ai-client";
-import { buildSupportClassificationPrompt } from "./prompts";
-import { AI_CONFIG } from "@config";
-import type { AiClassificationResult, MessageClassification } from "@typings/ai";
+import type { AiClassificationResult } from "@typings/ai";
 import { Logger } from "@logger";
 import { normalizeElongated } from "@utils";
 
-const CTX = "ai:classifier";
+const CTX = "classifier";
 
 const LOW_EFFORT_PATTERNS = /^(ok|okay|yes|no|yeah|nah|sure|idk|lol|lmao|hi|hey|k|np|brb|gg|rip|hmm|hm|oh|ah|xd|omg|wow|nice|cool|yep|nope|حسنا|نعم|لا|تمام|ماشي|طيب|اها|اوك|هاه|اه)$/i;
 
@@ -37,72 +34,35 @@ function ruleBasedClassify(content: string, hasReference: boolean): AiClassifica
     return { classification: "unknown", confidence: 0.3, fallback: true };
 }
 
-export async function classifyMessage(
-    content: string,
-    hasReference: boolean,
-): Promise<AiClassificationResult> {
+export function classifyMessage(content: string, hasReference: boolean): AiClassificationResult {
     const trimmed = normalizeElongated(content.trim());
 
     if (trimmed.length < 4) {
         const result: AiClassificationResult = { classification: "low_effort_reply", confidence: 0.95, fallback: true };
-        Logger.debug(`[classifier] "${trimmed.slice(0, 20)}" → ${result.classification} (conf=${result.confidence.toFixed(2)}, fallback=true, reason=too short)`, CTX);
+        Logger.debug(`[classifier] "${trimmed.slice(0, 20)}" → ${result.classification} (conf=${result.confidence.toFixed(2)}, reason=too short)`, CTX);
         return result;
     }
 
     if (CONVERSATION_END_PATTERNS.test(trimmed.toLowerCase())) {
         const result: AiClassificationResult = { classification: "conversation_end", confidence: 0.9, fallback: true };
-        Logger.debug(`[classifier] "${trimmed.slice(0, 40)}" → ${result.classification} (conf=${result.confidence.toFixed(2)}, fallback=true, reason=end phrase matched)`, CTX);
+        Logger.debug(`[classifier] "${trimmed.slice(0, 40)}" → ${result.classification} (conf=${result.confidence.toFixed(2)}, reason=end phrase matched)`, CTX);
         return result;
     }
 
     if (LOW_EFFORT_PATTERNS.test(trimmed.toLowerCase())) {
         const result: AiClassificationResult = { classification: "low_effort_reply", confidence: 0.9, fallback: true };
-        Logger.debug(`[classifier] "${trimmed.slice(0, 40)}" → ${result.classification} (conf=${result.confidence.toFixed(2)}, fallback=true, reason=low effort phrase)`, CTX);
+        Logger.debug(`[classifier] "${trimmed.slice(0, 40)}" → ${result.classification} (conf=${result.confidence.toFixed(2)}, reason=low effort phrase)`, CTX);
         return result;
     }
 
     const wordCount = trimmed.split(/\s+/).length;
     if (wordCount >= 3 && SUPPORT_HELP_PATTERNS.test(trimmed)) {
         const result: AiClassificationResult = { classification: "support_reply", confidence: 0.85, fallback: true };
-        Logger.debug(`[classifier] "${trimmed.slice(0, 40)}" → ${result.classification} (conf=${result.confidence.toFixed(2)}, fallback=true, reason=help phrase with ${wordCount} words)`, CTX);
+        Logger.debug(`[classifier] "${trimmed.slice(0, 40)}" → ${result.classification} (conf=${result.confidence.toFixed(2)}, reason=help phrase with ${wordCount} words)`, CTX);
         return result;
     }
 
-    if (!AI_CONFIG.enabled || trimmed.length < AI_CONFIG.minMessageLength) {
-        const result = ruleBasedClassify(content, hasReference);
-        Logger.debug(`[classifier] "${trimmed.slice(0, 40)}" → ${result.classification} (conf=${result.confidence.toFixed(2)}, fallback=true, reason=AI disabled or too short)`, CTX);
-        return result;
-    }
-
-    try {
-        const client = AiClient.getInstance();
-        const prompt = buildSupportClassificationPrompt(content, hasReference);
-        const raw = await client.generate(prompt, 80, true);
-        const parsed = client.parseJsonResponse<{
-            classification: MessageClassification;
-            confidence: number;
-        }>(raw);
-
-        if (parsed && parsed.classification) {
-            const confidence = typeof parsed.confidence === "number" ? parsed.confidence : 0.7;
-            const result: AiClassificationResult = {
-                classification: parsed.classification,
-                confidence: Math.min(Math.max(confidence, 0), 1),
-                fallback: false,
-            };
-            Logger.debug(
-                `[classifier] "${trimmed.slice(0, 40)}" → ${result.classification} (conf=${result.confidence.toFixed(2)}, fallback=false, ai)`,
-                CTX,
-            );
-            return result;
-        }
-
-        Logger.debug(`[classifier] AI returned invalid format for "${trimmed.slice(0, 40)}", falling back to rules`, CTX);
-    } catch (err) {
-        Logger.warn(`[classifier] AI failed for "${trimmed.slice(0, 40)}": ${err}`, CTX);
-    }
-
-    const fallback = ruleBasedClassify(content, hasReference);
-    Logger.debug(`[classifier] "${trimmed.slice(0, 40)}" → ${fallback.classification} (conf=${fallback.confidence.toFixed(2)}, fallback=true, reason=AI error)`, CTX);
-    return fallback;
+    const result = ruleBasedClassify(content, hasReference);
+    Logger.debug(`[classifier] "${trimmed.slice(0, 40)}" → ${result.classification} (conf=${result.confidence.toFixed(2)})`, CTX);
+    return result;
 }

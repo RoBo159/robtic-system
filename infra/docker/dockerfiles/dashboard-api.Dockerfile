@@ -1,8 +1,4 @@
-# Build context: the repository root, not this directory.
-#
-#   docker build -f infra/docker/dockerfiles/dashboard-api.Dockerfile -t robtic-dashboard-api .
-#
-# Every COPY below is therefore repo-relative, and the root .dockerignore is what prunes the context.
+# Context: repository root.  docker build -f infra/docker/dockerfiles/dashboard-api.Dockerfile .
 FROM oven/bun:1.3.14 AS deps
 WORKDIR /app
 
@@ -33,23 +29,14 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
 COPY apps/dashboard-api ./apps/dashboard-api
 
-# Bun keeps a workspace's own dependencies in that workspace's node_modules rather than hoisting
-# them to the root — `@nestjs/*`, `next` and friends are simply not in /app/node_modules, and the
-# `.bin` entries that make `bun run build` work live here too. Copying only the root tree gets a
-# `next: command not found` at build time, or a missing @nestjs/common at container start.
-#
-# After the source copy, not before: COPY merges directories, and the build context has no
-# node_modules of its own (.dockerignore), so this order is what survives.
+# Bun does not hoist workspace deps to the root. After the source copy: COPY merges directories.
 COPY --from=deps /app/apps/dashboard-api/node_modules ./apps/dashboard-api/node_modules
 COPY libs ./libs
 
 EXPOSE 3003
 
-# WORKDIR is the app, not /app. Bun reads `experimentalDecorators` from the nearest tsconfig to the
-# working directory, and the root one does not set it — started from /app, every `@Controller`
-# throws at import time because Bun applies TC39 decorators instead of the legacy ones Nest needs.
+# WORKDIR is the app: Bun reads experimentalDecorators from the nearest tsconfig.
 WORKDIR /app/apps/dashboard-api
 
-# --preload stubs node:v8 for BSON/mongoose on Bun, the same shim the bot and the platform API use.
-# This service reads the database directly, so without it nothing starts at all.
+# --preload stubs node:v8 for BSON/mongoose on Bun.
 CMD ["bun", "--preload", "../../libs/shared/src/preload.ts", "src/main.ts"]

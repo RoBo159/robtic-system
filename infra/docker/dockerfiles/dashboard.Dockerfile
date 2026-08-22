@@ -1,8 +1,4 @@
-# Build context: the repository root, not this directory.
-#
-#   docker build -f infra/docker/dockerfiles/dashboard.Dockerfile -t robtic-dashboard .
-#
-# Every COPY below is therefore repo-relative, and the root .dockerignore is what prunes the context.
+# Context: repository root.  docker build -f infra/docker/dockerfiles/dashboard.Dockerfile .
 FROM oven/bun:1.3.14 AS deps
 WORKDIR /app
 
@@ -32,20 +28,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY apps/dashboard ./apps/dashboard
 
-# Bun keeps a workspace's own dependencies in that workspace's node_modules rather than hoisting
-# them to the root — `@nestjs/*`, `next` and friends are simply not in /app/node_modules, and the
-# `.bin` entries that make `bun run build` work live here too. Copying only the root tree gets a
-# `next: command not found` at build time, or a missing @nestjs/common at container start.
-#
-# After the source copy, not before: COPY merges directories, and the build context has no
-# node_modules of its own (.dockerignore), so this order is what survives.
+# Bun does not hoist workspace deps to the root. After the source copy: COPY merges directories.
 COPY --from=deps /app/apps/dashboard/node_modules ./apps/dashboard/node_modules
 
-# No build arguments, deliberately. Where the browser reaches the API is read at request time from
-# DASHBOARD_PUBLIC_API_URL (see src/lib/api-config.tsx), so this image is environment-independent —
-# the same digest runs in staging and production, and a wrong URL is a restart rather than a rebuild.
+# No build args: the API URL is read at request time, so this image is environment-independent.
 ENV NEXT_TELEMETRY_DISABLED=1
-# Opts into `output: "standalone"` — see the comment in next.config.mjs for why it is not the default.
+# Opts into output: "standalone" — see next.config.mjs.
 ENV NEXT_OUTPUT_STANDALONE=true
 
 WORKDIR /app/apps/dashboard
@@ -60,17 +48,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# The standalone bundle carries its own traced node_modules, so nothing is installed here. Its
-# layout is nested because outputFileTracingRoot is the monorepo root: the server lands under
-# `apps/dashboard/` and the shared dependencies beside it at the top.
+# The standalone bundle carries its own traced node_modules; nothing is installed here.
 COPY --from=build /app/apps/dashboard/.next/standalone ./
 
-# Neither of these is traced — static assets and the public directory are data, not imports, so
-# Next expects them to be placed next to the server by hand.
+# Static assets are data, not imports, so Next expects them placed by hand.
 COPY --from=build /app/apps/dashboard/.next/static ./apps/dashboard/.next/static
 
 EXPOSE 3000
 
-# Not `bun run start`: the standalone output is its own server, and `next start` would need the
-# full Next CLI and the untraced node_modules this image deliberately does not have.
+# Not `bun run start`: the standalone output is its own server.
 CMD ["bun", "apps/dashboard/server.js"]

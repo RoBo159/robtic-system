@@ -1,5 +1,24 @@
 # Deployment
 
+There are two paths to production, and both drive the same
+`infra/docker/compose/docker-compose.yml`:
+
+| Path | Status | Use it for |
+|---|---|---|
+| GitHub Actions (`deploy-*.yml`) | **Live.** Runs on every push to `main`. | Per-service image builds and deploys. |
+| Ansible (`infra/ansible/`, via `deploy-ansible.yml`) | **Live.** Runs on every push to `main`. | Config/secret changes (`.env` rendering) and host bootstrap (manual only). |
+
+`deploy-ansible.yml` runs automatically on every push, but only touches secrets when it has to: it
+renders a new `.env` from the vault (needs `ANSIBLE_VAULT_PASSWORD`) when the push changed
+`infra/ansible/group_vars/**` or `templates/env.j2`, and otherwise just re-syncs images with no
+secret involved. Host bootstrap (`playbooks/bootstrap.yml`) stays manual. See
+[`infra/ansible/README.md`](../infra/ansible/README.md) for the layout, the secret-management flow
+and the migration order.
+
+The one thing Ansible owns outright today is **the environment file**. `/home/robtic/robtic-system/.env`
+is rendered from `infra/ansible/templates/env.j2` and Ansible Vault; editing it on the server is
+pointless because the next `deploy.yml` overwrites it.
+
 ## Pipeline
 
 Each service has its own workflow. All delegate to the shared `robticorg/robtic-actions` Docker
@@ -146,7 +165,7 @@ name rather than failing later at the first login attempt:
 | Variable | |
 |---|---|
 | `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | The OAuth application. Add `https://dashboard-api.robtic.org/auth/callback` to its redirects. |
-| `DISCORD_BOT_TOKEN` | Reads a guild's roles and channels for the settings pickers. |
+| `MainBotToken` (bot variables, above) | Also read by the dashboard API, to read a guild's roles and channels for the settings pickers. There is no separate dashboard bot token. |
 | `DASHBOARD_SESSION_SECRET` | Signs session cookies. Rotating it signs everybody out — the intended emergency stop. |
 | `DASHBOARD_API_URL` | `https://dashboard-api.robtic.org` — the OAuth redirect is built from it. |
 | `DASHBOARD_URL` | `https://dashboard.robtic.org` — the API's single permitted CORS origin. |

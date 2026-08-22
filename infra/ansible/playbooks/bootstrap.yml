@@ -1,0 +1,68 @@
+---
+# Once per host, before deploy.yml. Installs Docker, hardens, places the checkout.
+#   ansible-playbook playbooks/bootstrap.yml --ask-become-pass
+
+- name: Bootstrap a Robtic host
+  hosts: robtic
+  become: true
+  any_errors_fatal: true
+
+  vars_files:
+    - "{{ playbook_dir }}/../group_vars/all.yml"
+    - "{{ playbook_dir }}/../group_vars/{{ deploy_env }}/vars.yml"
+
+  pre_tasks:
+    - name: Gather facts needed for package installation
+      ansible.builtin.setup:
+        gather_subset:
+          - "!all"
+          - "min"
+          - "distribution"
+          - "architecture"
+
+    - name: Ensure the application group exists
+      ansible.builtin.group:
+        name: "{{ app_group }}"
+        state: present
+
+    - name: Ensure the application user exists
+      ansible.builtin.user:
+        name: "{{ app_user }}"
+        group: "{{ app_group }}"
+        shell: /bin/bash
+        create_home: true
+        state: present
+
+  roles:
+    - role: docker
+      tags: [bootstrap, docker]
+
+    - role: security
+      tags: [bootstrap, security]
+
+  post_tasks:
+    # update: false — moving an existing checkout is deploy's job, not bootstrap's.
+    - name: Place the repository checkout
+      ansible.builtin.git:
+        repo: "{{ repo_url | default('https://github.com/robticorg/robtic-system.git') }}"
+        dest: "{{ app_dir }}"
+        version: "{{ repo_version | default('main') }}"
+        update: false
+        depth: 1
+      become: true
+      become_user: "{{ app_user }}"
+      register: bootstrap_checkout
+
+    - name: Confirm the Compose file is where the deploy role expects it
+      ansible.builtin.stat:
+        path: "{{ compose_file }}"
+      register: bootstrap_compose
+
+    - name: Report readiness
+      ansible.builtin.assert:
+        that:
+          - bootstrap_compose.stat.exists
+        success_msg: "Host ready. Create the vault, then run playbooks/deploy.yml."
+        fail_msg: >-
+          The checkout at {{ app_dir }} has no {{ compose_file }}. Check repo_url and repo_version.
+        quiet: true

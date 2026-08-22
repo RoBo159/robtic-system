@@ -1,0 +1,86 @@
+---
+# Docker Engine and the Compose v2 plugin, from Docker's own apt repository.
+
+- name: Fail early on an unsupported platform
+  ansible.builtin.assert:
+    that:
+      - ansible_os_family == "Debian"
+    fail_msg: "This role supports Debian and Ubuntu only, not {{ ansible_distribution }}."
+    quiet: true
+
+- name: Install prerequisites for an apt repository over HTTPS
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Ensure the apt keyring directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install the Docker apt signing key
+  ansible.builtin.get_url:
+    url: "{{ docker_apt_key_url }}"
+    dest: "{{ docker_apt_keyring }}"
+    owner: root
+    group: root
+    # World-readable: apt runs unprivileged helpers that must read it.
+    mode: "0644"
+  register: docker_key
+
+- name: Add the Docker apt repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [arch={{ 'amd64' if ansible_architecture == 'x86_64' else 'arm64' }}
+      signed-by={{ docker_apt_keyring }}]
+      {{ docker_apt_repo_url }} {{ ansible_distribution_release }} stable
+    filename: docker
+    state: present
+  register: docker_repo
+
+- name: Install Docker Engine and the Compose plugin
+  ansible.builtin.apt:
+    name: "{{ docker_packages }}"
+    state: present
+    update_cache: "{{ docker_repo.changed or docker_key.changed }}"
+
+- name: Configure the Docker daemon
+  ansible.builtin.template:
+    src: daemon.json.j2
+    dest: /etc/docker/daemon.json
+    owner: root
+    group: root
+    mode: "0644"
+    # A malformed daemon.json stops dockerd from starting at all.
+    validate: "python3 -c 'import json,sys; json.load(open(sys.argv[1]))' %s"
+  notify: Restart docker
+
+- name: Ensure Docker is running and starts at boot
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Grant docker group membership
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  loop: "{{ docker_users }}"
+
+- name: Record the installed versions
+  ansible.builtin.command: docker compose version --short
+  register: docker_compose_version
+  changed_when: false
+
+- name: Report the Compose version
+  ansible.builtin.debug:
+    msg: "Docker Compose plugin {{ docker_compose_version.stdout }}"

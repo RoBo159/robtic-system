@@ -6,11 +6,6 @@ export const COMMUNITY_MESSAGES = {
 
     supportPointsTitle: "🎫 Support Points",
     supportPenaltyTitle: "🎫 Support Penalty",
-    dynamicSupportPointsTitle: "🎫 Support Points (Dynamic)",
-    dynamicSupportPenaltyTitle: "🎫 Support Penalty (Dynamic)",
-
-    staffActivityTitle: (channelType: "public" | "staff") =>
-        `📊 Staff Activity — ${channelType === "staff" ? "Staff Chat" : "Public Chat"}`,
 
     sessionTitles: {
         created: "📩 Support Session Created",
@@ -31,18 +26,6 @@ export const COMMUNITY_MESSAGES = {
     staffReminderDescription:
         "Hey! It looks like you and another staff member have been chatting in a **support channel**.\n\n" +
         "Please keep support channels focused on helping users. Use staff channels for internal discussions.",
-
-    sorryDmTitle: "💙 We Appreciate Your Patience",
-    sorryDmDescription:
-        "We're sorry if your recent support experience wasn't the best.\n\n" +
-        "Your feedback matters to us — we're always working to improve. " +
-        "If you still need help, feel free to reach out again!",
-
-    ratingFeedbackTitle: "⭐ How Was Your Support Experience?",
-    ratingFeedbackDescription:
-        "We'd love to hear your feedback!\n\n" +
-        "How would you rate the support you received?\n" +
-        "Your response helps us improve our service.",
 
     claimWarningTitle: "⚠️ Session Already Claimed",
     claimWarningDescription: (channelId: string) =>

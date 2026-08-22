@@ -1,0 +1,132 @@
+name: Deploy via Ansible
+
+# Runs automatically on every push to main, and can still be triggered by hand.
+#
+# An automatic run picks its own playbook: `deploy` (renders .env from the vault — needs
+# ANSIBLE_VAULT_PASSWORD) only when the push actually touched infra/ansible/group_vars/** or
+# templates/env.j2, `update` (images only, no vault password) otherwise. An ordinary app-code push
+# already gets its image built and deployed by the matching per-service `deploy-*.yml` workflow;
+# running `update` here too is a cheap, idempotent whole-stack re-sync on top of that, not a
+# duplicate deploy — `docker_image_pull` and `compose up --recreate=auto` are both no-ops when
+# nothing changed.
+#
+# See infra/ansible/README.md, "Migration from the existing pipeline".
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      playbook:
+        description: Which playbook to run
+        type: choice
+        default: update
+        options:
+          - update
+          - deploy
+      check:
+        description: Dry run (--check --diff), changing nothing
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# Shared with every other deploy workflow. Two runs doing `docker compose` on the same server would
+# race, and this one is no different for being driven by Ansible.
+concurrency:
+  group: deploy-compose
+  cancel-in-progress: false
+
+jobs:
+  # Decides what a push should do. workflow_dispatch just passes its own inputs through — this job
+  # only makes the call for `push`, where nobody chose a playbook by hand.
+  decide:
+    name: Choose playbook
+    runs-on: ubuntu-latest
+    outputs:
+      playbook: ${{ steps.decide.outputs.playbook }}
+      check: ${{ steps.decide.outputs.check }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: github.event.before has to be diffable, and a shallow clone might not
+          # contain it even for an ordinary single-commit push.
+          fetch-depth: 0
+
+      - id: decide
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "playbook=${{ inputs.playbook }}" >> "$GITHUB_OUTPUT"
+            echo "check=${{ inputs.check }}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          before="${{ github.event.before }}"
+          playbook=update
+
+          # "deploy" is the safe default whenever the diff can't be trusted — an unknown parent
+          # (new branch, force-push, history rewrite) is treated as "something might have changed",
+          # never as "nothing changed". Only a diff that positively excludes the vault/vars paths
+          # downgrades this to the lighter, secret-free "update".
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            playbook=deploy
+          elif ! git cat-file -e "$before" 2>/dev/null; then
+            playbook=deploy
+          elif git diff --name-only "$before" "${{ github.sha }}" | grep -qE '^infra/ansible/(group_vars/|templates/env\.j2)'; then
+            playbook=deploy
+          fi
+
+          echo "playbook=$playbook" >> "$GITHUB_OUTPUT"
+          echo "check=false" >> "$GITHUB_OUTPUT"
+
+  run:
+    name: ${{ needs.decide.outputs.playbook }}${{ needs.decide.outputs.check == 'true' && ' (check)' || '' }}
+    needs: decide
+    runs-on: [self-hosted, robtic-deploy]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ansible
+        run: |
+          python3 -m pip install --user --quiet --upgrade 'ansible-core>=2.15'
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install collections
+        working-directory: infra/ansible
+        run: ansible-galaxy collection install -r requirements.yml
+
+      # The runner is on the target host, so it has no SSH route to itself — `local` connects to the
+      # machine the job is already running on. `deploy` additionally needs the vault password;
+      # `update` deliberately needs no secret at all.
+      - name: Run the playbook
+        working-directory: infra/ansible
+        env:
+          ANSIBLE_VAULT_PASSWORD: ${{ secrets.ANSIBLE_VAULT_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          args=(-e ansible_connection=local)
+          [ "${{ needs.decide.outputs.check }}" = "true" ] && args+=(--check --diff)
+
+          if [ "${{ needs.decide.outputs.playbook }}" = "deploy" ]; then
+            if [ -z "${ANSIBLE_VAULT_PASSWORD:-}" ]; then
+              echo "::error::deploy.yml renders the environment from the vault, so the"
+              echo "::error::ANSIBLE_VAULT_PASSWORD repository secret must be set. Use 'update' to"
+              echo "::error::ship images without touching configuration."
+              exit 1
+            fi
+            # Written to a private temp file rather than passed on the command line, where it would
+            # be visible in the process list to anything else on this host.
+            umask 077
+            printf '%s' "$ANSIBLE_VAULT_PASSWORD" > "$RUNNER_TEMP/vault-pass"
+            args+=(--vault-password-file "$RUNNER_TEMP/vault-pass")
+          fi
+
+          ansible-playbook "playbooks/${{ needs.decide.outputs.playbook }}.yml" "${args[@]}"
+
+      - name: Remove the vault password file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/vault-pass"

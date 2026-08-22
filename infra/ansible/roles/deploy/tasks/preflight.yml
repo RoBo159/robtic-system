@@ -1,0 +1,66 @@
+---
+# Read-only. A failure here leaves the running system untouched.
+
+- name: Verify Docker is installed
+  ansible.builtin.command: docker --version
+  register: deploy_docker_version
+  changed_when: false
+  failed_when: deploy_docker_version.rc != 0
+
+- name: Verify the Docker Compose plugin is installed
+  ansible.builtin.command: docker compose version --short
+  register: deploy_compose_version
+  changed_when: false
+  failed_when: deploy_compose_version.rc != 0
+
+- name: Verify the Docker daemon is reachable
+  ansible.builtin.command: docker info --format '{{ "{{" }}.ServerVersion{{ "}}" }}'
+  register: deploy_docker_info
+  changed_when: false
+  failed_when: deploy_docker_info.rc != 0
+
+- name: Verify the Compose file is present on the target
+  ansible.builtin.stat:
+    path: "{{ deploy_compose_file }}"
+  register: deploy_compose_stat
+
+- name: Fail with a useful message when the Compose file is missing
+  ansible.builtin.assert:
+    that:
+      - deploy_compose_stat.stat.exists
+    fail_msg: >-
+      No Compose file at {{ deploy_compose_file }}. {{ app_dir }} must contain a checkout of this
+      repository — run playbooks/bootstrap.yml first.
+    quiet: true
+
+- name: Verify every required variable has a value
+  ansible.builtin.assert:
+    that:
+      - item.value is defined
+      - item.value | string | length > 0
+    fail_msg: "{{ item.name }} is empty — set it in group_vars/{{ deploy_env }}/."
+    quiet: true
+  loop:
+    - { name: "mongodb_uri", value: "{{ mongodb_uri }}" }
+    - { name: "main_bot_token", value: "{{ main_bot_token }}" }
+    - { name: "discord_client_id", value: "{{ discord_client_id }}" }
+    - { name: "discord_client_secret", value: "{{ discord_client_secret }}" }
+    - { name: "dashboard_session_secret", value: "{{ dashboard_session_secret }}" }
+    - { name: "dashboard_api_url", value: "{{ dashboard_api_url }}" }
+    - { name: "dashboard_url", value: "{{ dashboard_url }}" }
+  loop_control:
+    label: "{{ item.name }}"
+  # The loop item carries secret values.
+  no_log: true
+  when: not (deploy_skip_env | bool)
+
+- name: Verify the dashboard URLs carry a scheme
+  ansible.builtin.assert:
+    that:
+      - item is match('^https?://')
+    fail_msg: '"{{ item }}" must start with http:// or https:// — the OAuth redirect is built from it.'
+    quiet: true
+  loop:
+    - "{{ dashboard_api_url }}"
+    - "{{ dashboard_url }}"
+    - "{{ dashboard_public_api_url }}"

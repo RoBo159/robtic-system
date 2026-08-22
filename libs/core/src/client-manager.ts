@@ -5,7 +5,7 @@ import { clearProfileTabs } from "@core/profile/profile-tabs";
 import { clearMetricListeners } from "@core/metrics";
 import { DiscordErrorHandler } from "@core/handlers";
 import { Logger } from "@logger";
-import { BOT_DEFINITION } from "@config";
+import { BOT_DEFINITION, getMainBotToken } from "@config";
 
 /**
  * Owns the bot's single Discord client.
@@ -37,12 +37,7 @@ export class ClientManager {
 
     /** Creates the client (if needed) and loads every command, event and component from disk. */
     async initialize(): Promise<BotClient> {
-        const token = process.env[BOT_DEFINITION.tokenKey];
-        if (!token) {
-            throw new Error(
-                `${BOT_DEFINITION.tokenKey} is not set — NODE_ENV=${process.env.NODE_ENV || "development"} reads that variable.`,
-            );
-        }
+        const token = getMainBotToken();
 
         if (!this.client) {
             this.client = new BotClient(BOT_DEFINITION.name, token, BOT_DEFINITION.intents, BOT_DEFINITION.partials);

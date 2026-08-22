@@ -174,3 +174,23 @@ dist
 # Finder (MacOS) folder config
 .DS_Store
 minecraft-plugin/
+
+# ─── Ansible ─────────────────────────────────────────────────────────────────────────────────────
+# The vault password, never the vault itself. group_vars/production/vault.yml is ENCRYPTED and is
+# meant to be committed — that is the point of Ansible Vault. What must never be committed is the
+# password that opens it, so the usual in-repo filenames are blocked here as a backstop. The correct
+# place for it is outside the checkout entirely: --vault-password-file ~/.robtic-vault
+.vault_pass
+.vault-pass
+*.vault-pass
+vault-password
+vault_password*
+infra/ansible/.vault*
+
+# Rendered artefacts and run state. The production .env is generated on the server and must never
+# appear here; the pattern above already covers `.env`, this covers the environment-suffixed forms.
+.env.production
+.env.staging
+infra/ansible/.ansible_facts/
+infra/ansible/collections/
+*.retry

@@ -1,3 +1,4 @@
+import { BOT_DEFINITION } from "@config";
 import { Logger } from "@logger";
 
 const CTX = "robtic-api";
@@ -7,23 +8,21 @@ const CTX = "robtic-api";
  *
  * <h2>Why this is not just `process.env.MainBotToken`</h2>
  *
- * `BOT_DEFINITION` in libs/config picks `MainBotToken` in production and `TestBot` otherwise, so
- * the bot running against a test guild authenticates as the test bot. The API previously read
- * `MainBotToken ?? TestBot` regardless of environment, which meant a deployment with both set would
- * have the API acting as one bot while the bot itself acted as another — the API's role lookups and
- * log embeds would then be attributed to, and permissioned as, a different account than the one
- * actually in the guild.
- *
- * Reading it the same way keeps the two in step by construction rather than by convention.
+ * `BOT_DEFINITION.tokenKey` in libs/config picks `MainBotToken` in production and `TestBot`
+ * otherwise, so the bot running against a test guild authenticates as the test bot. Reading the
+ * same `tokenKey` here — rather than re-deriving it from `NODE_ENV` — is what keeps the API and the
+ * bot in step by construction: a deployment where the two disagreed would have the API acting as
+ * one bot while the bot itself acted as another, and the API's role lookups and log embeds would
+ * then be attributed to, and permissioned as, a different account than the one actually in the
+ * guild.
  */
 export function mainBotToken(): string | null {
-    const key = process.env.NODE_ENV === "production" ? "MainBotToken" : "TestBot";
-    return process.env[key] ?? null;
+    return process.env[BOT_DEFINITION.tokenKey] ?? null;
 }
 
 /** The env var the token is expected in, for an error message that says what to actually set. */
 export function mainBotTokenKey(): string {
-    return process.env.NODE_ENV === "production" ? "MainBotToken" : "TestBot";
+    return BOT_DEFINITION.tokenKey;
 }
 
 /**
