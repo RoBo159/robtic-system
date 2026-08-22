@@ -91,6 +91,18 @@ jobs:
 
       - name: Install Ansible
         run: |
+          set -euo pipefail
+
+          # Debian/Ubuntu's python3 apt package ships without pip (and without ensurepip's bundled
+          # wheels, so `python3 -m ensurepip` fails the same way) — bootstrap one for this user
+          # rather than assuming the runner's base image already has it.
+          if ! python3 -m pip --version >/dev/null 2>&1; then
+            echo "python3 has no pip — bootstrapping one for this user."
+            curl -sSf https://bootstrap.pypa.io/get-pip.py -o /tmp/get-pip.py
+            python3 /tmp/get-pip.py --user --quiet
+            rm -f /tmp/get-pip.py
+          fi
+
           python3 -m pip install --user --quiet --upgrade 'ansible-core>=2.15'
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
