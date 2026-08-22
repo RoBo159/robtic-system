@@ -103,7 +103,10 @@ jobs:
             rm -f /tmp/get-pip.py
           fi
 
-          python3 -m pip install --user --quiet --upgrade 'ansible-core>=2.15'
+          # <2.19: matching the pin in infra/docker/dockerfiles/ansible-vault.Dockerfile. 2.19's
+          # new templating engine changes vars_files/undefined-variable behavior; upgrade both
+          # pins together, deliberately.
+          python3 -m pip install --user --quiet --upgrade 'ansible-core>=2.15,<2.19'
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Install collections
