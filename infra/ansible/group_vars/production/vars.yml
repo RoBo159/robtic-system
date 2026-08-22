@@ -31,8 +31,8 @@ robtic_images: "{{ robtic_service_images.values() | list }}"
 node_env: production
 
 # TODO: supply before the first deploy — see README.
-bot_owner_id: ""
-command_guild_id: ""
+bot_owner_id: "695223884735053905"
+command_guild_id: "1283878145463812188"
 robtic_website_url: "https://robtic.org"
 robtic_discord_invite: "https://discord.gg/robtic"
 
