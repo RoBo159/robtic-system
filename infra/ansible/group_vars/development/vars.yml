@@ -13,14 +13,12 @@ ghcr_registry: ghcr.io
 ghcr_owner: robticorg
 
 robtic_services:
-  - robtic-platform-api
   - robtic-dashboard-api
   - robtic-dashboard
   - robtic-system
 
 robtic_service_images:
   robtic-system: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-system"
-  robtic-platform-api: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-platform-api"
   robtic-dashboard-api: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-dashboard-api"
   robtic-dashboard: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-dashboard"
 
@@ -32,10 +30,6 @@ bot_owner_id: ""
 command_guild_id: ""
 robtic_website_url: "http://localhost:3000"
 robtic_discord_invite: ""
-
-robtic_api_host: "0.0.0.0"
-robtic_api_port: 3002
-robtic_api_public_url: "http://localhost:3002"
 
 dashboard_api_url: "http://localhost:3003"
 dashboard_url: "http://localhost:3000"

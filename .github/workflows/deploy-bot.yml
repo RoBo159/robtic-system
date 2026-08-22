@@ -1,15 +1,10 @@
 name: Deploy bot
 
-# Chained to the platform API's *workflow* rather than to a job, because the two now live in
-# separate files. `workflow_run` fires once that one finishes, whatever it decided — including when
-# it skipped its deploy as unchanged, which must not stop the bot going out.
-#
-# A failed platform API run is the one case that does stop it: the bot is a client of that service,
-# and restarting it against a half-deployed API is worse than not restarting it at all.
+# Used to chain behind the platform API workflow (the bot was its client); with that service
+# removed from the stack, the bot deploys straight off the push like the dashboard API does.
 on:
-  workflow_run:
-    workflows: ["Deploy platform API"]
-    types: [completed]
+  push:
+    branches: [ main ]
   workflow_dispatch:
     inputs:
       force:
@@ -31,18 +26,11 @@ jobs:
   changes:
     name: What changed
     runs-on: ubuntu-latest
-    if: >-
-      ${{ github.event_name == 'workflow_dispatch'
-      || github.event.workflow_run.conclusion != 'failure' }}
     outputs:
       deploy: ${{ steps.decision.outputs.deploy }}
       signature: ${{ steps.decision.outputs.signature }}
     steps:
-      # The commit the upstream run was built from, not whatever main points at now: a push landing
-      # mid-deploy would otherwise make this run sign a different tree than the one being deployed.
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - id: decision
         uses: ./.github/actions/deploy-decision
@@ -89,7 +77,7 @@ jobs:
       - name: Write marker
         run: |
           mkdir -p .deploy-signatures
-          printf '%s %s %s\n' "${{ github.event.workflow_run.head_sha || github.sha }}" \
+          printf '%s %s %s\n' "${{ github.sha }}" \
             "$(date -u +%FT%TZ)" "${{ github.run_id }}" > .deploy-signatures/bot
 
       # continue-on-error: a concurrent run may have claimed the same key first. That is a

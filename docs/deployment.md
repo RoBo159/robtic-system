@@ -28,10 +28,13 @@ Dockerfile paths below are relative to `infra/docker/dockerfiles/`.
 
 | Workflow | Trigger | Image | Dockerfile | Compose service |
 |---|---|---|---|---|
-| `deploy-platform-api.yml` | push to `main` | `ghcr.io/robticorg/robtic-platform-api` | `platform-api.Dockerfile` | `robtic-platform-api` |
-| `deploy-bot.yml` | the platform API workflow finishing | `ghcr.io/robticorg/robtic-system` | `bot.Dockerfile` | `robtic-system` |
+| `deploy-bot.yml` | push to `main` | `ghcr.io/robticorg/robtic-system` | `bot.Dockerfile` | `robtic-system` |
 | `deploy-dashboard-api.yml` | push to `main` | `ghcr.io/robticorg/robtic-dashboard-api` | `dashboard-api.Dockerfile` | `robtic-dashboard-api` |
 | `deploy-dashboard.yml` | the dashboard API workflow finishing | `ghcr.io/robticorg/robtic-dashboard` | `dashboard.Dockerfile` | `robtic-dashboard` |
+
+The platform API (`apps/robtic-api`, formerly `minecraft.api.robtic.org`) is removed from the
+deployed stack for now — its Dockerfile stays in `infra/docker/dockerfiles/` for when it returns.
+The bot's Minecraft commands degrade gracefully without it.
 
 Every Docker artefact — Dockerfiles, both Compose files, the build script — lives under
 `infra/docker/`; see [`infra/docker/README.md`](../infra/docker/README.md) for the layout and for the
@@ -53,26 +56,22 @@ the shared workflow does not append project args to overridden commands); the bo
 commands name no service at all, so its `compose pull` + `up -d` covers the whole stack — by which
 point every image exists in GHCR.
 
-### Two chains, and how they stay in order
+### The one remaining chain
 
-There are two client→server pairs, and each is a chain of its own: bot → platform API, and web
-dashboard → dashboard API. The client has to restart *after* the service it depends on. With two
-jobs in one file that was a `needs:`; split across files it is a `workflow_run` trigger —
-`deploy-bot.yml` fires when **Deploy platform API** finishes, and `deploy-dashboard.yml` when
-**Deploy dashboard API** does, whatever either decided.
-
-The two chains are independent on purpose. They share no code path and neither is a client of the
-other, so serialising them would only make every dashboard change wait on a bot deploy.
+The web dashboard is a client of the dashboard API, so it has to restart *after* it:
+`deploy-dashboard.yml` fires when **Deploy dashboard API** finishes, whatever it decided. The bot
+used to chain behind the platform API the same way; with that service removed from the stack the
+bot deploys straight off the push.
 
 - A **skipped** deploy (unchanged) still releases the client. Only a *failed* service run stops it,
   because restarting a client against a half-deployed service is worse than not restarting it.
-- All four workflows share one `concurrency` group (`deploy-compose`), named after the server rather
-  than the workflow, so the two chains queue behind each other on `docker compose` instead of
-  racing — which is what makes running them in parallel safe.
+- All the workflows share one `concurrency` group (`deploy-compose`), named after the server rather
+  than the workflow, so they queue behind each other on `docker compose` instead of racing — which
+  is what makes running them in parallel safe.
 - A chained workflow checks out `github.event.workflow_run.head_sha`, not whatever `main` points
   at now: a push landing mid-deploy would otherwise sign a different tree than the one deploying.
 - The decision logic lives once, in the local composite action
-  `.github/actions/deploy-decision`, so the caching rule cannot drift between the four files.
+  `.github/actions/deploy-decision`, so the caching rule cannot drift between the files.
 
 ## Only what changed gets rebuilt
 
@@ -93,7 +92,6 @@ A push touching one service used to rebuild and redeploy everything. Now each se
 | Service | Signature covers |
 |---|---|
 | `bot` | `infra/docker/dockerfiles/bot.Dockerfile` · `apps/bot` · `libs` · `images` |
-| `platform-api` | `infra/docker/dockerfiles/platform-api.Dockerfile` · `apps/robtic-api` · `libs` |
 | `dashboard-api` | `infra/docker/dockerfiles/dashboard-api.Dockerfile` · `apps/dashboard-api` · `libs` |
 | `dashboard` | `infra/docker/dockerfiles/dashboard.Dockerfile` · `apps/dashboard` — **no `libs`** |
 
@@ -103,7 +101,7 @@ true, and an unlisted Dockerfile is the worst thing to miss here — editing it 
 signature unchanged, so the deploy would be skipped as *already deployed* and the edit would never
 ship.
 
-Plus, for all four: `package.json` · `bun.lock` · `tsconfig.json` · `.dockerignore` ·
+Plus, for all of them: `package.json` · `bun.lock` · `tsconfig.json` · `.dockerignore` ·
 `apps/*/package.json` · `libs/*/package.json` · `.github/workflows/deploy-*.yml` ·
 `scripts/deploy-signature.sh` · `infra/docker/compose/docker-compose.yml`.
 
@@ -138,38 +136,35 @@ Properties worth knowing:
 ## Compose Topology (server)
 
 ```
-robtic-system         (no ports — outbound Discord gateway only)
-robtic-platform-api   0.0.0.0:3002 -> 3002     (owns MongoDB; bot + Minecraft servers are clients)
+robtic-system          (no ports — outbound Discord gateway only)
+robtic-dashboard-api   127.0.0.1:3003 -> 3003
+robtic-dashboard       127.0.0.1:3000 -> 3000
 ```
 
-Nginx runs **on the host** and is the public entry point, publishing three origins with TLS:
-`minecraft.api.robtic.org` → `127.0.0.1:3002`, `dashboard.robtic.org` → `127.0.0.1:3000`, and
-`dashboard-api.robtic.org` → `127.0.0.1:3003`.
+No domain / no Nginx for the dashboard right now: both dashboard ports bind to loopback and are
+reached at `http://localhost:3000` / `http://localhost:3003` from the server itself or through an
+SSH tunnel (`ssh -L 3000:127.0.0.1:3000 -L 3003:127.0.0.1:3003 <server>`). The browser calls the
+API port directly — `DASHBOARD_PUBLIC_API_URL` is `http://localhost:3003`.
 
-Where a service binds to `127.0.0.1:`, that prefix is deliberate and should not be removed. A
-connection refused from another machine on the LAN is that binding working correctly — if a
-public URL fails, the fault is in the Nginx vhost or DNS, not the port mapping.
+The `127.0.0.1:` prefix is deliberate and should not be removed: a connection refused from another
+machine is that binding working correctly.
 
-→ **[deployment-nginx.md](./deployment-nginx.md)** — vhost configuration, the full diagnostic
-ladder, and how to localise a failure to the container, Nginx or DNS.
+→ **[deployment-nginx.md](./deployment-nginx.md)** — kept for when the stack goes back behind
+domains; describes the previous Nginx topology, including the removed platform API.
 
 ## Required Configuration
-
-**Server env file** (`/home/robtic/robtic-system/.env`), in addition to the bot variables:
-- `ROBTIC_API_PORT` — optional, defaults to 3002. If changed, the port mapping in
-  `infra/docker/compose/docker-compose.yml` and the Nginx `proxy_pass` must change with it.
 
 Dashboard stack — all required before `robtic-dashboard-api` will start, which it announces by
 name rather than failing later at the first login attempt:
 
 | Variable | |
 |---|---|
-| `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | The OAuth application. Add `https://dashboard-api.robtic.org/auth/callback` to its redirects. |
+| `DISCORD_CLIENT_ID` / `DISCORD_CLIENT_SECRET` | The OAuth application. Add `http://localhost:3003/auth/callback` to its redirects. |
 | `MainBotToken` (bot variables, above) | Also read by the dashboard API, to read a guild's roles and channels for the settings pickers. There is no separate dashboard bot token. |
 | `DASHBOARD_SESSION_SECRET` | Signs session cookies. Rotating it signs everybody out — the intended emergency stop. |
-| `DASHBOARD_API_URL` | `https://dashboard-api.robtic.org` — the OAuth redirect is built from it. |
-| `DASHBOARD_URL` | `https://dashboard.robtic.org` — the API's single permitted CORS origin. |
-| `DASHBOARD_PUBLIC_API_URL` | `https://dashboard-api.robtic.org` — what the web app tells the browser to call. |
+| `DASHBOARD_API_URL` | `http://localhost:3003` — the OAuth redirect is built from it. |
+| `DASHBOARD_URL` | `http://localhost:3000` — the API's single permitted CORS origin. |
+| `DASHBOARD_PUBLIC_API_URL` | `http://localhost:3003` — what the web app tells the browser to call. |
 
 `DASHBOARD_URL` and the web origin must match exactly, scheme included. They are a CORS pair, and a
 mismatch is rejected by the browser before the request ever reaches the server — which reads as

@@ -13,16 +13,14 @@ env_file_path: "{{ app_dir }}/.env"
 ghcr_registry: ghcr.io
 ghcr_owner: robticorg
 
-# Deploy order: platform API first, bot last.
+# Deploy order: bot last. (The platform API is removed from the stack for now.)
 robtic_services:
-  - robtic-platform-api
   - robtic-dashboard-api
   - robtic-dashboard
   - robtic-system
 
 robtic_service_images:
   robtic-system: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-system"
-  robtic-platform-api: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-platform-api"
   robtic-dashboard-api: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-dashboard-api"
   robtic-dashboard: "{{ ghcr_registry }}/{{ ghcr_owner }}/robtic-dashboard"
 
@@ -36,16 +34,14 @@ command_guild_id: "1283878145463812188"
 robtic_website_url: "https://robtic.org"
 robtic_discord_invite: "https://discord.gg/robtic"
 
-robtic_api_host: "0.0.0.0"
-robtic_api_port: 3002
-robtic_api_public_url: "https://minecraft.api.robtic.org"
-
-# dashboard_url and the browser origin are a CORS pair; they must match exactly.
-dashboard_api_url: "https://dashboard-api.robtic.org"
-dashboard_url: "https://dashboard.robtic.org"
-dashboard_public_api_url: "https://dashboard-api.robtic.org"
+# No domain: the dashboard is reached at localhost (from the server itself or an SSH tunnel), and
+# the browser calls the API port directly. Plain http, so Secure cookies are off. Remember to add
+# http://localhost:3003/auth/callback to the Discord application's OAuth redirect URIs.
+dashboard_api_url: "http://localhost:3003"
+dashboard_url: "http://localhost:3000"
+dashboard_public_api_url: "http://localhost:3003"
 dashboard_api_port: 3003
-dashboard_secure_cookies: true
+dashboard_secure_cookies: false
 dashboard_session_ttl_ms: 604800000
 
 # ─── from vault.yml ───

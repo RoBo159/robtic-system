@@ -1,6 +1,9 @@
 # Production topology. Contexts are ../../.. — the repository root — resolved from this file.
 
 services:
+  # The platform API (apps/robtic-api, minecraft.api.robtic.org) is removed from the stack for now.
+  # The bot's Minecraft commands and the Minecraft plugin degrade gracefully without it; the plugin
+  # itself is unaffected as a codebase. Restore it from git history when it returns.
   robtic-system:
     image: ghcr.io/robticorg/robtic-system:latest
     build:
@@ -9,27 +12,6 @@ services:
     restart: unless-stopped
     env_file:
       - /home/robtic/robtic-system/.env
-    depends_on:
-      - robtic-platform-api
-
-  # The only service permitted to reach MongoDB.
-  # The 127.0.0.1 prefix elsewhere is deliberate; see docs/deployment-nginx.md.
-  robtic-platform-api:
-    image: ghcr.io/robticorg/robtic-platform-api:latest
-    build:
-      context: ../../..
-      dockerfile: infra/docker/dockerfiles/platform-api.Dockerfile
-    restart: unless-stopped
-    env_file:
-      - /home/robtic/robtic-system/.env
-    ports:
-      - "0.0.0.0:3002:3002"
-    healthcheck:
-      test: ["CMD", "bun", "-e", "await fetch('http://127.0.0.1:3002/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
 
   # Authenticates people rather than machines: a Discord identity checked against one guild.
   robtic-dashboard-api:
@@ -60,8 +42,9 @@ services:
       - /home/robtic/robtic-system/.env
     environment:
       DASHBOARD_API_INTERNAL_URL: http://robtic-dashboard-api:3003
-      # Interpolated by Compose from --env-file, then passed to the container.
-      DASHBOARD_PUBLIC_API_URL: ${DASHBOARD_PUBLIC_API_URL:-https://dashboard-api.robtic.org}
+      # Interpolated by Compose from --env-file, then passed to the container. No domain: the
+      # browser calls the API port directly (localhost / SSH tunnel).
+      DASHBOARD_PUBLIC_API_URL: ${DASHBOARD_PUBLIC_API_URL:-http://localhost:3003}
     depends_on:
       robtic-dashboard-api:
         condition: service_healthy
