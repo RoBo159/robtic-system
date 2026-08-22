@@ -50,7 +50,7 @@ Minecraft plugin are all clients of the same MongoDB-backed domain.
 * NestJS (dashboard API), Next.js (dashboard)
 * MongoDB via Mongoose
 * Java 21 + Maven + Paper (Minecraft plugin)
-* Docker Compose, GitHub Actions, Ansible
+* Docker Compose, GitHub Actions
 
 ## Repository Layout
 
@@ -67,7 +67,6 @@ libs/                   Shared libraries: core, database, config, constants,
 
 infra/
     docker/             Every Dockerfile and Compose file
-    ansible/            Automated deployment, secrets via Ansible Vault
 
 docs/                   All documentation
 scripts/                Operational and CI checks
@@ -98,20 +97,19 @@ See [docs/development.md](docs/development.md).
 Two layers, and the split is deliberate:
 
 * **Infrastructure** — tokens, database URI, public URLs — lives in `.env`. See `.env.example` for
-  every variable and which service reads it. In production this file is *generated* by Ansible from
-  an encrypted vault rather than edited by hand; see [infra/ansible](infra/ansible/README.md).
+  every variable and which service reads it. In production the file lives at
+  `/home/robtic/robtic-system/.env` and is edited by hand on the server; CI never writes it.
 * **Everything operational** — prefixes, log channels, the server whitelist, feature toggles, XP,
   streak and quest settings — is stored in MongoDB and configured from Discord or the dashboard.
 
 ## Deployment
 
 Images are built by GitHub Actions and published to GHCR, then run with Docker Compose on
-`core.robtic.org` behind Nginx. Each service is content-addressed, so a push only rebuilds and
-redeploys what actually changed.
+`core.robtic.org`. Each service is content-addressed, so a push only rebuilds and redeploys what
+actually changed. Configuration is not deployed — `.env` is maintained on the server by hand.
 
 * [docs/deployment.md](docs/deployment.md) — the pipeline, per-service
 * [infra/docker/README.md](infra/docker/README.md) — Dockerfiles, build contexts, Compose
-* [infra/ansible/README.md](infra/ansible/README.md) — automated deploys and secret management
 
 ## Purpose
 

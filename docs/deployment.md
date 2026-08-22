@@ -1,23 +1,25 @@
 # Deployment
 
-There are two paths to production, and both drive the same
-`infra/docker/compose/docker-compose.yml`:
+Deployment is GitHub Actions (`deploy-*.yml`) driving
+`infra/docker/compose/docker-compose.yml` on the self-hosted runner. Every push to `main` builds the
+images that changed and restarts the corresponding containers.
 
-| Path | Status | Use it for |
-|---|---|---|
-| GitHub Actions (`deploy-*.yml`) | **Live.** Runs on every push to `main`. | Per-service image builds and deploys. |
-| Ansible (`infra/ansible/`, via `deploy-ansible.yml`) | **Live.** Runs on every push to `main`. | Config/secret changes (`.env` rendering) and host bootstrap (manual only). |
+**Configuration is not deployed.** `/home/robtic/robtic-system/.env` is edited **by hand on the
+server** and is never written by CI — no config-management tool touches it, so nothing will overwrite
+your edits. `.env.example` at the repository root lists every variable and which service reads it;
+keep the two in step by hand when a variable is added or removed.
 
-`deploy-ansible.yml` runs automatically on every push, but only touches secrets when it has to: it
-renders a new `.env` from the vault (needs `ANSIBLE_VAULT_PASSWORD`) when the push changed
-`infra/ansible/group_vars/**` or `templates/env.j2`, and otherwise just re-syncs images with no
-secret involved. Host bootstrap (`playbooks/bootstrap.yml`) stays manual. See
-[`infra/ansible/README.md`](../infra/ansible/README.md) for the layout, the secret-management flow
-and the migration order.
+After editing `.env`, the containers must be recreated to pick it up — Compose reads `env_file` at
+container-create time, not on restart:
 
-The one thing Ansible owns outright today is **the environment file**. `/home/robtic/robtic-system/.env`
-is rendered from `infra/ansible/templates/env.j2` and Ansible Vault; editing it on the server is
-pointless because the next `deploy.yml` overwrites it.
+```bash
+cd /home/robtic/robtic-system
+docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system \
+  --env-file /home/robtic/robtic-system/.env up -d --force-recreate --remove-orphans
+```
+
+Back the file up before editing it; it is the only copy of the production secrets, and it is
+deliberately absent from git.
 
 ## Pipeline
 

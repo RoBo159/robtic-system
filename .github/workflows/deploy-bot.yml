@@ -64,7 +64,7 @@ jobs:
       compose-project-name: 'robtic-system'
       compose-env-file: '/home/robtic/robtic-system/.env'
       compose-pull-command: 'docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env pull'
-      compose-up-command: 'docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env up -d'
+      compose-up-command: 'docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env up -d --remove-orphans'
     secrets:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 

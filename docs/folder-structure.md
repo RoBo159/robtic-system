@@ -115,14 +115,7 @@ docs/
     bot/                         Feature docs (combo, economy, streak, voice, ...)
 
 infra/                           All infrastructure definitions. Terraform and Kubernetes
-                                 get siblings of docker/ and ansible/.
-    ansible/                     Automated deployment. Drives the Compose file below rather
-                                 than carrying its own copy.
-        inventory/               production.ini (core.robtic.org), development.ini (localhost)
-        group_vars/              vars.yml is public; vault.yml is encrypted and holds secrets
-        templates/env.j2         generates /home/robtic/robtic-system/.env, mode 0600
-        playbooks/               bootstrap (once per host), deploy (config+images), update (images)
-        roles/                   docker, security, deploy
+                                 get siblings of docker/.
     docker/
         dockerfiles/             One per service, named for it. Build context is the
                                  repository root for all but minecraft-plugin.

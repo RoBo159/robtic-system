@@ -1,9 +1,0 @@
----
-# Optional. Development reads secrets from your shell by default; a vault here overrides that.
-# Create with: bun run vault:init development
-
-vault_mongodb_uri: "mongodb://127.0.0.1:27017/robtic"
-vault_main_bot_token: ""
-vault_discord_client_id: ""
-vault_discord_client_secret: ""
-vault_dashboard_session_secret: "development-only-not-a-secret"

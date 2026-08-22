@@ -25,15 +25,7 @@
     "start": "NODE_ENV=production bun dist/index.js",
     "docker:build": "bash infra/docker/scripts/build.sh",
     "docker:local": "docker compose -f infra/docker/compose/docker-compose.local.yml",
-    "docker:prod": "docker compose -f infra/docker/compose/docker-compose.yml",
-    "vault": "bash infra/ansible/scripts/vault.sh",
-    "vault:status": "bash infra/ansible/scripts/vault.sh status",
-    "vault:init": "bash infra/ansible/scripts/vault.sh init",
-    "vault:encrypt": "bash infra/ansible/scripts/vault.sh encrypt",
-    "vault:decrypt": "bash infra/ansible/scripts/vault.sh decrypt",
-    "vault:edit": "bash infra/ansible/scripts/vault.sh edit",
-    "vault:view": "bash infra/ansible/scripts/vault.sh view",
-    "vault:rekey": "bash infra/ansible/scripts/vault.sh rekey"
+    "docker:prod": "docker compose -f infra/docker/compose/docker-compose.yml"
   },
   "devDependencies": {
     "@types/bun": "latest",
