@@ -49,6 +49,19 @@ export { MinecraftLink, type IMinecraftLink } from "./MinecraftLink";
 export { MinecraftLinkCode, type IMinecraftLinkCode } from "./MinecraftLinkCode";
 export { MinecraftItemPrice, type IMinecraftItemPrice } from "./MinecraftItemPrice";
 export { MinecraftTransaction, type IMinecraftTransaction } from "./MinecraftTransaction";
+export { Rob, type IRob } from "./Rob";
+export { type IWorldLocation, locationSchema } from "./shared/location";
+export { MinecraftSpawn, type IMinecraftSpawn } from "./MinecraftSpawn";
+export { MinecraftHome, type IMinecraftHome, DEFAULT_HOME_NAME } from "./MinecraftHome";
+export { MinecraftFriendship, type IMinecraftFriendship, friendshipPair } from "./MinecraftFriendship";
+export { MinecraftFriendRequest, type IMinecraftFriendRequest } from "./MinecraftFriendRequest";
+export { MinecraftPlayerPrefs, type IMinecraftPlayerPrefs } from "./MinecraftPlayerPrefs";
+export { MinecraftInventorySnapshot, type IMinecraftInventorySnapshot } from "./MinecraftInventorySnapshot";
+export { MinecraftLockedChest, type IMinecraftLockedChest } from "./MinecraftLockedChest";
+export { MinecraftPortableChest, type IMinecraftPortableChest } from "./MinecraftPortableChest";
+export { MinecraftBackUsage, type IMinecraftBackUsage } from "./MinecraftBackUsage";
+export { MinecraftPlayerStats, type IMinecraftPlayerStats } from "./MinecraftPlayerStats";
+export { RobTransaction, type IRobTransaction } from "./RobTransaction";
 export { MinecraftServer, type IMinecraftServer } from "./MinecraftServer";
 export {
     MinecraftConfig,
@@ -57,10 +70,11 @@ export {
     type IMinecraftStaffRank,
     type IMinecraftLobby,
     type IMinecraftLogTarget,
+    type IMinecraftPremiumTier,
 } from "./MinecraftConfig";
 export { MinecraftApiKey, type IMinecraftApiKey } from "./MinecraftApiKey";
 export { MinecraftRoleState, type IMinecraftRoleState } from "./MinecraftRoleState";
-export { StaffBackup, type IStaffBackup, type IWorldLocation } from "./StaffBackup";
+export { StaffBackup, type IStaffBackup } from "./StaffBackup";
 export {
     StaffSession,
     type IStaffSession,

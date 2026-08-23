@@ -4,10 +4,11 @@ import { API_ROUTES } from "@sdk";
 import { Router } from "./router";
 import { pluginRoutes } from "./controllers/plugin-controller";
 import { minecraftRoutes } from "./controllers/minecraft-controller";
-import { economyRoutes } from "./controllers/economy-controller";
+import { robsRoutes } from "./controllers/robs-controller";
 import { staffRoutes } from "./controllers/staff-controller";
 import { discordRoutes } from "./controllers/discord-controller";
 import { serverRoutes } from "./controllers/server-controller";
+import { survivalRoutes } from "./controllers/survival-controller";
 import { buildOpenApiDocument, renderDocsPage } from "./lib/openapi";
 import { pruneRateLimitBuckets } from "./middleware/rate-limit";
 import { warnIfBotTokenMissing } from "./lib/bot-token";
@@ -31,10 +32,11 @@ warnIfBotTokenMissing();
 const router = new Router().register(
     ...pluginRoutes,
     ...minecraftRoutes,
-    ...economyRoutes,
+    ...robsRoutes,
     ...staffRoutes,
     ...discordRoutes,
     ...serverRoutes,
+    ...survivalRoutes,
 );
 
 const openApiDocument = buildOpenApiDocument(router.all());

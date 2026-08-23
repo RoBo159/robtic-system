@@ -11,18 +11,17 @@ function botToken(): string | null {
 }
 
 /**
- * Applies a rank change decided by the game server.
+ * Records a rank change the game server has already made, and mirrors it onto Discord.
  *
  * <h2>Who decides what</h2>
  *
- * The ladder lives in the game server's roles.yml, so the server is what knows that Moderator sits
- * above Helper and which Discord role each one is. It walks its own ladder and sends the concrete
- * outcome: grant this role, revoke that one. This service does not re-derive any of it — an API
- * copy of the ladder is exactly the duplication this design removed.
+ * The rank is a LuckPerms group, and the game server has already moved the player into it before
+ * calling. The ladder lives in that server's roles.yml, so the server is what knows Moderator sits
+ * above Helper. This service re-derives none of it.
  *
- * What it does own is the Discord write, because the bot token lives here and the game server has
- * no Discord credentials of its own. Discord remains the record of who holds a rank; roles.yml
- * remains the record of what a rank is.
+ * What it owns is the Discord write, because the bot token lives here and the game server has no
+ * Discord credentials of its own. Discord is a mirror of the group, never the source of it — which
+ * is why an unlinked player and a rank with no Discord role are both handled rather than refused.
  */
 export class StaffRankService {
     static async apply(input: {
@@ -36,16 +35,24 @@ export class StaffRankService {
         /** Display names, for the audit line and the message shown in game. */
         from: string | null;
         to: string | null;
-    }): Promise<{ username: string; discordId: string; from: string | null; to: string | null }> {
+    }): Promise<{ username: string; discordId: string | null; from: string | null; to: string | null }> {
         const uuid = normaliseUuid(input.uuid);
 
+        /**
+         * A missing link is no longer a failure.
+         *
+         * The rank has already changed by the time this is called — the game server moved the
+         * player's LuckPerms group, which is what a rank *is*. This call records that and mirrors
+         * it onto Discord where there is a Discord account to mirror onto. Throwing here would fail
+         * a promotion that has, in every sense that matters, already succeeded.
+         */
         const link = await MinecraftLinkRepository.getByUuid(input.guildId, uuid);
-        if (!link) throw ApiError.notLinked();
 
-        if (!input.grantRoleId && !input.revokeRoleId) {
-            throw ApiError.validation({ rank: "there is nothing to change" });
+        if (!link) {
+            return { username: uuid, discordId: null, from: input.from, to: input.to };
         }
 
+        // Nothing to mirror is ordinary: roles.yml allows a rank with no Discord role at all.
         if (input.grantRoleId) await this.applyRole("PUT", input.guildId, link.discordId, input.grantRoleId);
         if (input.revokeRoleId) await this.applyRole("DELETE", input.guildId, link.discordId, input.revokeRoleId);
 

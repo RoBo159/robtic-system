@@ -63,7 +63,8 @@ export { formatDuration, parseDuration } from "./utils/format-duration";
 
 export type * from "./dto/common";
 export type * from "./dto/minecraft";
-export type * from "./dto/economy";
+export type * from "./dto/robs";
+export type * from "./dto/survival";
 export type * from "./dto/staff";
 export type * from "./dto/discord";
 export type * from "./dto/server";

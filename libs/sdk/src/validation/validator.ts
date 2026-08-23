@@ -116,6 +116,23 @@ export const v = {
         };
     },
 
+    /**
+     * Wraps a validator so an explicit `null` survives as `null`, while an absent field is
+     * `undefined`.
+     *
+     * {@link optional} deliberately collapses both to `undefined`, which is correct for a field
+     * that is either supplied or not. It is wrong wherever `null` is itself a *value* — clearing a
+     * join message, switching a particle off — because the caller must be able to distinguish
+     * "leave this alone" from "unset it", and merging them makes a clear impossible to express.
+     */
+    nullable<T>(inner: Validator<T>): Validator<T | null | undefined> {
+        return (value, field, errors) => {
+            if (value === undefined) return undefined;
+            if (value === null) return null;
+            return inner(value, field, errors);
+        };
+    },
+
     /** Wraps a validator with a fallback used when the field is absent. */
     withDefault<T>(inner: Validator<T>, fallback: T): Validator<T> {
         return (value, field, errors) => {

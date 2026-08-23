@@ -15,8 +15,8 @@ export function buildOpenApiDocument(routes: readonly Route[]): Record<string, u
         const path =
             typeof route.path === "string"
                 ? route.path
-                : route.path === API_ROUTES.economy.coinsPattern
-                  ? "/api/economy/coins/{uuid}"
+                : route.path === API_ROUTES.robs.balancePattern
+                  ? "/api/robs/balance/{uuid}"
                   : route.path.source;
 
         paths[path] ??= {};

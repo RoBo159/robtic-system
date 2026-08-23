@@ -12,15 +12,18 @@ import type {
     VerifyLinkResponse,
 } from "../dto/minecraft";
 import type {
-    CoinBalanceResponse,
-    CoinMutationRequest,
-    CoinMutationResponse,
     PriceListResponse,
+    RobBalanceResponse,
+    RobBalancesRequest,
+    RobBalancesResponse,
+    RobLeaderboardResponse,
+    RobMutationRequest,
+    RobMutationResponse,
+    RobTransactionDto,
     SellRequest,
     SellResponse,
     SetPriceRequest,
-    TransactionDto,
-} from "../dto/economy";
+} from "../dto/robs";
 import type {
     CreateEntryRequest,
     FreezeRequest,
@@ -42,7 +45,14 @@ import type {
     UnjailRequest,
     WarningDto,
 } from "../dto/staff";
-import type { DiscordChatRequest, DiscordLogRequest, DiscordRolesResponse, DiscordStatusRequest } from "../dto/discord";
+import type {
+    DiscordChatRequest,
+    DiscordLogRequest,
+    DiscordRolesResponse,
+    DiscordStatusRequest,
+    RoleSyncRequest,
+    RoleSyncResponse,
+} from "../dto/discord";
 import type {
     PendingEventsResponse,
     PlayerJoinResponse,
@@ -84,27 +94,40 @@ export class RobticApiClient {
         unlink: (body: UnlinkRequest): Promise<AckResponse> => this.http.post(API_ROUTES.minecraft.unlink, body),
     };
 
-    readonly economy = {
+    /**
+     * Robs — the Minecraft currency, addressed by Minecraft UUID.
+     *
+     * There is no coin facade here on purpose. Discord coins are a separate currency the game
+     * server cannot reach, and no call in this group touches them.
+     */
+    readonly robs = {
         /** Never cached anywhere: a stale balance can be spent twice across two servers. */
-        balance: (guildId: string, uuid: string): Promise<CoinBalanceResponse> =>
-            this.http.get(API_ROUTES.economy.coinsOf(uuid), { guildId }),
+        balance: (guildId: string, uuid: string): Promise<RobBalanceResponse> =>
+            this.http.get(API_ROUTES.robs.balanceOf(uuid), { guildId }),
 
-        add: (body: CoinMutationRequest): Promise<CoinMutationResponse> =>
-            this.http.post(API_ROUTES.economy.add, body, { requestId: body.requestId }),
+        /** Many balances in one request — what a placeholder refresh should use. */
+        balances: (guildId: string, body: RobBalancesRequest): Promise<RobBalancesResponse> =>
+            this.http.post(API_ROUTES.robs.balances, { guildId, ...body }),
 
-        remove: (body: CoinMutationRequest): Promise<CoinMutationResponse> =>
-            this.http.post(API_ROUTES.economy.remove, body, { requestId: body.requestId }),
+        add: (body: RobMutationRequest): Promise<RobMutationResponse> =>
+            this.http.post(API_ROUTES.robs.add, body, { requestId: body.requestId }),
+
+        remove: (body: RobMutationRequest): Promise<RobMutationResponse> =>
+            this.http.post(API_ROUTES.robs.remove, body, { requestId: body.requestId }),
 
         sell: (body: SellRequest): Promise<SellResponse> =>
-            this.http.post(API_ROUTES.economy.sell, body, { requestId: body.requestId }),
+            this.http.post(API_ROUTES.robs.sell, body, { requestId: body.requestId }),
 
         prices: (guildId: string, revision?: string): Promise<PriceListResponse> =>
-            this.http.get(API_ROUTES.economy.prices, { guildId, revision }),
+            this.http.get(API_ROUTES.robs.prices, { guildId, revision }),
 
-        setPrice: (body: SetPriceRequest): Promise<AckResponse> => this.http.post(API_ROUTES.economy.prices, body),
+        setPrice: (body: SetPriceRequest): Promise<AckResponse> => this.http.post(API_ROUTES.robs.prices, body),
 
-        history: (query: { guildId: string; uuid?: string; discordId?: string; limit?: number; offset?: number }): Promise<Paged<TransactionDto>> =>
-            this.http.get(API_ROUTES.economy.history, query),
+        leaderboard: (query: { guildId: string; limit?: number; uuid?: string }): Promise<RobLeaderboardResponse> =>
+            this.http.get(API_ROUTES.robs.leaderboard, query),
+
+        history: (query: { guildId: string; uuid?: string; limit?: number; offset?: number }): Promise<Paged<RobTransactionDto>> =>
+            this.http.get(API_ROUTES.robs.history, query),
     };
 
     readonly staff = {
@@ -172,6 +195,13 @@ export class RobticApiClient {
     readonly discord = {
         roles: (guildId: string, uuid: string): Promise<DiscordRolesResponse> =>
             this.http.get(API_ROUTES.discord.roles, { guildId, uuid }),
+
+        /**
+         * Minecraft → Discord. The game server has already resolved which roles it wants applied
+         * from the LuckPerms groups it read locally; this only performs the Discord write.
+         */
+        syncRoles: (body: RoleSyncRequest): Promise<RoleSyncResponse> =>
+            this.http.post(API_ROUTES.discord.syncRoles, body, { requestId: body.requestId }),
 
         chat: (body: DiscordChatRequest): Promise<AckResponse> =>
             this.http.post(API_ROUTES.discord.chat, body, { requestId: body.requestId }),

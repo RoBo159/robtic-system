@@ -3,4 +3,3 @@ export { drainBridgeEvents } from "./drain-bridge-events";
 export { refreshStatusPanel } from "./refresh-status-panel";
 export { relayChatToDiscord } from "./relay-chat-to-discord";
 export { announcePlayerEvent } from "./announce-player-event";
-export { syncJoiningPlayer } from "./sync-joining-player";

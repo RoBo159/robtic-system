@@ -21,6 +21,41 @@ export interface IMinecraftStaffRank {
     priority: number;
 }
 
+/**
+ * One premium tier: a Discord role, the LuckPerms group it grants in game, and the limits that
+ * come with it.
+ *
+ * <h2>This is the one flow that still runs Discord → Minecraft</h2>
+ *
+ * Premium is *bought and managed on Discord*, so unlike a staff rank — which is a LuckPerms group
+ * the game server owns — the role is genuinely the source here and the group follows it.
+ *
+ * The two directions never collide because the sets are disjoint: the staff mirror only ever
+ * touches role ids listed in roles.yml, and premium sync only ever touches the groups named below.
+ * Putting a staff rank's group in a premium tier, or vice versa, is the one configuration that
+ * would make them fight, and is worth avoiding deliberately.
+ */
+export interface IMinecraftPremiumTier {
+    /** Tier key, e.g. "tier1". Ordering is by `level`, not by this. */
+    id: string;
+    /** Shown on the Discord profile and the in-game GUI, e.g. "Premium I". */
+    name: string;
+    /** Higher wins when a member holds several tiers. */
+    level: number;
+    discordRoleId: string;
+    luckPermsGroup: string;
+    /** How many homes this tier allows. */
+    homeLimit: number;
+    /** `/back` uses per window. Zero disables the command for this tier. */
+    backUses: number;
+    /** How many chests may be locked at once. */
+    lockedChestLimit: number;
+    /** Tier II features: the portable linked chest. */
+    portableChest: boolean;
+    /** Whether the tier may use `/ec`, `/particle` and a custom join message. */
+    cosmetics: boolean;
+}
+
 /** A teleport destination offered by the staff lobby menu. */
 export interface IMinecraftLobby {
     id: string;
@@ -67,6 +102,12 @@ export interface IMinecraftConfig extends Document {
     staffSystemEnabled: boolean;
     roleMappings: IMinecraftRoleMapping[];
     staffRanks: IMinecraftStaffRank[];
+    /** Premium tiers, pushed from the game server's premium.yml. Highest `level` wins. */
+    premiumTiers: IMinecraftPremiumTier[];
+    /** Homes allowed to a player with no premium tier. */
+    freeHomeLimit: number;
+    /** Length of the `/back` budget window, in milliseconds. */
+    backWindowMs: number;
     lobbies: IMinecraftLobby[];
     logTargets: IMinecraftLogTarget[];
     /** Group every linked staff member holds outside staff mode. */
@@ -93,6 +134,22 @@ const staffRankSchema = new Schema<IMinecraftStaffRank>(
         name: { type: String, required: true, trim: true },
         group: { type: String, required: true, lowercase: true, trim: true },
         priority: { type: Number, required: true },
+    },
+    { _id: false }
+);
+
+const premiumTierSchema = new Schema<IMinecraftPremiumTier>(
+    {
+        id: { type: String, required: true, lowercase: true, trim: true },
+        name: { type: String, required: true, trim: true },
+        level: { type: Number, required: true },
+        discordRoleId: { type: String, required: true },
+        luckPermsGroup: { type: String, required: true, lowercase: true, trim: true },
+        homeLimit: { type: Number, default: 5, min: 0 },
+        backUses: { type: Number, default: 0, min: 0 },
+        lockedChestLimit: { type: Number, default: 0, min: 0 },
+        portableChest: { type: Boolean, default: false },
+        cosmetics: { type: Boolean, default: false },
     },
     { _id: false }
 );
@@ -135,6 +192,10 @@ const minecraftConfigSchema = new Schema<IMinecraftConfig>(
         staffSystemEnabled: { type: Boolean, default: true },
         roleMappings: { type: [roleMappingSchema], default: [] },
         staffRanks: { type: [staffRankSchema], default: [] },
+        premiumTiers: { type: [premiumTierSchema], default: [] },
+        freeHomeLimit: { type: Number, default: 2, min: 0 },
+        // Four hours, matching the /back window the premium tiers are described in.
+        backWindowMs: { type: Number, default: 4 * 60 * 60 * 1000, min: 60_000 },
         lobbies: { type: [lobbySchema], default: [] },
         logTargets: { type: [logTargetSchema], default: [] },
         baseStaffGroup: { type: String, default: "staff", lowercase: true, trim: true },

@@ -18,6 +18,26 @@ export interface PushedSettings {
     logTargets: Array<{ action: string; channelId: string }>;
     roleMappings: Array<{ roleId: string; group: string }>;
     prices: Array<{ itemKey: string; price: number; enabled: boolean }>;
+    /**
+     * The premium ladder from the server's premium.yml.
+     *
+     * Optional so a plugin older than the premium feature set keeps pushing successfully — an
+     * absent field leaves the stored tiers alone rather than wiping them.
+     */
+    premiumTiers?: Array<{
+        id: string;
+        name: string;
+        level: number;
+        discordRoleId: string;
+        luckPermsGroup: string;
+        homeLimit: number;
+        backUses: number;
+        lockedChestLimit: number;
+        portableChest: boolean;
+        cosmetics: boolean;
+    }>;
+    freeHomeLimit?: number;
+    backWindowMs?: number;
 }
 
 /**
@@ -59,6 +79,11 @@ export class ServerSettingsService {
                         roleId: mapping.roleId,
                         group: mapping.group.toLowerCase(),
                     })),
+                    // Spread rather than assigned: an older plugin that sends none of these must
+                    // keep whatever is stored, not have it blanked. Same reasoning as staffRanks.
+                    ...(settings.premiumTiers ? { premiumTiers: settings.premiumTiers } : {}),
+                    ...(settings.freeHomeLimit !== undefined ? { freeHomeLimit: settings.freeHomeLimit } : {}),
+                    ...(settings.backWindowMs !== undefined ? { backWindowMs: settings.backWindowMs } : {}),
                 },
             },
             { upsert: true, returnDocument: "after" },

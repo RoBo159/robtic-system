@@ -124,7 +124,7 @@ export interface ProfileSnapshot {
     isPrivate: boolean;
     isSelf: boolean;
     customization: ProfileCustomization;
-    /** The Minecraft wallet, moved over /api/economy. Discord activity earns `points` instead. */
+    /** The Discord coin balance. The Minecraft wallet is robs and is not represented here. */
     coins: number;
     badges: ProfileBadge[];
     xp: ProfileXp;

@@ -9,6 +9,7 @@ export * from "./moderation";
 export * from "./partner";
 export * from "./points";
 export * from "./quests";
+export * from "./robs";
 export * from "./quest-community";
 export * from "./quest-config";
 export * from "./role-management";

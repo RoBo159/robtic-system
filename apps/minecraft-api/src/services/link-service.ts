@@ -8,6 +8,7 @@ import {
     MinecraftLinkRepository,
     MinecraftModerationRepository,
     MinecraftRoleStateRepository,
+    RobsRepository,
 } from "@database/repositories";
 import { MINECRAFT_LINK_CODE } from "@constants";
 import { generateLinkCode } from "@core/minecraft";
@@ -96,6 +97,10 @@ export class LinkService {
             claimed.serverKey,
         );
 
+        // Denormalised onto the robs row at link time, which is the only moment it can change.
+        // Doing it here is what keeps the link table off the economy's hot path — see RobsService.
+        await RobsRepository.attachDiscordId(claimed.minecraftUuid, input.discordId);
+
         return {
             uuid: claimed.minecraftUuid,
             username: claimed.minecraftUsername,
@@ -114,6 +119,10 @@ export class LinkService {
 
         await MinecraftLinkRepository.delete(guildId, link.discordId);
         await MinecraftRoleStateRepository.remove(guildId, link.discordId);
+
+        // The balance itself is deliberately untouched: robs belong to the Minecraft account, so
+        // unlinking Discord must not cost the player anything. Only the display copy is cleared.
+        await RobsRepository.attachDiscordId(link.minecraftUuid, null);
     }
 
     /** The composite read. Everything the plugin needs about one player, in one document. */

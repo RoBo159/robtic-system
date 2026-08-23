@@ -21,15 +21,67 @@ export const API_ROUTES = {
         unlink: "/api/minecraft/unlink",
     },
 
-    economy: {
-        coinsOf: (uuid: string) => `/api/economy/coins/${encodeURIComponent(uuid)}`,
-        coinsPattern: /^\/api\/economy\/coins\/([0-9a-fA-F-]{32,36})$/,
-        add: "/api/economy/add",
-        remove: "/api/economy/remove",
-        sell: "/api/economy/sell",
-        prices: "/api/economy/prices",
-        history: "/api/economy/history",
-        leaderboard: "/api/economy/leaderboard",
+    /**
+     * Robs — the Minecraft currency. Addressed by Minecraft UUID throughout.
+     *
+     * There is deliberately no coin route here. Discord coins are a separate currency that the game
+     * server has no access to, and the two are never converted into one another.
+     */
+    robs: {
+        balanceOf: (uuid: string) => `/api/robs/balance/${encodeURIComponent(uuid)}`,
+        balancePattern: /^\/api\/robs\/balance\/([0-9a-fA-F-]{32,36})$/,
+        /** Batch read, so a placeholder refresh is one request rather than one per player. */
+        balances: "/api/robs/balances",
+        add: "/api/robs/add",
+        remove: "/api/robs/remove",
+        sell: "/api/robs/sell",
+        prices: "/api/robs/prices",
+        history: "/api/robs/history",
+        leaderboard: "/api/robs/leaderboard",
+    },
+
+    /**
+     * Survival quality-of-life: spawn, homes, friends, chests, cosmetics and `/back`.
+     *
+     * Grouped under one prefix because they share an audience and a shape — every one is addressed
+     * by Minecraft UUID and every one is read through the plugin's cache rather than per command.
+     */
+    survival: {
+        spawn: "/api/survival/spawn",
+
+        homes: "/api/survival/homes",
+        setHome: "/api/survival/homes/set",
+        deleteHome: "/api/survival/homes/delete",
+        renameHome: "/api/survival/homes/rename",
+
+        friends: "/api/survival/friends",
+        friendAction: "/api/survival/friends/action",
+
+        back: "/api/survival/back",
+        spendBack: "/api/survival/back/spend",
+
+        locks: "/api/survival/chests/locks",
+        lock: "/api/survival/chests/lock",
+        unlock: "/api/survival/chests/unlock",
+        lockAt: "/api/survival/chests/at",
+        portableChest: "/api/survival/chests/portable",
+        linkChest: "/api/survival/chests/portable/link",
+
+        /**
+         * Every player preference in one place: friend teleports, lobby behaviour and cosmetics.
+         *
+         * These were three endpoints — `/cosmetics`, `/cosmetics/set` and `/friends/settings` —
+         * all writing the same `MinecraftPlayerPrefs` document. One document, one endpoint.
+         */
+        settings: "/api/survival/settings",
+        setSettings: "/api/survival/settings/set",
+
+        /** The lobby's read-only survival inventory preview. */
+        inventorySnapshot: "/api/survival/inventory-snapshot",
+
+        profile: "/api/survival/profile",
+        entitlements: "/api/survival/entitlements",
+        stats: "/api/survival/stats",
     },
 
     staff: {
@@ -57,6 +109,8 @@ export const API_ROUTES = {
 
     discord: {
         roles: "/api/discord/roles",
+        /** Minecraft → Discord: the game server reports groups, the API applies the roles. */
+        syncRoles: "/api/discord/sync-roles",
         chat: "/api/discord/chat",
         status: "/api/discord/status",
         log: "/api/discord/log",

@@ -1,14 +1,9 @@
 import { Schema, model, type Document } from "mongoose";
+import { locationSchema, type IWorldLocation } from "./shared/location";
 
-/** A world position, stored flat so a world rename is a single-field migration. */
-export interface IWorldLocation {
-    world: string;
-    x: number;
-    y: number;
-    z: number;
-    yaw: number;
-    pitch: number;
-}
+// Re-exported: this module was the original home of the type, and several callers import it from
+// here. The definition now lives in shared/location.ts alongside the schema it belongs to.
+export type { IWorldLocation };
 
 /**
  * Everything staff mode has to give back when it ends.
@@ -41,18 +36,6 @@ export interface IStaffBackup extends Document {
     updatedAt: Date;
 }
 
-const worldLocationSchema = new Schema<IWorldLocation>(
-    {
-        world: { type: String, required: true },
-        x: { type: Number, required: true },
-        y: { type: Number, required: true },
-        z: { type: Number, required: true },
-        yaw: { type: Number, default: 0 },
-        pitch: { type: Number, default: 0 },
-    },
-    { _id: false }
-);
-
 const staffBackupSchema = new Schema<IStaffBackup>(
     {
         guildId: { type: String, required: true, index: true },
@@ -68,7 +51,7 @@ const staffBackupSchema = new Schema<IStaffBackup>(
         food: { type: Number, default: 20 },
         health: { type: Number, default: 20 },
         heldSlot: { type: Number, default: 0 },
-        location: { type: worldLocationSchema, required: true },
+        location: { type: locationSchema, required: true },
         baseGroup: { type: String, default: "staff" },
     },
     { timestamps: true }

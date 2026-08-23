@@ -6,7 +6,6 @@ import { getItemPrices } from "@core/minecraft";
 import { relayChatToDiscord } from "./relay-chat-to-discord";
 import { announcePlayerEvent } from "./announce-player-event";
 import { refreshStatusPanel } from "./refresh-status-panel";
-import { syncJoiningPlayer } from "./sync-joining-player";
 
 /**
  * Drains one batch of events the game servers queued for Discord. Events are claimed atomically by
@@ -25,9 +24,10 @@ export async function drainBridgeEvents(client: Client, guildId: string): Promis
                 case "chat":
                     await relayChatToDiscord(client, guildId, event.payload);
                     break;
+                // No permission push on join any more: the game server reads the player's
+                // LuckPerms groups itself and reports the Discord roles it wants applied.
                 case "player_join":
                     await announcePlayerEvent(client, guildId, event.type, event.payload);
-                    await syncJoiningPlayer(client, guildId, event.payload);
                     statusDirty = true;
                     break;
                 case "player_quit":

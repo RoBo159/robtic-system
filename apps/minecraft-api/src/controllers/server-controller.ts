@@ -150,6 +150,25 @@ export const serverRoutes: Route[] = [
                     }),
                     { max: 200 },
                 ),
+                // Optional throughout: a plugin older than the premium feature set pushes none of
+                // these, and must keep working rather than failing validation.
+                premiumTiers: v.optional(v.arrayOf(
+                    v.object({
+                        id: v.string({ max: 32 }),
+                        name: v.string({ max: 48 }),
+                        level: v.number({ integer: true }),
+                        discordRoleId: schema.snowflake(),
+                        luckPermsGroup: v.string({ max: 48 }),
+                        homeLimit: v.number({ min: 0, max: 100, integer: true }),
+                        backUses: v.number({ min: 0, max: 100, integer: true }),
+                        lockedChestLimit: v.number({ min: 0, max: 100, integer: true }),
+                        portableChest: v.boolean(),
+                        cosmetics: v.boolean(),
+                    }),
+                    { max: 20 },
+                )),
+                freeHomeLimit: v.optional(v.number({ min: 0, max: 100, integer: true })),
+                backWindowMs: v.optional(v.number({ min: 60_000, integer: true })),
                 ...schema.serverIdentity(),
             });
 

@@ -50,7 +50,10 @@ export const staffRoutes: Route[] = [
                 snapshot: schema.inventorySnapshot(),
                 rank: v.optional(
                     v.object({
-                        roleId: schema.snowflake(),
+                        // Optional: a rank is a LuckPerms group, and roles.yml explicitly allows a
+                        // rung with no Discord role to mirror onto. Requiring a snowflake here
+                        // rejected those ranks outright with a validation error.
+                        roleId: v.optional(schema.snowflake()),
                         name: v.string({ min: 1, max: 32 }),
                         group: v.string({ min: 1, max: 48 }),
                         priority: v.number({ integer: true }),
@@ -339,7 +342,9 @@ export const staffRoutes: Route[] = [
                     moderatorUsername: body.moderatorUsername,
                     targetUuid: body.targetUuid,
                     targetUsername: changed.username,
-                    targetDiscordId: changed.discordId,
+                    // Absent when the player has not linked Discord, which no longer blocks a rank
+                    // change — the embed simply names the Minecraft account and nothing else.
+                    targetDiscordId: changed.discordId ?? undefined,
                     reason: `${body.direction}: ${changed.from ?? "none"} → ${changed.to ?? "none"}`,
                     occurredAt: new Date().toISOString(),
                     requestId: body.requestId,

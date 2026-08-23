@@ -23,14 +23,13 @@ import {
     removeItemPrice,
     setItemEnabled,
     setItemPrice,
-    syncMemberPermissions,
     unlinkAccount,
 } from "@core/minecraft";
 import {
     MinecraftConfigRepository,
     MinecraftLinkRepository,
     MinecraftServerRepository,
-    MinecraftTransactionRepository,
+    RobTransactionRepository,
     UserRepository,
 } from "@database/repositories";
 import { refreshStatusPanel } from "@bot/services/minecraft";
@@ -168,14 +167,13 @@ export default {
             }
 
             const member = interaction.member as GuildMember | null;
-            if (member) await syncMemberPermissions(member, "linked");
 
             await interaction.editReply({
                 embeds: [new EmbedBuilder()
                     .setTitle("✅ Minecraft account linked")
                     .setDescription(
                         `Linked to \`${result.minecraftUsername}\` on **${result.serverKey}**.\n\n` +
-                        "Your coins are now shared between Discord and Minecraft — use `/coins` here or in-game."
+                        "Your Discord coins and your in-game **robs** stay separate — `/coins` here, `/bal` in-game."
                     )
                     .setColor(COLORS.success)
                     .setTimestamp()],
@@ -204,7 +202,11 @@ export default {
 
         if (sub === "profile") {
             const target = interaction.options.getUser("user") ?? interaction.user;
-            const profile = await getMinecraftProfile(guildId, target.id);
+
+            // Fetched so the premium tier can be resolved from their roles — the cache may not hold
+            // a member the command was not invoked by.
+            const member = await interaction.guild?.members.fetch(target.id).catch(() => null) ?? null;
+            const profile = await getMinecraftProfile(guildId, target.id, member);
             const displayName = await UserRepository.getDisplayName(target.id) ?? target.username;
 
             await interaction.editReply({ embeds: [buildProfileEmbed(target, displayName, profile)] });
@@ -229,9 +231,13 @@ export default {
 
         if (target && target.id !== interaction.user.id && !(await requireAdmin(interaction))) return;
 
+        // Sales are keyed by Minecraft uuid now, so a Discord-targeted lookup goes through the
+        // denormalised discordId — which is only set for players who linked. That is the correct
+        // boundary here: the caller named a Discord user, so an unlinked seller is not who they
+        // asked about.
         const transactions = target
-            ? await MinecraftTransactionRepository.listByUser(guildId, target.id, limit)
-            : await MinecraftTransactionRepository.listByGuild(guildId, limit);
+            ? await RobTransactionRepository.listByDiscordId(guildId, target.id, limit)
+            : await RobTransactionRepository.listByGuild(guildId, limit);
 
         const title = target ? `🧾 Sales — ${target.username}` : "🧾 Recent Ore Exchange Sales";
         await interaction.editReply({ embeds: [buildHistoryEmbed(title, transactions)] });

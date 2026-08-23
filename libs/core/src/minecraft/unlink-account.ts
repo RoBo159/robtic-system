@@ -1,7 +1,5 @@
-import { MinecraftLinkRepository } from "@database/repositories";
+import { MinecraftLinkRepository, RobsRepository } from "@database/repositories";
 import { Logger } from "@logger";
-import { publishBridgeEvent } from "./publish-bridge-event";
-import { resolveLuckPermsGroups } from "./resolve-luckperms-groups";
 
 export interface UnlinkResult {
     unlinked: boolean;
@@ -9,30 +7,25 @@ export interface UnlinkResult {
 }
 
 /**
- * Removes a link and revokes every Discord-managed LuckPerms group from the player — an unlinked
- * account must not keep permissions that came from Discord roles. Groups outside the guild's
- * mappings are left alone, as everywhere else in the sync.
+ * Removes a link.
+ *
+ * <h2>What this deliberately no longer does</h2>
+ *
+ * It used to queue a bridge event revoking every Discord-managed LuckPerms group, because Discord
+ * roles were what granted them. That is inverted now: LuckPerms is the authority on who holds a
+ * group, and unlinking a Discord account says nothing about whether someone is still staff on the
+ * game server. Stripping their groups here would have let anyone demote themselves by unlinking.
+ *
+ * The player's robs are untouched for the same reason — robs belong to the Minecraft account, so
+ * unlinking must not cost anything. Only the denormalised display copy of the Discord id is
+ * cleared.
  */
 export async function unlinkAccount(guildId: string, discordId: string): Promise<UnlinkResult> {
     const link = await MinecraftLinkRepository.getByDiscordId(guildId, discordId);
     if (!link) return { unlinked: false };
 
     await MinecraftLinkRepository.delete(guildId, discordId);
-
-    const groups = await resolveLuckPermsGroups(guildId, []);
-    await publishBridgeEvent({
-        guildId,
-        type: "role_sync",
-        serverKey: null,
-        payload: {
-            minecraftUuid: link.minecraftUuid,
-            discordId,
-            reason: "unlinked",
-            grant: [],
-            revoke: groups.managed,
-            managed: groups.managed,
-        },
-    });
+    await RobsRepository.attachDiscordId(link.minecraftUuid, null);
 
     Logger.info(`Unlinked Discord ${discordId} from ${link.minecraftUsername}`, "Minecraft");
     return { unlinked: true, minecraftUsername: link.minecraftUsername };

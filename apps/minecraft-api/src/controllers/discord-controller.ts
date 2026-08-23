@@ -10,7 +10,11 @@ import { ok } from "../lib/respond";
 import { intQueryParam, queryParam, requireGuildId, requireServerId } from "../lib/request-context";
 import { withIdempotency } from "../middleware/idempotency";
 import { DiscordLogService } from "../services/discord-log-service";
+import { RoleSyncService } from "../services/role-sync-service";
 import type { Route } from "../router";
+
+/** Players one sync batch may carry. A full server reconciles in a single request. */
+const MAX_ROLE_SYNC_PLAYERS = 200;
 
 export const discordRoutes: Route[] = [
     {
@@ -34,6 +38,38 @@ export const discordRoutes: Route[] = [
                 groups: state?.groups ?? [],
                 syncedAt: state?.syncedAt?.toISOString() ?? new Date(0).toISOString(),
             });
+        },
+    },
+    {
+        method: "POST",
+        path: API_ROUTES.discord.syncRoles,
+        scope: API_SCOPES.discord,
+        summary: "Apply Discord roles from the LuckPerms groups a game server reported",
+        tag: "Discord",
+        handler: async context => {
+            const body = validateBody(context.body, {
+                guildId: schema.snowflake(),
+                players: v.arrayOf(
+                    v.object({
+                        uuid: schema.uuid(),
+                        username: schema.username(),
+                        groups: v.arrayOf(v.string({ min: 1, max: 64 }), { max: 64 }),
+                        grantRoleIds: v.arrayOf(schema.snowflake(), { max: 64 }),
+                        revokeRoleIds: v.arrayOf(schema.snowflake(), { max: 64 }),
+                    }),
+                    { min: 1, max: MAX_ROLE_SYNC_PLAYERS },
+                ),
+                requestId: schema.requestId(),
+                ...schema.serverIdentity(),
+            });
+
+            const guildId = requireGuildId(context, body.guildId);
+
+            const { result, duplicate } = await withIdempotency(body.requestId, guildId, "discord.syncRoles", async () => ({
+                results: await RoleSyncService.apply(guildId, body.players),
+            }));
+
+            return ok({ ...result, duplicate });
         },
     },
     {

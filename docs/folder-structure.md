@@ -74,7 +74,7 @@ apps/
             service/             Linking, prices, exchange, chat bridge, status, LuckPerms sync
             gui/                 Exchange menus and their controller
             listener/            Connection, chat, menu clicks, NPC interaction
-            command/             /link, /coins, /exchange, /robtic
+            command/             /link, /robs (aka /bal), /exchange, /robtic
 
 libs/
     core/

@@ -247,13 +247,17 @@ Full detail: [docs/bot/economy.md](docs/bot/economy.md).
 
 `default-on` · **`scope: global`** · `/coins` · category `Economy` · access `general`
 
-The **Minecraft** wallet, and the one **global** balance in the system: the same coins in every
-Discord server and on every game server on the network. Discord activity no longer pays coins.
+The **Discord** wallet, and the one **global** balance in the system: the same coins in every
+Discord server. Discord activity no longer pays coins.
+
+Coins are **not** the Minecraft currency. Minecraft uses **robs** — a separate balance keyed by
+Minecraft UUID, spent in game with `/bal`, and never convertible to or from a coin. Nothing on the
+game server can read or move a coin balance.
 
 | Subcommand | Access |
 |---|---|
 | `balance [user]` | anyone |
-| `add <user> <amount>` | admin — moves the global wallet, in-game money included |
+| `add <user> <amount>` | admin — moves the Discord wallet only |
 | `remove <user> <amount>` | admin — same |
 
 Two things move a balance: the game server over `/api/economy/{add,remove,sell}`, and an admin.
@@ -698,15 +702,24 @@ role-strip list (`rolestrip-add · remove · list`).
 | Command | |
 |---|---|
 | `/minecraft link · unlink` | Account linking via an in-game code |
-| `/minecraft profile` | Link, balance and recent sales |
+| `/minecraft profile` | Link, robs balance and recent sales |
 | `/minecraft status` · `/status` | Live server status, TPS, memory, uptime |
-| `/minecraft history` | Ore-exchange transactions |
+| `/minecraft history` | Ore-exchange transactions, paid in robs |
 | `/minecraft apikey create · list · revoke` | Server API keys |
 | `/ip` | Server address and status |
 | `/version` | Supported versions (**global** scope) |
 
 Backed by `apps/minecraft-api` — a separate API-key-authenticated service for the game server, distinct
 from the Activity's API. See [docs/bot/minecraft.md](docs/bot/minecraft.md).
+
+**In-game currency — robs.** Players earn and spend robs with `/bal` (aliases `/balance`, `/robs`),
+keyed by Minecraft UUID, so linking Discord is not required to have a wallet. Robs are a wholly
+separate balance from Discord coins and the two never convert.
+
+**Staff comes from LuckPerms.** A rank *is* a LuckPerms group: holding the group is holding the
+rank, resolved on the game server with no API call. `roles.yml` maps each group to a display name,
+an ordering and — optionally — a Discord role to mirror it onto. The mirror runs one way only,
+Minecraft → Discord, so granting a Discord role never makes anyone staff.
 
 ### Leveling and activity
 

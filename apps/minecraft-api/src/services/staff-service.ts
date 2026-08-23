@@ -20,17 +20,37 @@ import { DiscordRoleService } from "./discord-role-service";
  */
 export class StaffService {
     /**
-     * Opens a session. Refuses when the player is not linked or holds no configured staff role,
-     * so eligibility is decided by Discord rather than by a Bukkit permission node.
+     * The pre-LuckPerms path: derive a rank from the member's Discord roles.
+     *
+     * Only reached when a game server sends no rank claim, which today means a plugin older than
+     * the LuckPerms change. Kept so upgrading the API does not require upgrading every server on
+     * the same day; new servers never take this branch.
      */
+    private static async fallbackRank(
+        guildId: string,
+        discordId: string | undefined,
+        configured: Array<{ roleId: string; name: string; group: string; priority: number }>,
+    ): Promise<{ roleId?: string; name: string; group: string; priority: number } | null> {
+        if (!discordId) return null;
+
+        const roleState = await MinecraftRoleStateRepository.getByDiscordId(guildId, discordId);
+        const held = await DiscordRoleService.rolesOrFallback(guildId, discordId, roleState?.roleIds ?? []);
+
+        return resolveStaffRank(held, configured);
+    }
+
     static async enable(input: {
         guildId: string;
         uuid: string;
         username: string;
         serverId: string;
         snapshot: InventorySnapshot;
-        /** The rank the game server resolved from its own roles.yml, when it sent one. */
-        claimed?: { roleId: string; name: string; group: string; priority: number };
+        /**
+         * The rank the game server resolved from its own roles.yml, when it sent one.
+         *
+         * `roleId` is optional because a rank need not have a Discord role to mirror onto.
+         */
+        claimed?: { roleId?: string; name: string; group: string; priority: number };
     }): Promise<StaffEnableResponse> {
         const uuid = normaliseUuid(input.uuid);
 
@@ -39,44 +59,50 @@ export class StaffService {
             throw ApiError.forbidden("The staff system is disabled for this guild");
         }
 
+        /**
+         * A link is recorded when there is one, and is **not** required.
+         *
+         * Staff membership is a LuckPerms group on the game server now, which says nothing about
+         * whether the player owns a Discord account. Refusing a session without a link would mean
+         * an operator could hold the rank, pass every check the server makes, and still be unable
+         * to open `/admin` — with the refusal blaming Discord for a decision Discord no longer
+         * makes.
+         *
+         * The id is still captured when available, because the audit trail and the staff stats read
+         * better with a Discord identity attached.
+         */
         const link = await MinecraftLinkRepository.getByUuid(input.guildId, uuid);
-        if (!link) throw ApiError.notLinked();
-
-        const roleState = await MinecraftRoleStateRepository.getByDiscordId(input.guildId, link.discordId);
-        const held = await DiscordRoleService.rolesOrFallback(
-            input.guildId,
-            link.discordId,
-            roleState?.roleIds ?? [],
-        );
 
         /**
-         * Ranks are defined by the game server, membership is proved by Discord.
+         * The game server decides who is staff; this trusts its claim.
          *
-         * The server sends the rank it resolved from roles.yml, and the only thing checked here is
-         * that the Discord role behind it is genuinely one this member holds. That keeps the ladder
-         * in one file — the API used to hold a second copy in `staffRanks`, and an operator who
-         * filled in one and not the other got a local pass followed by a refusal here, with nothing
-         * to say which config was at fault.
+         * <h2>Why the Discord role check is gone</h2>
          *
-         * What is deliberately *not* dropped is the Discord check. Without it, editing roles.yml
-         * would be enough to make anyone staff, and the point of the design is that leaving the
-         * Discord role removes the rank everywhere at once.
+         * It used to verify that the member genuinely held the Discord role behind the claimed
+         * rank. That made sense while Discord granted the rank. It is now backwards: LuckPerms
+         * grants the rank and Discord is a *mirror* written downstream of it, so checking the
+         * mirror to authorise the thing it reflects fails in two ordinary situations —
+         *
+         *   - a rank with no `discord-role-id` at all, which roles.yml explicitly allows; and
+         *   - the window between a group being granted and the role mirror flushing,
+         *
+         * — and in both the player holds the group, the server enforces it, and `/admin` refused
+         * anyway. That refusal cascaded: every staff command gates on staff mode, so `/hide`,
+         * `/a`, `/freeze`, `/jail`, `/warn` and `/notes` all became unusable.
+         *
+         * Trusting the server is consistent with the rest of this API's trust model: the key
+         * already authorises that server to jail players, issue warnings and move balances. A
+         * server able to lie about a rank is a server that could already do the thing the rank
+         * would let it do.
          *
          * A server that sends no claim falls back to the API-side ladder, so an older plugin keeps
          * working against a newer API.
          */
-        const rank = input.claimed
-            ? held.includes(input.claimed.roleId)
-                ? input.claimed
-                : null
-            : resolveStaffRank(held, config?.staffRanks ?? []);
+        const rank = input.claimed ?? await this.fallbackRank(input.guildId, link?.discordId, config?.staffRanks ?? []);
 
         if (!rank) {
             throw ApiError.forbidden(
-                input.claimed
-                    ? `You do not hold the Discord role for ${input.claimed.name}. ` +
-                      `The rank is configured in roles.yml, but the role must be granted in Discord.`
-                    : "You do not hold a configured Discord staff role",
+                "You do not hold a staff rank. A rank is a LuckPerms group listed in the server's roles.yml.",
             );
         }
 
@@ -107,7 +133,7 @@ export class StaffService {
             guildId: input.guildId,
             minecraftUuid: uuid,
             minecraftUsername: input.username,
-            discordId: link.discordId,
+            discordId: link?.discordId,
             serverId: input.serverId,
             rankGroup: rank.group,
             rankName: rank.name,

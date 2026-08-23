@@ -1,6 +1,9 @@
 /**
- * Coins are the Minecraft wallet, moved only over /api/economy — Discord activity now earns Points
- * instead, so there are no coin-earning rates left to tune. See points.ts for those.
+ * Coins are the Discord currency, and only that. The Minecraft wallet is **robs** — a separate
+ * balance in its own collection that never converts into a coin.
+ *
+ * Discord activity earns Points rather than coins, so there are no coin-earning rates left to
+ * tune here. See points.ts for those.
  */
 
 /** Layout templates the Activity's profile view can render. */

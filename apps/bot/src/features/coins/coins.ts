@@ -1,7 +1,7 @@
 import { defineFeature } from "@typings/feature";
 
 /**
- * The coin economy — the Minecraft wallet.
+ * The coin economy — Discord only. The Minecraft currency is robs and lives outside this feature.
  *
  * `scope: "global"`: one balance per person, shared across every server and every game server on
  * the network. Coins are not earned from Discord activity at all any more (that is Points); they

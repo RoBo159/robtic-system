@@ -6,7 +6,7 @@ export interface CoinSummary {
 }
 
 /**
- * A member's Minecraft wallet.
+ * A member's Discord coin balance. Their Minecraft wallet is robs, which this does not touch.
  *
  * Coins are no longer earned from Discord activity — that is what Points are for — so there are no
  * earning rates left to report. What remains is the in-game balance, moved by the plugin over

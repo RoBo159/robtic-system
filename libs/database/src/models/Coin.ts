@@ -3,12 +3,14 @@ import { Schema, model, type Document } from "mongoose";
 /**
  * One member's coin balance — **global**, not per guild.
  *
- * Coins are the Minecraft wallet, and a player who mines on the network should have the same money
- * whichever Discord server they happen to be in. The balance is therefore keyed by Discord id
- * alone. `MinecraftLink` stays per-guild, so resolving a UUID to a Discord id still needs a guild;
- * the balance that resolution lands on does not.
+ * <h2>Coins are Discord-only</h2>
  *
- * The per-guild rows this replaced live on in `LegacyCoin`, readable but no longer spendable.
+ * Coins were once the Minecraft wallet too. They are not any more: the Minecraft currency is
+ * {@link Rob}, keyed by Minecraft UUID and held in its own collection. The two never convert into
+ * one another, and nothing on the game server can read or move a coin balance.
+ *
+ * Keyed by Discord id alone, so a member has one balance whichever server they are in. The
+ * per-guild rows this replaced live on in `LegacyCoin`, readable but no longer spendable.
  */
 export interface ICoin extends Document {
     discordId: string;
