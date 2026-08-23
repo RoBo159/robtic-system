@@ -1,7 +1,7 @@
 import { ApiRequestLogRepository } from "@database/repositories";
 import { Logger } from "@logger";
 
-const CTX = "robtic-api";
+const CTX = "minecraft-api";
 
 /**
  * Exactly-once semantics for a mutating route.

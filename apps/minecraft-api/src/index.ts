@@ -13,8 +13,8 @@ import { pruneRateLimitBuckets } from "./middleware/rate-limit";
 import { warnIfBotTokenMissing } from "./lib/bot-token";
 import { ModerationService } from "./services/moderation-service";
 
-const CTX = "robtic-api";
-const port = Number(process.env.ROBTIC_API_PORT ?? 3002);
+const CTX = "minecraft-api";
+const port = Number(process.env.MINECRAFT_API_PORT ?? 3002);
 
 /** Housekeeping cadence: releasing lapsed sentences and discarding idle rate-limit buckets. */
 const SWEEP_INTERVAL_MS = 30_000;
@@ -74,7 +74,7 @@ function unauthenticatedRoute(url: URL): Response | null {
  * Restricting *who may reach it* is the port mapping's job (see infra/docker/compose/docker-compose.yml) and the API
  * key's job, not this bind address's.
  */
-const hostname = process.env.ROBTIC_API_HOST ?? "0.0.0.0";
+const hostname = process.env.MINECRAFT_API_HOST ?? "0.0.0.0";
 
 const server = Bun.serve({
     port,

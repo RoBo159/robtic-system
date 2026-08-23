@@ -18,7 +18,7 @@ Host 192.168.1.127  ── Nginx (host, ports 80/443)
                                       │
                                       ▼
                         Docker containers, published to 127.0.0.1 only
-                          robtic-platform-api  → 127.0.0.1:3002
+                          robtic-minecraft-api  → 127.0.0.1:3002
                           robtic-dashboard     → 127.0.0.1:3000
                           robtic-dashboard-api → 127.0.0.1:3003
 ```
@@ -49,8 +49,8 @@ Work down it. Stop at the first failure; each step assumes the ones above it pas
 ### 1. Is the container healthy?
 
 ```bash
-docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system ps robtic-platform-api
-docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system logs --tail=30 robtic-platform-api
+docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system ps robtic-minecraft-api
+docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system logs --tail=30 robtic-minecraft-api
 ```
 
 Expected:
@@ -100,7 +100,7 @@ It must be `http://127.0.0.1:3002`. Common mistakes:
 
 | Wrong | Why it fails |
 |---|---|
-| `http://robtic-platform-api:3002` | A Docker service name. Nginx is on the host and cannot resolve it. |
+| `http://robtic-minecraft-api:3002` | A Docker service name. Nginx is on the host and cannot resolve it. |
 | `http://192.168.1.127:3002` | The LAN address, which the `127.0.0.1:` binding refuses. |
 | `https://127.0.0.1:3002` | The API speaks plain HTTP behind the proxy. TLS terminates at Nginx. |
 | `http://127.0.0.1:3001` | That is the Activity API, a different service. |
@@ -272,7 +272,7 @@ Whichever step first fails localises the fault precisely:
 |---|---|
 | Cloudflare | Public, TLS terminated at the edge |
 | Nginx (host) | Ports 80/443 only |
-| `robtic-platform-api` | `127.0.0.1:3002` — host loopback only |
+| `robtic-minecraft-api` | `127.0.0.1:3002` — host loopback only |
 | MongoDB | Container network only, no published port |
 
 The API additionally requires `Authorization: Bearer <key>` on every route except `/api/health`,

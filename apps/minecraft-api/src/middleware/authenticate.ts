@@ -3,7 +3,7 @@ import { MinecraftApiKeyRepository } from "@database/repositories";
 import { Logger } from "@logger";
 import { TtlCache } from "../lib/ttl-cache";
 
-const CTX = "robtic-api";
+const CTX = "minecraft-api";
 
 /**
  * Verified keys are cached briefly so a busy server does not hit Mongo on every request.

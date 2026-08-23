@@ -14,7 +14,7 @@ Minecraft plugin are all clients of the same MongoDB-backed domain.
 | Service | What it is | Runs as |
 |---|---|---|
 | **Bot** | The Discord client. One login, one command tree, every module. | `robtic-system` |
-| **Platform API** | Owns MongoDB. The bot and every Minecraft server are its clients. | `robtic-platform-api` |
+| **Minecraft API** | Owns MongoDB. The bot and every Minecraft server are its clients. | `robtic-minecraft-api` |
 | **Dashboard API** | NestJS. Discord OAuth sessions and per-guild authorization for the web app. | `robtic-dashboard-api` |
 | **Dashboard** | Next.js. Configure a guild from a browser instead of a dozen slash commands. | `robtic-dashboard` |
 | **Minecraft Plugin** | Paper plugin (Java/Maven). Makes a Minecraft server another client of the same economy. | — |
@@ -57,7 +57,7 @@ Minecraft plugin are all clients of the same MongoDB-backed domain.
 ```
 apps/
     bot/                Discord client — every module
-    robtic-api/         Platform API; owns MongoDB
+    minecraft-api/         Minecraft API; owns MongoDB
     dashboard-api/      NestJS API behind the dashboard
     dashboard/          Next.js web dashboard
     minecraft-plugin/   Paper plugin (Java/Maven)

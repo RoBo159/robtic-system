@@ -60,8 +60,8 @@
         "@types/node": "^24.6.2",
       },
     },
-    "apps/robtic-api": {
-      "name": "@robtic/robtic-api",
+    "apps/minecraft-api": {
+      "name": "@robtic/minecraft-api",
       "dependencies": {
         "@robtic/sdk": "workspace:*",
       },
@@ -246,7 +246,7 @@
 
     "@robtic/logger": ["@robtic/logger@workspace:libs/logger"],
 
-    "@robtic/robtic-api": ["@robtic/robtic-api@workspace:apps/robtic-api"],
+    "@robtic/minecraft-api": ["@robtic/minecraft-api@workspace:apps/minecraft-api"],
 
     "@robtic/sdk": ["@robtic/sdk@workspace:libs/sdk"],
 

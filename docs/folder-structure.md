@@ -66,7 +66,7 @@ apps/
 
         test/route-check.ts      Builds the app and asserts every guild-scoped
                                  controller carries GuildAccessGuard. No DB, no port.
-    robtic-api/                  Platform API — owns MongoDB; bot and Minecraft servers are clients
+    minecraft-api/                  Minecraft API — owns MongoDB; bot and Minecraft servers are clients
     minecraft-plugin/            Paper plugin (Java/Maven) — Minecraft client for the shared MongoDB
         src/main/java/org/robtic/minecraft/
             config/              Immutable config.yml snapshot

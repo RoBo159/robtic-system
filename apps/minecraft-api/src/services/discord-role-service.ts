@@ -2,7 +2,7 @@ import { Logger } from "@logger";
 import { TtlCache } from "../lib/ttl-cache";
 import { mainBotToken } from "../lib/bot-token";
 
-const CTX = "robtic-api";
+const CTX = "minecraft-api";
 const DISCORD_API = "https://discord.com/api/v10";
 
 /**

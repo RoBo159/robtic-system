@@ -1,7 +1,7 @@
 import { BOT_DEFINITION } from "@config";
 import { Logger } from "@logger";
 
-const CTX = "robtic-api";
+const CTX = "minecraft-api";
 
 /**
  * The main bot's token, chosen exactly as the bot process chooses it.

@@ -36,8 +36,28 @@ services:
       # Logs are written relative to cwd.
       - ../../../logs:/app/logs
 
-  # The platform API (robtic-api) is removed from the stack for now — the Minecraft plugin's API
-  # calls fail gracefully without it.
+  minecraft-api:
+    build:
+      context: ../../..
+      dockerfile: infra/docker/dockerfiles/minecraft-api.Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../../../.env
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/robtic
+      MINECRAFT_API_PORT: 3002
+      NODE_ENV: development
+    ports:
+      - "127.0.0.1:3002:3002"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "bun", "-e", "await fetch('http://127.0.0.1:3002/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   # Opt-in: bun run docker:local -- --profile dashboard up -d
   dashboard-api:
@@ -90,6 +110,8 @@ services:
     environment:
       # Set MINECRAFT_EULA=TRUE in .env to accept Mojang's EULA.
       EULA: ${MINECRAFT_EULA:-FALSE}
+    depends_on:
+      - minecraft-api
     volumes:
       - minecraft-data:/data
       # The plugin is configured through plugins/RobticMinecraft/api.yml, not env vars.

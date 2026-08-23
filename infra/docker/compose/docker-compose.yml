@@ -1,9 +1,6 @@
 # Production topology. Contexts are ../../.. — the repository root — resolved from this file.
 
 services:
-  # The platform API (apps/robtic-api, minecraft.api.robtic.org) is removed from the stack for now.
-  # The bot's Minecraft commands and the Minecraft plugin degrade gracefully without it; the plugin
-  # itself is unaffected as a codebase. Restore it from git history when it returns.
   robtic-system:
     image: ghcr.io/robticorg/robtic-system:latest
     build:
@@ -12,6 +9,28 @@ services:
     restart: unless-stopped
     env_file:
       - /home/robtic/robtic-system/.env
+    depends_on:
+      - robtic-minecraft-api
+
+  # The Minecraft API (apps/minecraft-api, minecraft.api.robtic.org).
+  # The only service permitted to reach MongoDB; the bot and every Minecraft server are clients.
+  # The 127.0.0.1 prefix elsewhere is deliberate; see docs/deployment-nginx.md.
+  robtic-minecraft-api:
+    image: ghcr.io/robticorg/robtic-minecraft-api:latest
+    build:
+      context: ../../..
+      dockerfile: infra/docker/dockerfiles/minecraft-api.Dockerfile
+    restart: unless-stopped
+    env_file:
+      - /home/robtic/robtic-system/.env
+    ports:
+      - "0.0.0.0:3002:3002"
+    healthcheck:
+      test: ["CMD", "bun", "-e", "await fetch('http://127.0.0.1:3002/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   # Authenticates people rather than machines: a Discord identity checked against one guild.
   robtic-dashboard-api:

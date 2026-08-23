@@ -64,7 +64,7 @@ export function buildOpenApiDocument(routes: readonly Route[]): Record<string, u
             description:
                 "The only service permitted to reach MongoDB. The Discord bot and the Minecraft plugin are both clients of it.",
         },
-        servers: [{ url: process.env.ROBTIC_API_PUBLIC_URL ?? "http://localhost:3002" }],
+        servers: [{ url: process.env.MINECRAFT_API_PUBLIC_URL ?? "http://localhost:3002" }],
         components: {
             securitySchemes: {
                 bearerAuth: {

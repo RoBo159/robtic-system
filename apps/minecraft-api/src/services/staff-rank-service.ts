@@ -3,7 +3,7 @@ import { MinecraftLinkRepository, MinecraftRoleStateRepository } from "@database
 import { Logger } from "@logger";
 import { mainBotToken } from "../lib/bot-token";
 
-const CTX = "robtic-api";
+const CTX = "minecraft-api";
 const DISCORD_API = "https://discord.com/api/v10";
 
 function botToken(): string | null {

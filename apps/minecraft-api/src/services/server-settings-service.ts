@@ -4,7 +4,7 @@ import { invalidatePriceCache, publishBridgeEvent } from "@core/minecraft";
 import { DiscordLogService } from "./discord-log-service";
 import { Logger } from "@logger";
 
-const CTX = "robtic-api";
+const CTX = "minecraft-api";
 
 export interface PushedSettings {
     statusChannelId: string;

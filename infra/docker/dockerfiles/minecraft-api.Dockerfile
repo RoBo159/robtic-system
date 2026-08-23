@@ -1,4 +1,4 @@
-# Context: repository root.  docker build -f infra/docker/dockerfiles/platform-api.Dockerfile .
+# Context: repository root.  docker build -f infra/docker/dockerfiles/minecraft-api.Dockerfile .
 FROM oven/bun:1.3.14 AS deps
 WORKDIR /app
 
@@ -6,7 +6,7 @@ COPY package.json bun.lock ./
 COPY apps/bot/package.json ./apps/bot/
 COPY apps/dashboard/package.json ./apps/dashboard/
 COPY apps/dashboard-api/package.json ./apps/dashboard-api/
-COPY apps/robtic-api/package.json ./apps/robtic-api/
+COPY apps/minecraft-api/package.json ./apps/minecraft-api/
 COPY libs/core/package.json ./libs/core/
 COPY libs/database/package.json ./libs/database/
 COPY libs/types/package.json ./libs/types/
@@ -27,13 +27,13 @@ ENV NODE_ENV=production
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
-COPY apps/robtic-api ./apps/robtic-api
+COPY apps/minecraft-api ./apps/minecraft-api
 
 # Bun does not hoist workspace deps to the root; only the @robtic/sdk link today.
-COPY --from=deps /app/apps/robtic-api/node_modules ./apps/robtic-api/node_modules
+COPY --from=deps /app/apps/minecraft-api/node_modules ./apps/minecraft-api/node_modules
 COPY libs ./libs
 
 EXPOSE 3002
 
 # --preload stubs node:v8 for BSON/mongoose on Bun.
-CMD ["bun", "--preload", "./libs/shared/src/preload.ts", "apps/robtic-api/src/index.ts"]
+CMD ["bun", "--preload", "./libs/shared/src/preload.ts", "apps/minecraft-api/src/index.ts"]

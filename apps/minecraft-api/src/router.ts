@@ -5,7 +5,7 @@ import { enforceRateLimit } from "./middleware/rate-limit";
 import { failure, ok } from "./lib/respond";
 import type { RequestContext } from "./lib/request-context";
 
-const CTX = "robtic-api";
+const CTX = "minecraft-api";
 
 export type RouteHandler = (context: RequestContext) => Promise<Response>;
 

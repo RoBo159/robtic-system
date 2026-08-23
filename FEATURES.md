@@ -705,7 +705,7 @@ role-strip list (`rolestrip-add · remove · list`).
 | `/ip` | Server address and status |
 | `/version` | Supported versions (**global** scope) |
 
-Backed by `apps/robtic-api` — a separate API-key-authenticated service for the game server, distinct
+Backed by `apps/minecraft-api` — a separate API-key-authenticated service for the game server, distinct
 from the Activity's API. See [docs/bot/minecraft.md](docs/bot/minecraft.md).
 
 ### Leveling and activity

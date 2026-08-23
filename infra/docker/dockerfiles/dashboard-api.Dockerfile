@@ -6,7 +6,7 @@ COPY package.json bun.lock ./
 COPY apps/bot/package.json ./apps/bot/
 COPY apps/dashboard/package.json ./apps/dashboard/
 COPY apps/dashboard-api/package.json ./apps/dashboard-api/
-COPY apps/robtic-api/package.json ./apps/robtic-api/
+COPY apps/minecraft-api/package.json ./apps/minecraft-api/
 COPY libs/core/package.json ./libs/core/
 COPY libs/database/package.json ./libs/database/
 COPY libs/types/package.json ./libs/types/

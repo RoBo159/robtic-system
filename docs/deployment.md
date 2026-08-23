@@ -30,13 +30,14 @@ Dockerfile paths below are relative to `infra/docker/dockerfiles/`.
 
 | Workflow | Trigger | Image | Dockerfile | Compose service |
 |---|---|---|---|---|
-| `deploy-bot.yml` | push to `main` | `ghcr.io/robticorg/robtic-system` | `bot.Dockerfile` | `robtic-system` |
+| `deploy-minecraft-api.yml` | push to `main` | `ghcr.io/robticorg/robtic-minecraft-api` | `minecraft-api.Dockerfile` | `robtic-minecraft-api` |
+| `deploy-bot.yml` | the Minecraft API workflow finishing | `ghcr.io/robticorg/robtic-system` | `bot.Dockerfile` | `robtic-system` |
 | `deploy-dashboard-api.yml` | push to `main` | `ghcr.io/robticorg/robtic-dashboard-api` | `dashboard-api.Dockerfile` | `robtic-dashboard-api` |
 | `deploy-dashboard.yml` | the dashboard API workflow finishing | `ghcr.io/robticorg/robtic-dashboard` | `dashboard.Dockerfile` | `robtic-dashboard` |
 
-The platform API (`apps/robtic-api`, formerly `minecraft.api.robtic.org`) is removed from the
-deployed stack for now — its Dockerfile stays in `infra/docker/dockerfiles/` for when it returns.
-The bot's Minecraft commands degrade gracefully without it.
+The Minecraft API (`apps/minecraft-api`, `minecraft.api.robtic.org`) is the service the Minecraft
+plugin talks to, and the only one permitted to reach MongoDB. It deploys first, because the bot and
+every game server are its clients.
 
 Every Docker artefact — Dockerfiles, both Compose files, the build script — lives under
 `infra/docker/`; see [`infra/docker/README.md`](../infra/docker/README.md) for the layout and for the
@@ -58,12 +59,15 @@ the shared workflow does not append project args to overridden commands); the bo
 commands name no service at all, so its `compose pull` + `up -d` covers the whole stack — by which
 point every image exists in GHCR.
 
-### The one remaining chain
+### The two chains
 
-The web dashboard is a client of the dashboard API, so it has to restart *after* it:
-`deploy-dashboard.yml` fires when **Deploy dashboard API** finishes, whatever it decided. The bot
-used to chain behind the platform API the same way; with that service removed from the stack the
-bot deploys straight off the push.
+A client restarts *after* the service it depends on, and each chain is wired to the upstream
+*workflow* finishing, whatever it decided:
+
+- The bot is a client of the Minecraft API: `deploy-bot.yml` fires when **Deploy Minecraft API**
+  finishes.
+- The web dashboard is a client of the dashboard API: `deploy-dashboard.yml` fires when
+  **Deploy dashboard API** finishes.
 
 - A **skipped** deploy (unchanged) still releases the client. Only a *failed* service run stops it,
   because restarting a client against a half-deployed service is worse than not restarting it.
@@ -139,9 +143,13 @@ Properties worth knowing:
 
 ```
 robtic-system          (no ports — outbound Discord gateway only)
+robtic-minecraft-api   0.0.0.0:3002   -> 3002
 robtic-dashboard-api   127.0.0.1:3003 -> 3003
 robtic-dashboard       127.0.0.1:3000 -> 3000
 ```
+
+`robtic-minecraft-api` is the one service published on all interfaces: Minecraft servers reach it
+from outside the host, which loopback would refuse. The API key is what protects it.
 
 No domain / no Nginx for the dashboard right now: both dashboard ports bind to loopback and are
 reached at `http://localhost:3000` / `http://localhost:3003` from the server itself or through an
@@ -152,7 +160,7 @@ The `127.0.0.1:` prefix is deliberate and should not be removed: a connection re
 machine is that binding working correctly.
 
 → **[deployment-nginx.md](./deployment-nginx.md)** — kept for when the stack goes back behind
-domains; describes the previous Nginx topology, including the removed platform API.
+domains; describes the Nginx topology, including `minecraft.api.robtic.org`.
 
 ## Required Configuration
 

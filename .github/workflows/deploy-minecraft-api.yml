@@ -1,9 +1,8 @@
-name: Deploy dashboard API
+name: Deploy Minecraft API
 
-# Runs on push like the Minecraft API rather than chaining behind it: the two share no code path and
-# neither is a client of the other, so serialising them would only make every dashboard change wait
-# on a bot deploy. The `deploy-compose` concurrency group below is what actually keeps them from
-# running `docker compose` on the server at the same time.
+# First of the two, because the bot and every Minecraft server are clients of it: it must be up
+# before anything that depends on it restarts. `deploy-bot.yml` waits on this workflow finishing
+# rather than on a job, which is what lets the two live in separate files without racing.
 on:
   push:
     branches: [ main ]
@@ -18,8 +17,8 @@ permissions:
   contents: read
   packages: write
 
-# Shared with every other deploy workflow — not per-workflow. Two runs doing `docker compose` on the
-# same server would race, and the second to finish would decide what is live regardless of which is
+# Shared with the bot workflow — not per-workflow. Two runs doing `docker compose` on the same
+# server would race, and the second to finish would decide what is live regardless of which is
 # newer. The group name is the server, so anything that touches it queues.
 concurrency:
   group: deploy-compose
@@ -39,7 +38,7 @@ jobs:
       - id: decision
         uses: ./.github/actions/deploy-decision
         with:
-          service: dashboard-api
+          service: minecraft-api
           force: ${{ inputs.force || false }}
 
   deploy:
@@ -50,22 +49,21 @@ jobs:
       deploy-type: docker
       runner-labels: '["self-hosted", "robtic-deploy"]'
       environment-name: 'Robtic Server'
-      environment-url: 'https://dashboard.robtic.org'
+      environment-url: 'https://robtic.org'
       server-label: 'core.robtic.org'
-      dockerfile: 'infra/docker/dockerfiles/dashboard-api.Dockerfile'
-      image-name: 'ghcr.io/robticorg/robtic-dashboard-api'
+      dockerfile: 'infra/docker/dockerfiles/minecraft-api.Dockerfile'
+      image-name: 'ghcr.io/robticorg/robtic-minecraft-api'
       compose-project-name: 'robtic-system'
       compose-env-file: '/home/robtic/robtic-system/.env'
-      compose-pull-command: 'docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env pull robtic-dashboard-api'
-      compose-up-command: 'docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env up -d robtic-dashboard-api'
+      compose-pull-command: 'docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env pull robtic-minecraft-api'
+      compose-up-command: 'docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env up -d robtic-minecraft-api'
     secrets:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 
   # `compose up -d` returns as soon as the container is *started*, which says nothing about whether
-  # the process inside it survived. This service exits at boot when a required variable is missing,
-  # so without this job the workflow went green while the API was dead — and the failure surfaced
-  # one workflow later as "dependency failed to start" on the dashboard, which names neither the
-  # broken service nor the reason.
+  # the process inside it survived. This service calls process.exit(1) at boot when MONGODB_URI is
+  # missing, so without this job the workflow goes green while the API is dead — and the failure
+  # surfaces one workflow later as a bot that cannot reach it.
   verify:
     name: Verify the API is serving
     needs: [changes, deploy]
@@ -79,9 +77,9 @@ jobs:
           set -uo pipefail
           compose="docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env"
 
-          cid=$($compose ps -q robtic-dashboard-api)
+          cid=$($compose ps -q robtic-minecraft-api)
           if [ -z "$cid" ]; then
-            echo "::error::robtic-dashboard-api has no container"
+            echo "::error::robtic-minecraft-api has no container"
             exit 1
           fi
 
@@ -101,7 +99,7 @@ jobs:
             sleep 5
           done
 
-          echo "::error::robtic-dashboard-api never became healthy within 120s"
+          echo "::error::robtic-minecraft-api never became healthy within 120s"
           exit 1
 
       # Only on failure, and only names — never values. A missing variable is by far the most common
@@ -112,13 +110,10 @@ jobs:
           set -uo pipefail
           compose="docker compose -f infra/docker/compose/docker-compose.yml -p robtic-system --env-file /home/robtic/robtic-system/.env"
 
-          echo "### robtic-dashboard-api failed to come up" >> "$GITHUB_STEP_SUMMARY"
+          echo "### robtic-minecraft-api failed to come up" >> "$GITHUB_STEP_SUMMARY"
 
           missing=""
-          # MainBotToken rather than DISCORD_BOT_TOKEN: the dashboard API's Dockerfile hardcodes
-          # NODE_ENV=production, so it always reads the same MainBotToken the bot and Minecraft API do.
-          for name in MONGODB_URI DISCORD_CLIENT_ID DISCORD_CLIENT_SECRET MainBotToken \
-                      DASHBOARD_SESSION_SECRET DASHBOARD_API_URL DASHBOARD_URL; do
+          for name in MONGODB_URI MINECRAFT_API_PORT MINECRAFT_API_PUBLIC_URL; do
             if ! grep -qE "^[[:space:]]*${name}=.+" /home/robtic/robtic-system/.env; then
               missing="${missing} ${name}"
             fi
@@ -131,11 +126,11 @@ jobs:
           fi
 
           echo "--- last 120 log lines ---"
-          $compose logs --tail=120 --no-color robtic-dashboard-api || true
+          $compose logs --tail=120 --no-color robtic-minecraft-api || true
 
   # Claims the signature, but only after the deploy succeeded *and* the API was observed serving.
-  # Sealing on `deploy` alone marked a dead service as shipped, so the next push skipped it as
-  # "unchanged" and the outage survived every subsequent deploy.
+  # Sealing on `deploy` alone marks a dead service as shipped, so the next push skips it as
+  # "unchanged" and the outage survives every subsequent deploy.
   seal:
     name: Record what was deployed
     needs: [changes, deploy, verify]
@@ -146,12 +141,12 @@ jobs:
         run: |
           mkdir -p .deploy-signatures
           printf '%s %s %s\n' "${{ github.sha }}" "$(date -u +%FT%TZ)" "${{ github.run_id }}" \
-            > .deploy-signatures/dashboard-api
+            > .deploy-signatures/minecraft-api
 
       # continue-on-error: a concurrent run may have claimed the same key first. That is a
       # duplicate, not a failure — the deploy already happened either way.
       - uses: actions/cache/save@v4
         continue-on-error: true
         with:
-          path: .deploy-signatures/dashboard-api
-          key: deploy-v1-dashboard-api-${{ needs.changes.outputs.signature }}
+          path: .deploy-signatures/minecraft-api
+          key: deploy-v1-minecraft-api-${{ needs.changes.outputs.signature }}

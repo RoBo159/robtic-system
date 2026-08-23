@@ -38,7 +38,7 @@ export const discordConfig = registerAs("discord", (): DiscordConfig => {
     return {
         clientId: env.DISCORD_CLIENT_ID,
         clientSecret: env.DISCORD_CLIENT_SECRET,
-        // Same token the bot and the platform API use — `MainBotToken`/`TestBot`, picked by
+        // Same token the bot and the Minecraft API use — `MainBotToken`/`TestBot`, picked by
         // `NODE_ENV` in libs/config. There is no separate dashboard bot token to configure.
         botToken: getMainBotToken(),
     };

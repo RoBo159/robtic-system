@@ -10,7 +10,7 @@ shift || true
 
 usage() {
     echo "usage: bun run docker:build <service> [docker build flags...]" >&2
-    echo "  services: bot, platform-api, dashboard-api, dashboard, minecraft-plugin" >&2
+    echo "  services: bot, minecraft-api, dashboard-api, dashboard, minecraft-plugin" >&2
 }
 
 if [ -z "$service" ]; then
@@ -20,7 +20,7 @@ fi
 
 case "$service" in
     bot)           context="$ROOT"; image=robtic-system ;;
-    platform-api)  context="$ROOT"; image=robtic-platform-api ;;
+    minecraft-api) context="$ROOT"; image=robtic-minecraft-api ;;
     dashboard-api) context="$ROOT"; image=robtic-dashboard-api ;;
     dashboard)     context="$ROOT"; image=robtic-dashboard ;;
     # Its own context: the root .dockerignore excludes this directory.

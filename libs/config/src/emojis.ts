@@ -1,7 +1,3 @@
-/**
- * Custom server emojis, per branch. Every emoji id here belongs to the branch's
- * own Discord server — a new branch re-uploads the art and replaces these ids.
- */
 export const BRANCH_EMOJIS = {
     lock: "<:security:1480429199427899412>",
     info: "<:info:1480426659747463242>",

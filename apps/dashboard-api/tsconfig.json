@@ -2,7 +2,7 @@
   "compilerOptions": {
     // `bundler` resolution, matching the rest of the monorepo. The shared libs import each other
     // without file extensions, which NodeNext rejects outright — so this app runs on Bun like the
-    // bot and robtic-api do, and tsc is only ever used here to typecheck.
+    // bot and minecraft-api do, and tsc is only ever used here to typecheck.
     "module": "ESNext",
     "moduleResolution": "bundler",
     "target": "ESNext",

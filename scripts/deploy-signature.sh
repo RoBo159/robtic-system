@@ -13,7 +13,7 @@ set -euo pipefail
 
 service="${1:-}"
 if [ -z "$service" ]; then
-    echo "usage: scripts/deploy-signature.sh <bot|dashboard-api|dashboard>" >&2
+    echo "usage: scripts/deploy-signature.sh <bot|minecraft-api|dashboard-api|dashboard>" >&2
     exit 2
 fi
 
@@ -47,6 +47,9 @@ common=(
 case "$service" in
     bot)
         paths=("${common[@]}" infra/docker/dockerfiles/bot.Dockerfile apps/bot libs images)
+        ;;
+    minecraft-api)
+        paths=("${common[@]}" infra/docker/dockerfiles/minecraft-api.Dockerfile apps/minecraft-api libs)
         ;;
     dashboard-api)
         paths=("${common[@]}" infra/docker/dockerfiles/dashboard-api.Dockerfile apps/dashboard-api libs)

@@ -7,7 +7,7 @@ infra/
 └── docker/
     ├── dockerfiles/
     │   ├── bot.Dockerfile               → ghcr.io/robticorg/robtic-system
-    │   ├── platform-api.Dockerfile      → ghcr.io/robticorg/robtic-platform-api
+    │   ├── minecraft-api.Dockerfile      → ghcr.io/robticorg/robtic-minecraft-api
     │   ├── dashboard-api.Dockerfile     → ghcr.io/robticorg/robtic-dashboard-api
     │   ├── dashboard.Dockerfile         → ghcr.io/robticorg/robtic-dashboard
     │   └── minecraft-plugin.Dockerfile  → local only (Paper test server)
@@ -65,10 +65,10 @@ shipping `node_modules` and `.next` into an image.
 
 | File | Applies to |
 |---|---|
-| `.dockerignore` (repository root) | bot, platform-api, dashboard-api, dashboard |
+| `.dockerignore` (repository root) | bot, minecraft-api, dashboard-api, dashboard |
 | `apps/minecraft-plugin/.dockerignore` | minecraft-plugin |
 
-`apps/robtic-api/.dockerignore` was **deleted** rather than moved. It never applied to anything: that
+`apps/minecraft-api/.dockerignore` was **deleted** rather than moved. It never applied to anything: that
 image builds from the repository root, so the root file was always the one being read.
 
 ### `apps/minecraft-plugin/local-config/`

@@ -2,7 +2,7 @@
  * Server-safe entry point: the Robtic API contract only.
  *
  * `index.ts` additionally re-exports the Discord Embedded App layer, which pulls in a
- * browser-only dependency. Server applications — `apps/robtic-api`, `apps/bot`, `apps/api` —
+ * browser-only dependency. Server applications — `apps/minecraft-api`, `apps/bot`, `apps/api` —
  * import from here (the `@sdk` alias) so that dependency never reaches a Bun process.
  */
 
