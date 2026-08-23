@@ -18,6 +18,14 @@ const SEVERITY_COLOR: Record<"info" | "success" | "warning" | "danger", number> 
 
 /** Human titles for the embed. Nothing here is hardcoded in the plugin, which sends only an action. */
 const ACTION_TITLE: Record<StaffAction, string> = {
+    report_accepted: "Report Accepted",
+    report_closed: "Report Closed",
+    report_dismissed: "Report Dismissed",
+    staff_added: "Staff Member Added",
+    staff_promoted: "Staff Promoted",
+    staff_demoted: "Staff Demoted",
+    staff_role_changed: "Staff Role Changed",
+    staff_fired: "Staff Member Removed",
     staff_enabled: "Staff Mode Enabled",
     staff_disabled: "Staff Mode Disabled",
     freeze: "Player Frozen",

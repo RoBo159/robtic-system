@@ -172,7 +172,11 @@ export interface ReportDto {
     targetUuid: string;
     targetUsername: string;
     reason: string;
-    status: "open" | "resolved" | "dismissed";
+    /** `reviewing` means a staff member has claimed it and is handling it now. */
+    status: "open" | "reviewing" | "resolved" | "dismissed";
+    /** Set while the status is `reviewing`. */
+    assignedToUuid: string | null;
+    assignedToUsername: string | null;
     resolvedByUuid: string | null;
     createdAt: string;
     serverId: string;
@@ -230,3 +234,69 @@ export interface StaffStatsResponse {
 
 /** `GET /api/staff/leaderboard`. */
 export type StaffLeaderboardResponse = Paged<StaffStatsResponse>;
+
+/** `POST /api/staff/reports/claim` — atomic; only the first caller succeeds. */
+export interface ClaimReportRequest extends ServerIdentity {
+    guildId: string;
+    reportId: string;
+    staffUuid: string;
+    staffUsername: string;
+    requestId: string;
+}
+
+/** `POST /api/staff/reports/close`. */
+export interface CloseReportRequest extends ServerIdentity {
+    guildId: string;
+    reportId: string;
+    staffUuid: string;
+    staffUsername: string;
+    status: "resolved" | "dismissed";
+    note?: string;
+    requestId: string;
+}
+
+/** `GET /api/staff/reports/counts` — everything the report placeholders need, in one read. */
+export interface ReportCountsResponse {
+    open: number;
+    reviewing: number;
+    resolved: number;
+    dismissed: number;
+    /** Reports the querying staff member currently holds. */
+    claimedByStaff: number;
+    /** Reports they have closed, ever. */
+    handledByStaff: number;
+}
+
+/** The roster changes `/addstaff`, `/promotestaff`, `/demotestaff`, `/setstaffrole` and `/firestaff` make. */
+export type StaffManagementAction = "add" | "promote" | "demote" | "set-role" | "fire";
+
+/**
+ * `POST /api/staff/manage`.
+ *
+ * The game server has already applied the LuckPerms group — that is what a rank *is* — and sends
+ * the outcome here to be audited and mirrored onto Discord. The API holds no copy of the ladder.
+ */
+export interface ManageStaffRequest extends ServerIdentity {
+    guildId: string;
+    action: StaffManagementAction;
+    actorUuid: string;
+    actorUsername: string;
+    targetUuid: string;
+    targetUsername: string;
+    /** Rank names for the audit line; null where the action has no before or after. */
+    fromRank?: string | null;
+    toRank?: string | null;
+    /** Discord roles to mirror. Absent when a rank has no role configured. */
+    grantRoleId?: string;
+    revokeRoleIds?: string[];
+    requestId: string;
+}
+
+export interface ManageStaffResponse {
+    action: StaffManagementAction;
+    targetUuid: string;
+    /** Null when the target has not linked Discord, which no longer blocks the change. */
+    discordId: string | null;
+    fromRank: string | null;
+    toRank: string | null;
+}

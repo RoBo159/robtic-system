@@ -7,6 +7,7 @@ import {
     StaffSessionRepository,
     StaffStatsRepository,
 } from "@database/repositories";
+import { ModerationService } from "./moderation-service";
 
 /**
  * Staff analytics and the live dashboard.
@@ -99,18 +100,9 @@ export class AnalyticsService {
                 username: record.minecraftUsername,
                 remainingMs: record.releaseAt ? Math.max(0, record.releaseAt.getTime() - Date.now()) : null,
             })),
-            pendingReports: reports.map(report => ({
-                id: String(report._id),
-                reporterUuid: report.reporterUuid,
-                reporterUsername: report.reporterUsername,
-                targetUuid: report.targetUuid,
-                targetUsername: report.targetUsername,
-                reason: report.reason,
-                status: report.status,
-                resolvedByUuid: report.resolvedByUuid ?? null,
-                createdAt: report.createdAt.toISOString(),
-                serverId: report.serverId,
-            })),
+            // Mapped through the one DTO builder rather than repeating its shape here — the second
+            // copy is what went stale when `reviewing` and the assignment fields were added.
+            pendingReports: reports.map(report => ModerationService.toReportDto(report)),
             recentPunishments: punishments.map(record => ({
                 reason: record.reason,
                 moderatorUsername: record.moderatorUsername,

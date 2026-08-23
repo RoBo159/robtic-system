@@ -102,6 +102,20 @@ export const API_ROUTES = {
         stats: "/api/staff/stats",
         leaderboard: "/api/staff/leaderboard",
         rank: "/api/staff/rank",
+
+        /** Report lifecycle: claiming, closing, and the counts the placeholders cache. */
+        claimReport: "/api/staff/reports/claim",
+        closeReport: "/api/staff/reports/close",
+        reportCounts: "/api/staff/reports/counts",
+
+        /**
+         * Staff roster changes: add, promote, demote, set role, fire.
+         *
+         * One endpoint taking the action, because all five do the same two things — write an audit
+         * event and mirror the Discord role. The rank *ordering* is the game server's, so it sends
+         * the resolved outcome exactly as `/staff promote` already does.
+         */
+        manageStaff: "/api/staff/manage",
         backup: "/api/staff/backup",
         /** Called once the plugin has actually restored a snapshot, so the backup can be dropped. */
         confirmRestore: "/api/staff/confirm-restore",

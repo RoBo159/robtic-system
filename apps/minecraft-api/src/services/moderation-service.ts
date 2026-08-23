@@ -298,7 +298,9 @@ export class ModerationService {
         targetUuid: string;
         targetUsername: string;
         reason: string;
-        status: "open" | "resolved" | "dismissed";
+        status: "open" | "reviewing" | "resolved" | "dismissed";
+        assignedToUuid?: string;
+        assignedToUsername?: string;
         resolvedByUuid?: string;
         createdAt: Date;
         serverId: string;
@@ -311,6 +313,8 @@ export class ModerationService {
             targetUsername: record.targetUsername,
             reason: record.reason,
             status: record.status,
+            assignedToUuid: record.assignedToUuid ?? null,
+            assignedToUsername: record.assignedToUsername ?? null,
             resolvedByUuid: record.resolvedByUuid ?? null,
             createdAt: record.createdAt.toISOString(),
             serverId: record.serverId,

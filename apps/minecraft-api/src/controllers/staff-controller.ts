@@ -5,6 +5,8 @@ import { intQueryParam, optionalQueryParam, queryParam, requireGuildId, requireS
 import { withIdempotency } from "../middleware/idempotency";
 import { StaffService } from "../services/staff-service";
 import { StaffRankService } from "../services/staff-rank-service";
+import { ReportService } from "../services/report-service";
+import { StaffRosterService } from "../services/staff-roster-service";
 import { publishBridgeEvent } from "@core/minecraft";
 import { ModerationService } from "../services/moderation-service";
 import { AnalyticsService } from "../services/analytics-service";
@@ -12,6 +14,17 @@ import { DiscordLogService } from "../services/discord-log-service";
 import type { Route } from "../router";
 
 const MAX_PAGE = 100;
+
+/** Roster action to the audit action it is logged as. */
+function auditActionFor(action: "add" | "promote" | "demote" | "set-role" | "fire") {
+    return ({
+        add: "staff_added",
+        promote: "staff_promoted",
+        demote: "staff_demoted",
+        "set-role": "staff_role_changed",
+        fire: "staff_fired",
+    } as const)[action];
+}
 
 /** The body every freeze, jail and unjail call shares. */
 const moderationBody = {
@@ -598,6 +611,170 @@ export const staffRoutes: Route[] = [
         },
     },
     {
+        method: "POST",
+        path: API_ROUTES.staff.claimReport,
+        scope: API_SCOPES.staff,
+        summary: "Claim an open report - atomic, so only the first staff member succeeds",
+        tag: "Staff",
+        handler: async context => {
+            const body = validateBody(context.body, {
+                guildId: schema.snowflake(),
+                reportId: v.string({ min: 1, max: 64 }),
+                staffUuid: schema.uuid(),
+                staffUsername: schema.username(),
+                requestId: schema.requestId(),
+                ...schema.serverIdentity(),
+            });
+
+            const guildId = requireGuildId(context, body.guildId);
+            const serverId = requireServerId(context, body.serverId);
+
+            // Deliberately NOT wrapped in withIdempotency. A replayed claim must be allowed to fail
+            // with CONFLICT: replaying a cached success would tell a second staff member they won a
+            // race they actually lost, which is the one outcome the atomic claim exists to prevent.
+            const claimed = await ReportService.claim({
+                guildId,
+                reportId: body.reportId,
+                staffUuid: body.staffUuid,
+                staffUsername: body.staffUsername,
+            });
+
+            await DiscordLogService.publish({
+                guildId,
+                serverId,
+                serverName: body.serverName,
+                action: "report_accepted",
+                moderatorUuid: body.staffUuid,
+                moderatorUsername: body.staffUsername,
+                targetUuid: claimed.targetUuid,
+                targetUsername: claimed.targetUsername,
+                reason: claimed.reason,
+                fields: { Report: claimed.id, Reporter: claimed.reporterUsername },
+                occurredAt: new Date().toISOString(),
+                requestId: body.requestId,
+            });
+
+            return ok(claimed);
+        },
+    },
+    {
+        method: "POST",
+        path: API_ROUTES.staff.closeReport,
+        scope: API_SCOPES.staff,
+        summary: "Close a report as resolved or dismissed",
+        tag: "Staff",
+        handler: async context => {
+            const body = validateBody(context.body, {
+                guildId: schema.snowflake(),
+                reportId: v.string({ min: 1, max: 64 }),
+                staffUuid: schema.uuid(),
+                staffUsername: schema.username(),
+                status: v.oneOf(["resolved", "dismissed"] as const),
+                note: v.optional(schema.reason()),
+                requestId: schema.requestId(),
+                ...schema.serverIdentity(),
+            });
+
+            const guildId = requireGuildId(context, body.guildId);
+            const serverId = requireServerId(context, body.serverId);
+
+            const { result } = await withIdempotency(body.requestId, guildId, "staff.closeReport", async () =>
+                ReportService.close({
+                    guildId,
+                    reportId: body.reportId,
+                    staffUuid: body.staffUuid,
+                    staffUsername: body.staffUsername,
+                    status: body.status,
+                    note: body.note,
+                }),
+            );
+
+            await DiscordLogService.publish({
+                guildId,
+                serverId,
+                serverName: body.serverName,
+                action: body.status === "resolved" ? "report_closed" : "report_dismissed",
+                moderatorUuid: body.staffUuid,
+                moderatorUsername: body.staffUsername,
+                targetUuid: result.targetUuid,
+                targetUsername: result.targetUsername,
+                reason: body.note ?? result.reason,
+                fields: { Report: result.id, Reporter: result.reporterUsername },
+                occurredAt: new Date().toISOString(),
+                requestId: body.requestId,
+            });
+
+            return ok(result);
+        },
+    },
+    {
+        method: "GET",
+        path: API_ROUTES.staff.reportCounts,
+        scope: API_SCOPES.staff,
+        summary: "Report counts by status, for the staff placeholders",
+        tag: "Staff",
+        handler: async context => {
+            const guildId = requireGuildId(context);
+            return ok(await ReportService.counts(guildId, optionalQueryParam(context, "staffUuid")));
+        },
+    },
+    {
+        method: "POST",
+        path: API_ROUTES.staff.manageStaff,
+        scope: API_SCOPES.staff,
+        summary: "Record a staff roster change and mirror it onto Discord",
+        tag: "Staff",
+        handler: async context => {
+            const body = validateBody(context.body, {
+                guildId: schema.snowflake(),
+                action: v.oneOf(["add", "promote", "demote", "set-role", "fire"] as const),
+                actorUuid: schema.uuid(),
+                actorUsername: schema.username(),
+                targetUuid: schema.uuid(),
+                targetUsername: schema.username(),
+                fromRank: v.nullable(v.string({ max: 32 })),
+                toRank: v.nullable(v.string({ max: 32 })),
+                grantRoleId: v.optional(schema.snowflake()),
+                revokeRoleIds: v.optional(v.arrayOf(schema.snowflake(), { max: 32 })),
+                requestId: schema.requestId(),
+                ...schema.serverIdentity(),
+            });
+
+            const guildId = requireGuildId(context, body.guildId);
+            const serverId = requireServerId(context, body.serverId);
+
+            const { result } = await withIdempotency(body.requestId, guildId, "staff.manage", async () =>
+                StaffRosterService.apply({
+                    guildId,
+                    action: body.action,
+                    targetUuid: body.targetUuid,
+                    targetUsername: body.targetUsername,
+                    fromRank: body.fromRank,
+                    toRank: body.toRank,
+                    grantRoleId: body.grantRoleId,
+                    revokeRoleIds: body.revokeRoleIds,
+                }),
+            );
+
+            await DiscordLogService.publish({
+                guildId,
+                serverId,
+                serverName: body.serverName,
+                action: auditActionFor(body.action),
+                moderatorUuid: body.actorUuid,
+                moderatorUsername: body.actorUsername,
+                targetUuid: body.targetUuid,
+                targetUsername: body.targetUsername,
+                targetDiscordId: result.discordId ?? undefined,
+                fields: { From: result.fromRank ?? "none", To: result.toRank ?? "none" },
+                occurredAt: new Date().toISOString(),
+                requestId: body.requestId,
+            });
+
+            return ok(result);
+        },
+    },
+    {
         method: "GET",
         path: API_ROUTES.staff.reports,
         scope: API_SCOPES.staff,
@@ -605,7 +782,7 @@ export const staffRoutes: Route[] = [
         tag: "Staff",
         handler: async context => {
             const guildId = requireGuildId(context);
-            const status = optionalQueryParam(context, "status") as "open" | "resolved" | "dismissed" | undefined;
+            const status = optionalQueryParam(context, "status") as "open" | "reviewing" | "resolved" | "dismissed" | undefined;
             const rows = await MinecraftModerationRepository.listReports(guildId, status);
 
             return ok({
