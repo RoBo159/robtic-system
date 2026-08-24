@@ -9,6 +9,7 @@ import {
     RobsRepository,
 } from "@database/repositories";
 import { PremiumService } from "./premium-service";
+import { SurvivalService } from "./survival-service";
 
 /**
  * The aggregate behind `/profile` in game and `/minecraft profile` on Discord.
@@ -79,6 +80,9 @@ export class SurvivalProfileService {
             // The groups the game server last reported; the highest is not resolved here because
             // the ladder lives in the server's roles.yml, not in this service.
             rankName: roleState?.groups?.[0] ?? null,
+            // Read off the same row playtime came from, so the AFK panel in the profile GUI costs
+            // nothing beyond what the profile already fetches.
+            afk: SurvivalService.afkStatisticsOf(stats),
         };
     }
 }

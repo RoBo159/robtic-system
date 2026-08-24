@@ -70,6 +70,10 @@ export * from "./StaffStatsRepository";
 export * from "./MinecraftJailRepository";
 export * from "./MinecraftFreezeRepository";
 export * from "./MinecraftModerationRepository";
+export * from "./MinecraftMailRepository";
+export * from "./MinecraftPlayerAccountRepository";
+export * from "./MinecraftPlayerSessionRepository";
+export * from "./MinecraftRecoveryCodeRepository";
 export * from "./ApiRequestLogRepository";
 
 export * from "./AllowedGuildRepository";

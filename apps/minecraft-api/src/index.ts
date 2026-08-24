@@ -9,6 +9,8 @@ import { staffRoutes } from "./controllers/staff-controller";
 import { discordRoutes } from "./controllers/discord-controller";
 import { serverRoutes } from "./controllers/server-controller";
 import { survivalRoutes } from "./controllers/survival-controller";
+import { mailRoutes } from "./controllers/mail-controller";
+import { authRoutes } from "./controllers/auth-controller";
 import { buildOpenApiDocument, renderDocsPage } from "./lib/openapi";
 import { pruneRateLimitBuckets } from "./middleware/rate-limit";
 import { warnIfBotTokenMissing } from "./lib/bot-token";
@@ -37,6 +39,8 @@ const router = new Router().register(
     ...discordRoutes,
     ...serverRoutes,
     ...survivalRoutes,
+    ...mailRoutes,
+    ...authRoutes,
 );
 
 const openApiDocument = buildOpenApiDocument(router.all());

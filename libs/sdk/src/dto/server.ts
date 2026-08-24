@@ -1,5 +1,6 @@
 import type { ServerIdentity } from "./common";
 import type { StaffAction } from "../constants/staff-actions";
+import type { AfkStatisticsDto } from "./survival";
 
 /** Lifecycle states a Minecraft server reports. Mirrors MINECRAFT_SERVER_STATES. */
 export type ServerState = "ONLINE" | "OFFLINE" | "RESTARTING" | "CRASHED";
@@ -42,6 +43,10 @@ export interface PlayerJoinResponse {
     groups: string[];
     frozen: boolean;
     jailed: boolean;
+    /** Why they are jailed, so the plugin can say so on the tick it teleports them back. */
+    jailReason: string | null;
+    /** Null when the sentence is indefinite, or when they are not jailed at all. */
+    jailRemainingMs: number | null;
     /** True when the player has history worth alerting online staff about. */
     hasHistory: boolean;
     warningCount: number;
@@ -49,6 +54,17 @@ export interface PlayerJoinResponse {
     reportCount: number;
     /** Set when a crash left an unrestored staff backup behind. */
     pendingStaffRestore: boolean;
+    /** Unread mailbox count, for the join notice and the mailbox item's badge. */
+    unreadMail: number;
+    /**
+     * The player's AFK totals, so the game server's cache is warm before anything reads it.
+     *
+     * Carried here rather than fetched separately because the placeholders are allowed to do no I/O
+     * at all: a tab list rendering `%robtic_afk_total%` a second after the player connects has to
+     * find the answer already in memory, and the join response is the one call that is guaranteed
+     * to have happened by then.
+     */
+    afk: AfkStatisticsDto;
 }
 
 /** `GET /api/server/info` — read by the bot's `!ip` / `!status` commands. */

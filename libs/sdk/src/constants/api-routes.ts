@@ -82,6 +82,16 @@ export const API_ROUTES = {
         profile: "/api/survival/profile",
         entitlements: "/api/survival/entitlements",
         stats: "/api/survival/stats",
+
+        /**
+         * One finished AFK session: the time it lasted and the robs it earned.
+         *
+         * Separate from `stats` because it settles two things at once — the AFK totals and a credit
+         * to the balance — and the game server must be able to do both in a single request. It has
+         * exactly one chance: the other end of an AFK session is very often a disconnect, and a
+         * second call after the first would be made on behalf of a player who no longer exists.
+         */
+        afkSession: "/api/survival/afk",
     },
 
     staff: {
@@ -109,6 +119,18 @@ export const API_ROUTES = {
         reportCounts: "/api/staff/reports/counts",
 
         /**
+         * Accepting or refusing a report — the two ways one ends.
+         *
+         * Separate from `closeReport` because accepting does more than change a status: it opens a
+         * jail sentence against the reported player and posts mail to both sides. Folding that into
+         * the generic close would make "close this report" mean two very different things depending
+         * on an argument.
+         */
+        decideReport: "/api/staff/reports/decide",
+        /** Resolve a six-digit code to the full report, for `/report accept <id>`. */
+        reportByCode: "/api/staff/reports/by-code",
+
+        /**
          * Staff roster changes: add, promote, demote, set role, fire.
          *
          * One endpoint taking the action, because all five do the same two things — write an audit
@@ -119,6 +141,40 @@ export const API_ROUTES = {
         backup: "/api/staff/backup",
         /** Called once the plugin has actually restored a snapshot, so the backup can be dropped. */
         confirmRestore: "/api/staff/confirm-restore",
+    },
+
+    /**
+     * The in-game mailbox.
+     *
+     * Its own prefix rather than living under `staff`, because it is a player-facing feature: staff
+     * write to it, but a player reading their own mail is not a staff action and should not need a
+     * key scoped for one.
+     */
+    mail: {
+        inbox: "/api/mail",
+        pending: "/api/mail/pending",
+        read: "/api/mail/read",
+    },
+
+    /**
+     * RobticAuth — the game server's half of Discord-first authentication.
+     *
+     * Its own prefix, and deliberately not under `minecraft` beside the linking routes. Linking
+     * answers "who is this player on Discord?" and is read by half the platform; authentication
+     * answers "is this really them, right now?" and is the only thing on the network that a password
+     * ever touches. Keeping the two apart is what lets the auth routes be reasoned about — and
+     * audited — on their own.
+     */
+    auth: {
+        /** The join read: linked, has a password, live session — everything, in one call. */
+        state: "/api/auth/state",
+        login: "/api/auth/login",
+        resumeSession: "/api/auth/session/resume",
+        logout: "/api/auth/logout",
+        /** Issues the recovery code the *Forgot Password* button shows. */
+        recovery: "/api/auth/recovery",
+        /** Force link, force unlink, reset password, reset session, list sessions. */
+        admin: "/api/auth/admin",
     },
 
     discord: {

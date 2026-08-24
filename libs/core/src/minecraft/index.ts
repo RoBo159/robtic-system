@@ -1,4 +1,13 @@
 export { generateLinkCode } from "./generate-link-code";
+export { generateRecoveryCode, formatRecoveryCode } from "./generate-recovery-code";
+export { hashPassword, verifyPassword, validatePassword, type PasswordProblem } from "./password";
+export {
+    linkAccountWithPassword,
+    changePassword,
+    unlinkWithPassword,
+    type AuthAccountFailure,
+    type AuthAccountResult,
+} from "./auth-account";
 export { redeemLinkCode, type RedeemLinkResult, type LinkFailureReason } from "./redeem-link-code";
 export { unlinkAccount, type UnlinkResult } from "./unlink-account";
 export { getItemPrices, invalidatePriceCache, type MinecraftPriceEntry } from "./get-item-prices";

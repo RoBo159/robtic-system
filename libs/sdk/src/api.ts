@@ -66,5 +66,7 @@ export type * from "./dto/minecraft";
 export type * from "./dto/robs";
 export type * from "./dto/survival";
 export type * from "./dto/staff";
+export type * from "./dto/mail";
+export type * from "./dto/auth";
 export type * from "./dto/discord";
 export type * from "./dto/server";

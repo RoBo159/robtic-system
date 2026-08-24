@@ -7,6 +7,8 @@ import {
     type LockedChestListResponse,
     type PlayerSettingsResponse,
     type PortableChestResponse,
+    type AfkStatisticsDto,
+    type ReportAfkSessionResponse,
     type SpawnResponse,
     type WorldLocationDto,
 } from "@sdk";
@@ -17,8 +19,11 @@ import {
     MinecraftPlayerPrefsRepository,
     MinecraftPlayerStatsRepository,
     MinecraftSpawnRepository,
+    RobsRepository,
 } from "@database/repositories";
+import type { IMinecraftPlayerStats } from "@database/models/MinecraftPlayerStats";
 import { PremiumService } from "./premium-service";
+import { RobsService } from "./robs-service";
 
 /**
  * Spawn, `/back`, chests and cosmetics.
@@ -406,5 +411,59 @@ export class SurvivalService {
         });
 
         return { acknowledged: true };
+    }
+
+    /**
+     * Settles one finished AFK session: the totals and the robs it earned, together.
+     *
+     * <h2>Why the credit is not computed here</h2>
+     *
+     * The rate lives in the game server's `afk.yml` and the session's start is a timestamp only that
+     * server holds, so it is the only party that can say what the session was worth. Recomputing it
+     * from `afkMs` would mean this service also owning the rate — two copies of one number, silently
+     * disagreeing the moment an operator changes one of them. It reports the figure and this credits
+     * it, which is the same division of labour the ore sale already uses.
+     *
+     * <h2>Order</h2>
+     *
+     * The AFK totals are written before the credit. Both are increments and neither can be lost to a
+     * concurrent write, so the only thing the order decides is which one a failure between them
+     * leaves behind: recording the time without the robs understates a balance, and paying without
+     * recording the time would let a replay of the same session pay twice while looking, in the
+     * statistics, as though it had never happened at all.
+     */
+    static async reportAfkSession(input: {
+        uuid: string;
+        username: string;
+        afkMs: number;
+        robs: number;
+    }): Promise<ReportAfkSessionResponse> {
+        const uuid = normaliseUuid(input.uuid);
+        const robs = Math.max(0, Math.round(input.robs));
+
+        const stats = await MinecraftPlayerStatsRepository.recordAfkSession({
+            uuid,
+            username: input.username,
+            afkMs: input.afkMs,
+            robs,
+        });
+
+        // A session too short to have earned a whole rob is the ordinary case, not a failure — the
+        // time is still recorded, and the fraction is carried by the game server into the next one.
+        const balance = robs > 0
+            ? (await RobsService.credit(uuid, input.username, robs)).robs
+            : (await RobsRepository.get(uuid))?.robs ?? 0;
+
+        return { uuid, afk: this.afkStatisticsOf(stats), balance };
+    }
+
+    /** The AFK projection of a stats row, shared by the profile and the session report. */
+    static afkStatisticsOf(stats: IMinecraftPlayerStats | null): AfkStatisticsDto {
+        return {
+            totalMs: stats?.afkTotalMs ?? 0,
+            todayMs: stats?.afkTodayMs ?? 0,
+            todayDate: stats?.afkTodayDate ?? "",
+            robs: stats?.afkRobs ?? 0,
+        };
     }
 }

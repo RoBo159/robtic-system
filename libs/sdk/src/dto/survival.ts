@@ -330,6 +330,51 @@ export interface SurvivalProfileResponse {
     friendCount: number;
     /** Staff rank display name as last reported by a game server, or null. */
     rankName: string | null;
+    /** Time spent in an AFK world, and what it earned. Carried so the profile needs no second read. */
+    afk: AfkStatisticsDto;
+}
+
+/**
+ * A player's AFK totals.
+ *
+ * Lifetime figures only — the session a player is in right now is held in the game server's memory
+ * and is never written here, because it is worth a database round trip only once, when it ends.
+ */
+export interface AfkStatisticsDto {
+    /** Lifetime time spent in an AFK world, in milliseconds. */
+    totalMs: number;
+    /** The same figure for `todayDate` alone. */
+    todayMs: number;
+    /** The UTC day `todayMs` belongs to, `yyyy-MM-dd`, so a stale figure is recognisable as stale. */
+    todayDate: string;
+    /** Lifetime robs earned by being AFK. Already included in the player's balance. */
+    robs: number;
+}
+
+/**
+ * `POST /api/survival/afk` — one finished AFK session, reported as a delta.
+ *
+ * Sent once, when the session ends. `robs` is what the game server calculated from its own start
+ * timestamp and configured rate; the API credits exactly that and does not recompute it, because
+ * the rate is the game server's setting and only it knows when the session actually began.
+ */
+export interface ReportAfkSessionRequest extends ServerIdentity {
+    guildId: string;
+    uuid: string;
+    username: string;
+    /** How long the session lasted, in milliseconds. */
+    afkMs: number;
+    /** Whole robs the session earned. Zero is ordinary — a short session earns less than one. */
+    robs: number;
+    requestId: string;
+}
+
+/** `POST /api/survival/afk` — the totals after the session, so the game server can reconcile. */
+export interface ReportAfkSessionResponse {
+    uuid: string;
+    afk: AfkStatisticsDto;
+    /** The balance after the credit, authoritative, for the plugin's balance cache. */
+    balance: number;
 }
 
 /** `POST /api/survival/stats` — a session's activity, reported as deltas. */

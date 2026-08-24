@@ -1,6 +1,33 @@
 import { MinecraftWarning, type IMinecraftWarning } from "@database/models/MinecraftWarning";
 import { MinecraftNote, type IMinecraftNote } from "@database/models/MinecraftNote";
-import { MinecraftReport, type IMinecraftReport, type MinecraftReportStatus } from "@database/models/MinecraftReport";
+import {
+    MINECRAFT_REPORT_OPEN_STATUSES,
+    MinecraftReport,
+    type IMinecraftReport,
+    type IMinecraftReportLocation,
+    type MinecraftReportStatus,
+} from "@database/models/MinecraftReport";
+
+/** How many times a colliding six-digit code is regenerated before giving up. */
+const CODE_ATTEMPTS = 12;
+
+/** Mongo's duplicate-key error. The only failure `addReport` retries rather than propagates. */
+const DUPLICATE_KEY = 11000;
+
+/**
+ * A fresh six-digit code.
+ *
+ * Always six digits — the range starts at 100000 rather than 0 so a code never has to be printed
+ * with leading zeros, which is exactly the sort of thing that gets dropped when somebody retypes it
+ * from a Discord embed.
+ */
+function newReportCode(): string {
+    return String(100000 + Math.floor(Math.random() * 900000));
+}
+
+function isDuplicateKey(error: unknown): boolean {
+    return typeof error === "object" && error !== null && (error as { code?: number }).code === DUPLICATE_KEY;
+}
 
 /** Shared shape for the three player-attached records staff create in game. */
 interface EntryInput {
@@ -79,20 +106,73 @@ export class MinecraftModerationRepository {
         return MinecraftNote.countDocuments({ guildId, minecraftUuid: minecraftUuid.toLowerCase() });
     }
 
+    /**
+     * Files a report, assigning it a six-digit code unique within the guild.
+     *
+     * <h2>Write-and-retry, not check-and-write</h2>
+     *
+     * Asking "is this code taken?" and then inserting leaves a window in which two reports filed in
+     * the same moment both pass the check and both write the same code. The unique index on
+     * `{ guildId, code }` closes it: the second insert fails with a duplicate-key error, and this
+     * retries with a new code. So the check *is* the write.
+     *
+     * With six digits the collision probability is negligible until a guild holds tens of thousands
+     * of reports, and {@link CODE_ATTEMPTS} attempts is far past the point where a genuine outage,
+     * not exhaustion, is the explanation — which is why the failure is thrown rather than falling
+     * back to a longer code that staff would then have to type.
+     */
     static async addReport(input: {
         guildId: string;
         serverId: string;
         reporterUuid: string;
         reporterUsername: string;
+        reporterDiscordId?: string;
+        reporterLocation?: IMinecraftReportLocation;
         targetUuid: string;
         targetUsername: string;
+        targetDiscordId?: string;
+        targetLocation?: IMinecraftReportLocation;
+        targetOnline?: boolean;
         reason: string;
     }): Promise<IMinecraftReport> {
-        return MinecraftReport.create({
+        const document = {
             ...input,
             reporterUuid: input.reporterUuid.toLowerCase(),
             targetUuid: input.targetUuid.toLowerCase(),
-        });
+            targetOnline: input.targetOnline ?? false,
+        };
+
+        for (let attempt = 0; attempt < CODE_ATTEMPTS; attempt++) {
+            try {
+                return await MinecraftReport.create({ ...document, code: newReportCode() });
+            } catch (error) {
+                if (!isDuplicateKey(error)) throw error;
+            }
+        }
+
+        throw new Error(
+            `Could not allocate a unique report code after ${CODE_ATTEMPTS} attempts — the report was not filed.`,
+        );
+    }
+
+    /**
+     * The report behind a six-digit code.
+     *
+     * This is the lookup every staff-facing path goes through, because the code is the only
+     * identifier a human ever sees. Falls back to treating the input as an ObjectId so a report
+     * clicked in the GUI — which has the real id in hand — does not need a second round trip.
+     */
+    static async findReportByCode(guildId: string, code: string): Promise<IMinecraftReport | null> {
+        const trimmed = code.trim();
+
+        const byCode = await MinecraftReport.findOne({ guildId, code: trimmed });
+        if (byCode) return byCode;
+
+        // An ObjectId is 24 hex characters; anything else cannot be one, and handing Mongo a
+        // malformed id throws a cast error rather than returning null.
+        if (!/^[0-9a-f]{24}$/i.test(trimmed)) return null;
+
+        return MinecraftReport.findOne({ _id: trimmed, guildId });
     }
 
     static async listReports(guildId: string, status?: MinecraftReportStatus, limit = 50): Promise<IMinecraftReport[]> {
@@ -154,18 +234,68 @@ export class MinecraftModerationRepository {
         }).sort({ claimedAt: -1 });
     }
 
-    /** Counts by status, for the placeholder cache. One aggregate rather than four queries. */
+    /** Counts by status, for the placeholder cache. One aggregate rather than six queries. */
     static async reportCounts(guildId: string): Promise<Record<MinecraftReportStatus, number>> {
         const rows = await MinecraftReport.aggregate<{ _id: MinecraftReportStatus; count: number }>([
             { $match: { guildId } },
             { $group: { _id: "$status", count: { $sum: 1 } } },
         ]);
 
-        const counts = { open: 0, reviewing: 0, resolved: 0, dismissed: 0 } as Record<MinecraftReportStatus, number>;
+        const counts = {
+            open: 0,
+            reviewing: 0,
+            accepted: 0,
+            refused: 0,
+            resolved: 0,
+            dismissed: 0,
+        } as Record<MinecraftReportStatus, number>;
+
         for (const row of rows) {
-            counts[row._id] = row.count;
+            // Guarded rather than assigned blind: a status written by an older build that this one
+            // no longer knows about must not add an undefined key to a record the API returns.
+            if (row._id in counts) counts[row._id] = row.count;
         }
         return counts;
+    }
+
+    /**
+     * Settles a report as accepted or refused.
+     *
+     * <h2>Why this is one atomic update and not a read followed by a write</h2>
+     *
+     * Accepting a report jails somebody. Two staff members clicking Accept on the same report within
+     * the same second would, with a read-then-write, both see it open and both proceed — and the
+     * second jail attempt fails with "already jailed", which reads as a broken button rather than as
+     * a race that was correctly lost. Filtering on the open statuses means exactly one caller gets a
+     * document back and everybody else gets null, so the jail is only ever attempted by the winner.
+     *
+     * @returns the settled report, or null when it was already closed by somebody else.
+     */
+    static async decideReport(
+        guildId: string,
+        reportId: string,
+        staff: { uuid: string; username: string },
+        decision: "accepted" | "refused",
+        note?: string,
+    ): Promise<IMinecraftReport | null> {
+        return MinecraftReport.findOneAndUpdate(
+            { _id: reportId, guildId, status: { $in: MINECRAFT_REPORT_OPEN_STATUSES } },
+            {
+                $set: {
+                    status: decision,
+                    resolvedByUuid: staff.uuid.toLowerCase(),
+                    resolvedByUsername: staff.username,
+                    resolvedAt: new Date(),
+                    resolutionNote: note,
+                },
+            },
+            { returnDocument: "after" }
+        );
+    }
+
+    /** Records that accepting a report opened a jail sentence, so the two can be traced together. */
+    static async markReportJailed(guildId: string, reportId: string): Promise<void> {
+        await MinecraftReport.updateOne({ _id: reportId, guildId }, { $set: { jailApplied: true } });
     }
 
     /** How many reports this staff member has handled, for `%robtic_staff_total_cases%`. */
@@ -192,11 +322,11 @@ export class MinecraftModerationRepository {
         guildId: string,
         reportId: string,
         resolver: { uuid: string; username: string },
-        status: Exclude<MinecraftReportStatus, "open" | "reviewing">,
+        status: "resolved" | "dismissed",
         note?: string,
     ): Promise<IMinecraftReport | null> {
         return MinecraftReport.findOneAndUpdate(
-            { _id: reportId, guildId, status: { $in: ["open", "reviewing"] } },
+            { _id: reportId, guildId, status: { $in: MINECRAFT_REPORT_OPEN_STATUSES } },
             {
                 $set: {
                     status,

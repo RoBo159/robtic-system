@@ -165,24 +165,59 @@ export interface NoteDto {
     serverId: string;
 }
 
+/**
+ * Where a player was standing when a report was filed.
+ *
+ * Captured at filing time on both sides, not resolved when the report is read: by the time staff
+ * open it the reporter has walked away and the reported player is often offline, so a position
+ * looked up on read would answer a question nobody asked.
+ */
+export interface ReportLocationDto {
+    world: string;
+    x: number;
+    y: number;
+    z: number;
+    serverId: string | null;
+    recordedAt: string | null;
+}
+
+/**
+ * `open` → `reviewing` while a staff member holds it → `accepted` or `refused`.
+ *
+ * `resolved` and `dismissed` are the older closing statuses and are still returned for reports
+ * closed before accept/refuse existed.
+ */
+export type ReportStatus = "open" | "reviewing" | "accepted" | "refused" | "resolved" | "dismissed";
+
 export interface ReportDto {
     id: string;
+    /** Six digits, unique per guild. The identifier staff type and every embed prints. */
+    code: string;
     reporterUuid: string;
     reporterUsername: string;
+    /** Null when the reporter has not linked Discord, which never blocks a report. */
+    reporterDiscordId: string | null;
+    reporterLocation: ReportLocationDto | null;
     targetUuid: string;
     targetUsername: string;
+    targetDiscordId: string | null;
+    targetLocation: ReportLocationDto | null;
+    /** Whether the reported player was online when the report was filed. */
+    targetOnline: boolean;
     reason: string;
-    /** `reviewing` means a staff member has claimed it and is handling it now. */
-    status: "open" | "reviewing" | "resolved" | "dismissed";
+    status: ReportStatus;
     /** Set while the status is `reviewing`. */
     assignedToUuid: string | null;
     assignedToUsername: string | null;
     resolvedByUuid: string | null;
+    resolvedByUsername: string | null;
+    /** True when accepting the report opened a jail sentence. */
+    jailApplied: boolean;
     createdAt: string;
     serverId: string;
 }
 
-/** `POST /api/staff/notes`, `/warnings`, `/reports` share this envelope. */
+/** `POST /api/staff/notes` and `/warnings` share this envelope. */
 export interface CreateEntryRequest extends ServerIdentity {
     guildId: string;
     targetUuid: string;
@@ -191,6 +226,49 @@ export interface CreateEntryRequest extends ServerIdentity {
     authorUsername: string;
     text: string;
     requestId: string;
+}
+
+/**
+ * `POST /api/staff/reports` — filing a report.
+ *
+ * Extends the shared entry envelope with the two positions and the "was the reported player here?"
+ * flag, all of which are only meaningful at the moment of filing.
+ */
+export interface FileReportRequest extends CreateEntryRequest {
+    reporterLocation?: Omit<ReportLocationDto, "serverId" | "recordedAt">;
+    targetLocation?: Omit<ReportLocationDto, "serverId" | "recordedAt">;
+    targetOnline?: boolean;
+}
+
+/**
+ * `POST /api/staff/reports/decide` — accepting or refusing a report.
+ *
+ * Accepting jails the reported player. That happens here rather than in the plugin because the
+ * reported player is frequently offline: a jail applied to a live `Player` object would silently do
+ * nothing, while a sentence written here is re-read and enforced the next time they join.
+ */
+export interface DecideReportRequest extends ServerIdentity {
+    guildId: string;
+    /** The six-digit code, or the report's id. Either resolves. */
+    reportId: string;
+    decision: "accept" | "refuse";
+    staffUuid: string;
+    staffUsername: string;
+    /** Null or absent for an indefinite jail. Ignored when refusing. */
+    jailDurationMs?: number | null;
+    /** Overrides the report's own text as the jail reason. */
+    note?: string;
+    requestId: string;
+}
+
+export interface DecideReportResponse {
+    report: ReportDto;
+    /** False when the decision was to refuse, or when the player was already serving a sentence. */
+    jailed: boolean;
+    /** Why no jail was opened, when one was expected. Null on success. */
+    jailSkippedReason: string | null;
+    /** Mail posted as a result: to the reporter always, to the reported player when jailed. */
+    mailSent: number;
 }
 
 /** `GET /api/staff/player` — everything the player-management GUI renders in one round trip. */
@@ -259,6 +337,8 @@ export interface CloseReportRequest extends ServerIdentity {
 export interface ReportCountsResponse {
     open: number;
     reviewing: number;
+    accepted: number;
+    refused: number;
     resolved: number;
     dismissed: number;
     /** Reports the querying staff member currently holds. */

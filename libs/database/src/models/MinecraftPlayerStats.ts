@@ -19,6 +19,28 @@ export interface IMinecraftPlayerStats extends Document {
     deaths: number;
     /** Lifetime number of jail sentences served, incremented when a sentence starts. */
     jailCount: number;
+
+    /**
+     * Time spent in a game server's AFK world, in milliseconds, summed across every server.
+     *
+     * Written once per AFK session, when the session ends — the game server holds the session in
+     * memory and settles it on the way out, so a player standing still for six hours costs one
+     * write rather than six hours of them.
+     */
+    afkTotalMs: number;
+    /** The same figure for {@link afkTodayDate} only, reset by the first write of a new day. */
+    afkTodayMs: number;
+    /**
+     * The UTC day `afkTodayMs` belongs to, as `yyyy-MM-dd`.
+     *
+     * Stored beside the total rather than inferred from `updatedAt`, because "today" has to survive
+     * being read by a server in a different timezone and has to be answerable without a scheduled
+     * job that resets every row at midnight.
+     */
+    afkTodayDate: string;
+    /** Lifetime robs earned by being AFK, kept apart from the balance so the source stays visible. */
+    afkRobs: number;
+
     firstJoinAt: Date;
     lastSeenAt: Date;
     createdAt: Date;
@@ -33,6 +55,12 @@ const minecraftPlayerStatsSchema = new Schema<IMinecraftPlayerStats>(
         kills: { type: Number, default: 0, min: 0 },
         deaths: { type: Number, default: 0, min: 0 },
         jailCount: { type: Number, default: 0, min: 0 },
+
+        afkTotalMs: { type: Number, default: 0, min: 0 },
+        afkTodayMs: { type: Number, default: 0, min: 0 },
+        afkTodayDate: { type: String, default: "" },
+        afkRobs: { type: Number, default: 0, min: 0 },
+
         firstJoinAt: { type: Date, default: Date.now },
         lastSeenAt: { type: Date, default: Date.now },
     },

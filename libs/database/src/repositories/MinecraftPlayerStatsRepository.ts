@@ -54,4 +54,65 @@ export class MinecraftPlayerStatsRepository {
             { upsert: true, returnDocument: "after" }
         ) as Promise<IMinecraftPlayerStats>;
     }
+
+    /** Today in UTC, as the `yyyy-MM-dd` key both this and the game servers store. */
+    static todayKey(at: Date = new Date()): string {
+        return at.toISOString().slice(0, 10);
+    }
+
+    /**
+     * Records one finished AFK session.
+     *
+     * <h2>Written as an aggregation pipeline, for the day rollover</h2>
+     *
+     * "Today's AFK time" cannot be a plain `$inc`: the increment has to *replace* the total when the
+     * stored day is not today and add to it when it is, and which of those applies is a property of
+     * the document being written. Reading the row first and deciding in TypeScript would open the
+     * window this whole repository exists to avoid — two servers settling the same player's session
+     * at once would both read the same figure and the second would overwrite the first.
+     *
+     * A pipeline update evaluates the condition inside the write, on the server, so the rollover and
+     * the increment are one atomic operation and stay correct however many servers are running.
+     *
+     * The lifetime figures alongside it are ordinary increments for the same reason they always
+     * were: the game server reports what one session was worth, never what the total should become.
+     */
+    static async recordAfkSession(input: {
+        uuid: string;
+        username: string;
+        afkMs: number;
+        robs: number;
+        at?: Date;
+    }): Promise<IMinecraftPlayerStats> {
+        const seenAt = input.at ?? new Date();
+        const day = this.todayKey(seenAt);
+        const afkMs = Math.max(0, Math.round(input.afkMs));
+        const robs = Math.max(0, Math.round(input.robs));
+
+        return MinecraftPlayerStats.findOneAndUpdate(
+            { minecraftUuid: this.key(input.uuid) },
+            [
+                {
+                    $set: {
+                        username: input.username,
+                        lastSeenAt: seenAt,
+                        firstJoinAt: { $ifNull: ["$firstJoinAt", seenAt] },
+
+                        afkTotalMs: { $add: [{ $ifNull: ["$afkTotalMs", 0] }, afkMs] },
+                        afkRobs: { $add: [{ $ifNull: ["$afkRobs", 0] }, robs] },
+
+                        afkTodayMs: {
+                            $cond: [
+                                { $eq: [{ $ifNull: ["$afkTodayDate", ""] }, day] },
+                                { $add: [{ $ifNull: ["$afkTodayMs", 0] }, afkMs] },
+                                afkMs,
+                            ],
+                        },
+                        afkTodayDate: day,
+                    },
+                },
+            ],
+            { upsert: true, returnDocument: "after" }
+        ) as Promise<IMinecraftPlayerStats>;
+    }
 }

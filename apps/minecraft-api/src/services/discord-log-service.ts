@@ -18,7 +18,9 @@ const SEVERITY_COLOR: Record<"info" | "success" | "warning" | "danger", number> 
 
 /** Human titles for the embed. Nothing here is hardcoded in the plugin, which sends only an action. */
 const ACTION_TITLE: Record<StaffAction, string> = {
+    report_claimed: "Report Claimed",
     report_accepted: "Report Accepted",
+    report_refused: "Report Refused",
     report_closed: "Report Closed",
     report_dismissed: "Report Dismissed",
     staff_added: "Staff Member Added",

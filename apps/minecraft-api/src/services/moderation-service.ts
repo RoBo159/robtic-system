@@ -1,9 +1,18 @@
-import { ApiError, normaliseUuid, type FreezeStateResponse, type JailStateResponse } from "@sdk";
+import {
+    ApiError,
+    normaliseUuid,
+    type FreezeStateResponse,
+    type JailStateResponse,
+    type ReportDto,
+    type ReportLocationDto,
+} from "@sdk";
 import {
     MinecraftFreezeRepository,
     MinecraftJailRepository,
+    MinecraftLinkRepository,
     MinecraftModerationRepository,
 } from "@database/repositories";
+import type { IMinecraftReport, IMinecraftReportLocation } from "@database/models/MinecraftReport";
 
 /**
  * Freeze, jail, warnings, notes and reports.
@@ -269,55 +278,100 @@ export class ModerationService {
         };
     }
 
+    /**
+     * Files a report.
+     *
+     * Both Discord ids are resolved here rather than sent by the plugin: the game server knows
+     * Minecraft UUIDs and nothing else, and having it look up a Discord account would mean a second
+     * round trip per report for information the API already holds. Neither link is required — an
+     * unlinked player can file a report and can be reported.
+     */
     static async addReport(input: {
         guildId: string;
         serverId: string;
         reporterUuid: string;
         reporterUsername: string;
+        reporterLocation?: ReportPosition;
         targetUuid: string;
         targetUsername: string;
+        targetLocation?: ReportPosition;
+        targetOnline?: boolean;
         reason: string;
     }) {
+        const reporterUuid = normaliseUuid(input.reporterUuid);
+        const targetUuid = normaliseUuid(input.targetUuid);
+
+        const [reporterLink, targetLink] = await Promise.all([
+            MinecraftLinkRepository.getByUuid(input.guildId, reporterUuid),
+            MinecraftLinkRepository.getByUuid(input.guildId, targetUuid),
+        ]);
+
+        const recordedAt = new Date();
+
         const record = await MinecraftModerationRepository.addReport({
             guildId: input.guildId,
             serverId: input.serverId,
-            reporterUuid: normaliseUuid(input.reporterUuid),
+            reporterUuid,
             reporterUsername: input.reporterUsername,
-            targetUuid: normaliseUuid(input.targetUuid),
+            reporterDiscordId: reporterLink?.discordId,
+            reporterLocation: input.reporterLocation
+                ? { ...input.reporterLocation, serverId: input.serverId, recordedAt }
+                : undefined,
+            targetUuid,
             targetUsername: input.targetUsername,
+            targetDiscordId: targetLink?.discordId,
+            targetLocation: input.targetLocation
+                ? { ...input.targetLocation, serverId: input.serverId, recordedAt }
+                : undefined,
+            targetOnline: input.targetOnline,
             reason: input.reason,
         });
 
         return this.toReportDto(record);
     }
 
-    static toReportDto(record: {
-        _id: unknown;
-        reporterUuid: string;
-        reporterUsername: string;
-        targetUuid: string;
-        targetUsername: string;
-        reason: string;
-        status: "open" | "reviewing" | "resolved" | "dismissed";
-        assignedToUuid?: string;
-        assignedToUsername?: string;
-        resolvedByUuid?: string;
-        createdAt: Date;
-        serverId: string;
-    }) {
+    static toReportDto(record: IMinecraftReport): ReportDto {
         return {
             id: String(record._id),
+            // A report filed before codes existed has none. Falling back to the id keeps it usable
+            // everywhere a code is — the GUI can still open it and `/report accept` still resolves
+            // it, because the code lookup falls through to an id lookup. It reads badly and that is
+            // the correct trade for a handful of historic rows.
+            code: record.code || String(record._id),
             reporterUuid: record.reporterUuid,
             reporterUsername: record.reporterUsername,
+            reporterDiscordId: record.reporterDiscordId ?? null,
+            reporterLocation: toLocationDto(record.reporterLocation),
             targetUuid: record.targetUuid,
             targetUsername: record.targetUsername,
+            targetDiscordId: record.targetDiscordId ?? null,
+            targetLocation: toLocationDto(record.targetLocation),
+            targetOnline: record.targetOnline ?? false,
             reason: record.reason,
             status: record.status,
             assignedToUuid: record.assignedToUuid ?? null,
             assignedToUsername: record.assignedToUsername ?? null,
             resolvedByUuid: record.resolvedByUuid ?? null,
+            resolvedByUsername: record.resolvedByUsername ?? null,
+            jailApplied: record.jailApplied ?? false,
             createdAt: record.createdAt.toISOString(),
             serverId: record.serverId,
         };
     }
+}
+
+/** The part of a location the game server supplies; the rest is filled in when the report is filed. */
+type ReportPosition = { world: string; x: number; y: number; z: number };
+
+function toLocationDto(location: IMinecraftReportLocation | undefined): ReportLocationDto | null {
+    if (!location) return null;
+
+    return {
+        world: location.world,
+        x: location.x,
+        y: location.y,
+        z: location.z,
+        serverId: location.serverId ?? null,
+        recordedAt: location.recordedAt?.toISOString() ?? null,
+    };
 }

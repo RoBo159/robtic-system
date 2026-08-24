@@ -14,7 +14,9 @@ export const STAFF_ACTIONS = [
     "inventory_inspect",
     "enderchest_inspect",
     "player_report",
+    "report_claimed",
     "report_accepted",
+    "report_refused",
     "report_closed",
     "report_dismissed",
     "staff_added",
@@ -44,7 +46,9 @@ export type StaffAction = typeof STAFF_ACTIONS[number];
  * here rather than in the embed builder means the bot and any future dashboard agree on it.
  */
 export const STAFF_ACTION_SEVERITY: Record<StaffAction, "info" | "success" | "warning" | "danger"> = {
-    report_accepted: "info",
+    report_claimed: "info",
+    report_accepted: "danger",
+    report_refused: "warning",
     report_closed: "success",
     report_dismissed: "warning",
     staff_added: "success",
@@ -95,6 +99,10 @@ export type StaffStatKey = typeof STAFF_STAT_KEYS[number];
 export const STAFF_ACTION_STAT: Partial<Record<StaffAction, StaffStatKey>> = {
     freeze: "freezes",
     jail: "jails",
+    // Both count: a staff member who correctly refuses a bad report has handled a case just as much
+    // as one who upheld it, and a counter that only rewarded accepting would push towards punishing.
+    report_accepted: "reportsResolved",
+    report_refused: "reportsResolved",
     teleport: "teleports",
     inventory_inspect: "inspections",
     enderchest_inspect: "inspections",

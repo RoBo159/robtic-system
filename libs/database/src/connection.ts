@@ -2,7 +2,7 @@ import mongoose, { type ConnectOptions } from "mongoose";
 import { Logger } from "@logger";
 import { handleError, BotError } from "@core/handlers";
 
-export async function connectDatabase(url: string): Promise<void> {
+export async function  connectDatabase(url: string): Promise<void> {
     try {
         await mongoose.connect(url, {
             serverSelectionTimeoutMS: 5000,

@@ -90,9 +90,22 @@ export { MinecraftNote, type IMinecraftNote } from "./MinecraftNote";
 export {
     MinecraftReport,
     type IMinecraftReport,
+    type IMinecraftReportLocation,
     type MinecraftReportStatus,
     MINECRAFT_REPORT_STATUSES,
+    MINECRAFT_REPORT_OPEN_STATUSES,
 } from "./MinecraftReport";
+export {
+    MinecraftMail,
+    type IMinecraftMail,
+    type MinecraftMailCategory,
+    MINECRAFT_MAIL_CATEGORIES,
+} from "./MinecraftMail";
+
+// RobticAuth. The link itself stays in MinecraftLink — these carry only what authentication adds.
+export { MinecraftPlayerAccount, type IMinecraftPlayerAccount } from "./MinecraftPlayerAccount";
+export { MinecraftPlayerSession, type IMinecraftPlayerSession } from "./MinecraftPlayerSession";
+export { MinecraftRecoveryCode, type IMinecraftRecoveryCode } from "./MinecraftRecoveryCode";
 export { ApiRequestLog, type IApiRequestLog } from "./ApiRequestLog";
 export {
     MinecraftBridgeEvent,

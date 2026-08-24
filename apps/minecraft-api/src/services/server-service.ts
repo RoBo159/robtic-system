@@ -4,7 +4,9 @@ import {
     MinecraftFreezeRepository,
     MinecraftJailRepository,
     MinecraftLinkRepository,
+    MinecraftMailRepository,
     MinecraftModerationRepository,
+    MinecraftPlayerStatsRepository,
     MinecraftRoleStateRepository,
     MinecraftServerRepository,
     StaffBackupRepository,
@@ -12,6 +14,7 @@ import {
 import { getItemPrices } from "@core/minecraft";
 import { API_CACHE_TTL_MS } from "@sdk";
 import { TtlCache } from "../lib/ttl-cache";
+import { SurvivalService } from "./survival-service";
 
 /** The startup bundle changes rarely and is fetched by every server on every reconnect. */
 const bundleCache = new TtlCache<ServerConfigBundleResponse>(API_CACHE_TTL_MS.roles);
@@ -81,15 +84,18 @@ export class ServerService {
             await MinecraftLinkRepository.touch(input.guildId, uuid, input.username);
         }
 
-        const [roleState, freeze, jail, warningCount, jailCount, reportCount, backup] = await Promise.all([
-            link ? MinecraftRoleStateRepository.getByDiscordId(input.guildId, link.discordId) : null,
-            MinecraftFreezeRepository.findActive(input.guildId, uuid),
-            MinecraftJailRepository.findActive(input.guildId, uuid),
-            MinecraftModerationRepository.countWarnings(input.guildId, uuid),
-            MinecraftJailRepository.countHistory(input.guildId, uuid),
-            MinecraftModerationRepository.countReportsAgainst(input.guildId, uuid),
-            StaffBackupRepository.get(input.guildId, uuid, input.serverId),
-        ]);
+        const [roleState, freeze, jail, warningCount, jailCount, reportCount, backup, unreadMail, stats] =
+            await Promise.all([
+                link ? MinecraftRoleStateRepository.getByDiscordId(input.guildId, link.discordId) : null,
+                MinecraftFreezeRepository.findActive(input.guildId, uuid),
+                MinecraftJailRepository.findActive(input.guildId, uuid),
+                MinecraftModerationRepository.countWarnings(input.guildId, uuid),
+                MinecraftJailRepository.countHistory(input.guildId, uuid),
+                MinecraftModerationRepository.countReportsAgainst(input.guildId, uuid),
+                StaffBackupRepository.get(input.guildId, uuid, input.serverId),
+                MinecraftMailRepository.countUnread(input.guildId, uuid),
+                MinecraftPlayerStatsRepository.get(uuid),
+            ]);
 
         return {
             linked: Boolean(link),
@@ -97,11 +103,21 @@ export class ServerService {
             groups: roleState?.groups ?? [],
             frozen: Boolean(freeze),
             jailed: Boolean(jail),
+            // Carried on the join response rather than fetched separately: the plugin teleports a
+            // still-jailed player back to the jail on the same tick it applies this, and it should
+            // be able to tell them *why* without a second round trip they would arrive before.
+            jailReason: jail?.reason ?? null,
+            jailRemainingMs: jail?.releaseAt ? Math.max(0, jail.releaseAt.getTime() - Date.now()) : null,
             hasHistory: warningCount > 0 || jailCount > 0 || reportCount > 0,
             warningCount,
             jailCount,
             reportCount,
             pendingStaffRestore: Boolean(backup),
+            unreadMail,
+            // Carried on the join response for the same reason the mail count is: the plugin's
+            // placeholders may not make a request, so whatever they will be asked for has to be in
+            // memory by the time the player finishes loading in.
+            afk: SurvivalService.afkStatisticsOf(stats),
         };
     }
 

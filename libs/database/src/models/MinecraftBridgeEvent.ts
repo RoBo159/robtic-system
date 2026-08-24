@@ -23,6 +23,24 @@ export const MINECRAFT_BRIDGE_EVENT_TYPES = [
     "freeze_release",
     /** The guild's staff ranks, lobbies or logging targets changed; the plugin drops its cache. */
     "config_invalidate",
+    /**
+     * A player finished linking on Discord, and the game server they are standing on must be told.
+     *
+     * The player is almost always in the link world when this happens — waiting, restricted, with no
+     * way to discover on their own that the modal on their phone succeeded. Without this event they
+     * would have to reconnect to find out.
+     */
+    "account_linked",
+    /**
+     * A password was set or changed from Discord.
+     *
+     * Carries whether the player should be let straight in. Changing a password through recovery is
+     * proof of ownership, so somebody sitting at the login prompt is authenticated where they stand
+     * rather than being asked to type the password they have just chosen.
+     */
+    "password_changed",
+    /** An account was unlinked from Discord; anybody online under it loses access immediately. */
+    "account_unlinked",
 ] as const;
 export type MinecraftBridgeEventType = typeof MINECRAFT_BRIDGE_EVENT_TYPES[number];
 

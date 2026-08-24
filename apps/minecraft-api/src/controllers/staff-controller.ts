@@ -6,6 +6,7 @@ import { withIdempotency } from "../middleware/idempotency";
 import { StaffService } from "../services/staff-service";
 import { StaffRankService } from "../services/staff-rank-service";
 import { ReportService } from "../services/report-service";
+import { MailService } from "../services/mail-service";
 import { StaffRosterService } from "../services/staff-roster-service";
 import { publishBridgeEvent } from "@core/minecraft";
 import { ModerationService } from "../services/moderation-service";
@@ -47,6 +48,22 @@ const entryBody = {
     requestId: schema.requestId(),
     ...schema.serverIdentity(),
 };
+
+/**
+ * A position on a report.
+ *
+ * Optional throughout: a report filed from a console command or by a player whose world has just
+ * been unloaded has no coordinates to give, and refusing the report over a missing block position
+ * would lose the thing staff actually need — the reason.
+ */
+const reportLocation = v.optional(
+    v.object({
+        world: v.string({ min: 1, max: 64 }),
+        x: v.number(),
+        y: v.number(),
+        z: v.number(),
+    }),
+);
 
 export const staffRoutes: Route[] = [
     {
@@ -585,6 +602,29 @@ export const staffRoutes: Route[] = [
                 ModerationService.addWarning({ ...body, guildId, serverId }),
             );
 
+            // Warnings are routinely issued while the player is offline, and a chat line sent to
+            // somebody who is not connected is simply lost — so a warning nobody could read is a
+            // warning that never happened. The mailbox is what makes it reach them.
+            await MailService.sendAll([
+                {
+                    guildId,
+                    recipientUuid: body.targetUuid,
+                    recipientUsername: body.targetUsername,
+                    category: "warned",
+                    subject: "You have been warned",
+                    body: [
+                        `A warning was issued by ${body.authorUsername}.`,
+                        "",
+                        `Reason: ${body.text}`,
+                        "",
+                        "Repeated warnings lead to a jail or a ban.",
+                    ],
+                    important: true,
+                    referenceId: result.id,
+                    serverId,
+                },
+            ]);
+
             await recordEntryAction(guildId, serverId, body, "warning_added");
             return ok(result);
         },
@@ -643,13 +683,15 @@ export const staffRoutes: Route[] = [
                 guildId,
                 serverId,
                 serverName: body.serverName,
-                action: "report_accepted",
+                // Claiming is not accepting. It says a staff member has picked the report up and is
+                // handling it; whether it is upheld is decided later, by /api/staff/reports/decide.
+                action: "report_claimed",
                 moderatorUuid: body.staffUuid,
                 moderatorUsername: body.staffUsername,
                 targetUuid: claimed.targetUuid,
                 targetUsername: claimed.targetUsername,
                 reason: claimed.reason,
-                fields: { Report: claimed.id, Reporter: claimed.reporterUsername },
+                fields: { Report: `#${claimed.code}`, Reporter: claimed.reporterUsername },
                 occurredAt: new Date().toISOString(),
                 requestId: body.requestId,
             });
@@ -699,7 +741,7 @@ export const staffRoutes: Route[] = [
                 targetUuid: result.targetUuid,
                 targetUsername: result.targetUsername,
                 reason: body.note ?? result.reason,
-                fields: { Report: result.id, Reporter: result.reporterUsername },
+                fields: { Report: `#${result.code}`, Reporter: result.reporterUsername },
                 occurredAt: new Date().toISOString(),
                 requestId: body.requestId,
             });
@@ -797,10 +839,16 @@ export const staffRoutes: Route[] = [
         method: "POST",
         path: API_ROUTES.staff.reports,
         scope: API_SCOPES.staff,
-        summary: "File a player report",
+        summary: "File a player report, capturing both positions and a unique six-digit code",
         tag: "Staff",
         handler: async context => {
-            const body = validateBody(context.body, entryBody);
+            const body = validateBody(context.body, {
+                ...entryBody,
+                reporterLocation: reportLocation,
+                targetLocation: reportLocation,
+                targetOnline: v.optional(v.boolean()),
+            });
+
             const guildId = requireGuildId(context, body.guildId);
             const serverId = requireServerId(context, body.serverId);
 
@@ -810,14 +858,112 @@ export const staffRoutes: Route[] = [
                     serverId,
                     reporterUuid: body.authorUuid,
                     reporterUsername: body.authorUsername,
+                    reporterLocation: body.reporterLocation,
                     targetUuid: body.targetUuid,
                     targetUsername: body.targetUsername,
+                    targetLocation: body.targetLocation,
+                    targetOnline: body.targetOnline,
                     reason: body.text,
                 }),
             );
 
-            await recordEntryAction(guildId, serverId, body, "player_report");
+            // Everything a staff member needs to act without opening the game: the code they will
+            // type, both positions, and whichever Discord accounts are linked. The channel this
+            // lands in is the guild's `player_report` log target — see DiscordLogService.
+            await recordEntryAction(guildId, serverId, body, "player_report", {
+                Report: `#${result.code}`,
+                "Reported player": describePlayer(result.targetUsername, result.targetDiscordId),
+                "Reported at": describeLocation(result.targetLocation, result.targetOnline),
+                Reporter: describePlayer(result.reporterUsername, result.reporterDiscordId),
+                "Reporter at": describeLocation(result.reporterLocation, true),
+                Accept: `/report accept ${result.code}`,
+            });
+
             return ok(result);
+        },
+    },
+    {
+        method: "GET",
+        path: API_ROUTES.staff.reportByCode,
+        scope: API_SCOPES.staff,
+        summary: "Resolve a six-digit report code to the full report",
+        tag: "Staff",
+        handler: async context => {
+            const guildId = requireGuildId(context);
+            return ok(await ReportService.byCode(guildId, queryParam(context, "code")));
+        },
+    },
+    {
+        method: "POST",
+        path: API_ROUTES.staff.decideReport,
+        scope: API_SCOPES.staff,
+        summary: "Accept a report - jailing the reported player and mailing both sides - or refuse it",
+        tag: "Staff",
+        handler: async context => {
+            const body = validateBody(context.body, {
+                guildId: schema.snowflake(),
+                reportId: v.string({ min: 1, max: 64 }),
+                decision: v.oneOf(["accept", "refuse"] as const),
+                staffUuid: schema.uuid(),
+                staffUsername: schema.username(),
+                // Nullable rather than optional: an explicit null is "permanent", which is a value
+                // the staff member chose, not the same thing as the field being absent.
+                jailDurationMs: v.nullable(v.number({ min: 1000, integer: true })),
+                note: v.optional(schema.reason()),
+                requestId: schema.requestId(),
+                ...schema.serverIdentity(),
+            });
+
+            const guildId = requireGuildId(context, body.guildId);
+            const serverId = requireServerId(context, body.serverId);
+
+            // Deliberately NOT wrapped in withIdempotency, for the same reason the claim is not: a
+            // replayed decision must be allowed to fail with CONFLICT. Replaying a cached success
+            // would tell a second staff member they settled a report somebody else had already
+            // settled — and, worse, report a jail that this call did not open.
+            const outcome = await ReportService.decide({
+                guildId,
+                serverId,
+                reportId: body.reportId,
+                decision: body.decision,
+                staffUuid: body.staffUuid,
+                staffUsername: body.staffUsername,
+                jailDurationMs: body.jailDurationMs,
+                note: body.note,
+            });
+
+            await DiscordLogService.publish({
+                guildId,
+                serverId,
+                serverName: body.serverName,
+                action: body.decision === "accept" ? "report_accepted" : "report_refused",
+                moderatorUuid: body.staffUuid,
+                moderatorUsername: body.staffUsername,
+                targetUuid: outcome.report.targetUuid,
+                targetUsername: outcome.report.targetUsername,
+                targetDiscordId: outcome.report.targetDiscordId ?? undefined,
+                reason: body.note ?? outcome.report.reason,
+                fields: {
+                    Report: `#${outcome.report.code}`,
+                    Reporter: outcome.report.reporterUsername,
+                    Jailed: outcome.jailed
+                        ? formatDuration(body.jailDurationMs ?? null)
+                        : outcome.jailSkippedReason ?? "no",
+                },
+                occurredAt: new Date().toISOString(),
+                requestId: body.requestId,
+            });
+
+            const counter = STAFF_ACTION_STAT[body.decision === "accept" ? "report_accepted" : "report_refused"];
+            if (counter) {
+                await StaffStatsRepository.increment(
+                    guildId,
+                    { uuid: body.staffUuid, username: body.staffUsername },
+                    counter,
+                );
+            }
+
+            return ok(outcome);
         },
     },
     {
@@ -928,6 +1074,7 @@ async function recordEntryAction(
         requestId: string;
     },
     action: "note_added" | "warning_added" | "player_report",
+    fields?: Record<string, string>,
 ): Promise<void> {
     await StaffLogRepository.append({
         guildId,
@@ -959,7 +1106,29 @@ async function recordEntryAction(
         targetUuid: body.targetUuid,
         targetUsername: body.targetUsername,
         reason: body.text,
+        fields,
         occurredAt: new Date().toISOString(),
         requestId: body.requestId,
     });
+}
+
+/** "Steve · <@123>" when linked, just the name when not. Discord being unconfigured is not an error. */
+function describePlayer(username: string, discordId: string | null): string {
+    return discordId ? `${username} · <@${discordId}>` : `${username} (not linked)`;
+}
+
+/**
+ * A position, rendered for the embed.
+ *
+ * Block coordinates rather than the raw doubles: nobody needs a player's position to seventeen
+ * decimal places, and the rounded form is what a staff member will type into `/tp`.
+ */
+function describeLocation(
+    location: { world: string; x: number; y: number; z: number } | null,
+    online: boolean,
+): string {
+    if (!location) return online ? "unknown" : "offline, no last position recorded";
+
+    const position = `${location.world} ${Math.round(location.x)}, ${Math.round(location.y)}, ${Math.round(location.z)}`;
+    return online ? position : `${position} (offline)`;
 }

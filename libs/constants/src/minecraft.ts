@@ -31,6 +31,66 @@ export const MINECRAFT_LINK_CODE = {
     ttlMs: 5 * 60 * 1000,
 } as const;
 
+/**
+ * RobticAuth: Discord-first authentication for the game servers.
+ *
+ * <h2>Why the link code rules are reused rather than restated</h2>
+ *
+ * A recovery code is the same kind of object as a link code — a short, single-use, human-readable
+ * token somebody reads off one screen and types into another — so it uses the same alphabet, which
+ * already excludes the glyph pairs people confuse (0/O, 1/I). It is longer and rendered in two
+ * groups because it is typed under more pressure, into a Discord modal, by somebody locked out.
+ */
+export const MINECRAFT_AUTH = {
+    /** Recovery codes: `D92L-X71M`. Eight characters, shown grouped, accepted with or without the dash. */
+    recoveryCode: {
+        length: 8,
+        groupSize: 4,
+        alphabet: MINECRAFT_LINK_CODE.alphabet,
+        ttlMs: 10 * 60 * 1000,
+    },
+
+    /**
+     * How long a login is remembered, so a returning player skips the password entirely.
+     *
+     * Bound to the account rather than to the address: a session is proof that *this player* has
+     * authenticated recently, and tying it to an IP would log out every mobile player who moved
+     * between wifi and mobile data mid-session.
+     */
+    session: {
+        ttlMs: 30 * 24 * 60 * 60 * 1000,
+    },
+
+    /**
+     * Attempt budgets, per account, over a rolling window.
+     *
+     * Deliberately not "lock the account after N failures": that hands anybody who knows a username
+     * the ability to lock its owner out. Exhausting a budget delays the *next attempt* instead, so
+     * the cost lands on the attacker's throughput rather than on the victim's access.
+     */
+    rateLimit: {
+        login: { maxAttempts: 5, windowMs: 5 * 60 * 1000 },
+        recovery: { maxAttempts: 3, windowMs: 15 * 60 * 1000 },
+        link: { maxAttempts: 5, windowMs: 10 * 60 * 1000 },
+    },
+
+    /**
+     * Argon2id parameters.
+     *
+     * The OWASP baseline: 19 MiB of memory, two passes, one lane. Memory is the parameter that
+     * matters — it is what makes a GPU no better at this than a CPU — and 19 MiB per verification
+     * is affordable for an API that authenticates a player once per session rather than per request.
+     */
+    argon2: {
+        memoryCost: 19_456,
+        timeCost: 2,
+        parallelism: 1,
+    },
+
+    /** Password bounds. The floor is a real minimum, not a complexity ritual. */
+    password: { minLength: 8, maxLength: 128 },
+} as const;
+
 /** Bounds enforced on `/minecraft price set`. */
 export const MINECRAFT_PRICE_LIMITS = { min: 1, max: 1_000_000 } as const;
 

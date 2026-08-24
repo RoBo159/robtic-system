@@ -569,4 +569,42 @@ export const survivalRoutes: Route[] = [
             return ok({ ...result, duplicate });
         },
     },
+    {
+        method: "POST",
+        path: API_ROUTES.survival.afkSession,
+        scope: API_SCOPES.server,
+        summary: "Settle one finished AFK session: its duration and the robs it earned",
+        tag: "Survival",
+        handler: async context => {
+            const body = validateBody(context.body, {
+                guildId: schema.snowflake(),
+                uuid: schema.uuid(),
+                username: schema.username(),
+                // Bounded at a week. A session longer than that is a clock that moved or a snapshot
+                // that outlived the process it belonged to, not somebody who stood still, and the
+                // honest response to an implausible figure is to refuse it rather than to write a
+                // total nobody can explain afterwards.
+                afkMs: v.number({ min: 0, max: 7 * 24 * 60 * 60 * 1000, integer: true }),
+                robs: v.number({ min: 0, max: 100_000, integer: true }),
+                requestId: schema.requestId(),
+                ...schema.serverIdentity(),
+            });
+
+            const guildId = requireGuildId(context, body.guildId);
+
+            // Idempotent, and this is the route that most needs it: the other end of an AFK session
+            // is often a disconnect, so the plugin queues the write and replays it after an outage.
+            // Without a key that replay would pay for the same minutes a second time.
+            const { result, duplicate } = await withIdempotency(body.requestId, guildId, "survival.afk", async () =>
+                SurvivalService.reportAfkSession({
+                    uuid: body.uuid,
+                    username: body.username,
+                    afkMs: body.afkMs,
+                    robs: body.robs,
+                }),
+            );
+
+            return ok({ ...result, duplicate });
+        },
+    },
 ];
