@@ -305,6 +305,42 @@ check("correct password refused while limited", limited.reason, "rate_limited");
 check("retryAfterMs reported", typeof limited.retryAfterMs, "number");
 check("state reports the wait too", typeof (await state()).retryAfterMs, "number");
 
+console.log("\n--- the legacy migration, end to end ---");
+
+// A fresh legacy account: linked before passwords existed, no password, no session. The earlier
+// sections left their own link behind, so the fixture is replaced rather than added to.
+links = [{ guildId: GUILD, discordId: DISCORD, minecraftUuid: UUID, minecraftUsername: NAME }];
+accounts[UUID] = { failedAttempts: 0, minecraftUsername: NAME, discordId: DISCORD };
+sessions = [];
+recovery = [];
+
+check("legacy player is offered setup, not refused", (await state()).outcome, "needs_password");
+
+// The setup code is issued in game and redeemed on Discord — the second factor. No re-link, and no
+// new link code, which is the whole point of the migration path.
+const migration = await route("POST", API_ROUTES.auth.recovery).handler(
+    contextFor(API_ROUTES.auth.recovery, {
+        guildId: GUILD, uuid: UUID, username: NAME, requestId: "mc-migrate:1", ...identity,
+    }),
+);
+const setupCode = (await migration.json()).data.code;
+
+await AuthService.redeemRecoveryCode({
+    guildId: GUILD, code: setupCode, discordId: DISCORD, newPassword: "migrated password",
+});
+
+check("migration did not touch the link", links.length, 1);
+check("password now set", (await state()).outcome, "needs_login");
+
+// And the password they set in Discord is the one that works in game.
+const afterMigration = await login("migrated password");
+check("the new password logs in", afterMigration.ok, true);
+
+console.log("\n--- sessions survive the migration ---");
+check("a session was issued", typeof afterMigration.session?.sessionId, "string");
+check("next join skips the prompt", (await state()).outcome, "authenticated");
+check("still bound to the address", (await state(undefined, OTHER_IP)).outcome, "needs_login");
+
 console.log("\n--- admin ---");
 const listed = await AuthService.admin({
     guildId: GUILD, action: "list_sessions", uuid: UUID, username: NAME, actorUsername: "Admin",

@@ -177,7 +177,15 @@ console.log("\n--- legacy linked accounts are a migration, not an error ---");
 
 // linked && no password must reach a "complete setup" screen, never a scolding.
 check("a setup screen exists", dialog.includes("completeSetup"), true);
-check("NEEDS_PASSWORD routes to it", /NEEDS_PASSWORD -> .*completeSetup/.test(dialog), true);
+// Spans lines: the code has to be requested before the screen carrying it can be drawn.
+check("NEEDS_PASSWORD routes to it", /NEEDS_PASSWORD[\s\S]{0,240}?completeSetup/.test(dialog), true);
+// Anchored on the method rather than on any mention of it, so the window cannot run past the end
+// of the screen it is meant to be checking.
+check(
+    "the setup screen carries a password field",
+    /private Dialog completeSetup[\s\S]*?DialogInput\.text/.test(dialog),
+    true,
+);
 check("the chat fallback has one too", chat.includes("completeSetup"), true);
 
 const authMessages = readFileSync("apps/minecraft-plugin/src/main/resources/messages.yml", "utf8");
