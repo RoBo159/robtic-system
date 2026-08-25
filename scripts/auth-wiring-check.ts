@@ -200,5 +200,85 @@ check(
 check("setup wording explains the migration", /linked before password/i.test(authBlock), true);
 check("a first-password code reads as setup, not recovery", authBlock.includes("setup-code-issued:"), true);
 
+console.log("\n--- one owner decides who can see whom ---");
+
+const pluginSrc = "apps/minecraft-plugin/src/main/java/org/robtic/minecraft";
+const visibility = readFileSync(`${pluginSrc}/lobby/PlayerVisibilityService.java`, "utf8");
+const vanish = readFileSync(`${pluginSrc}/staff/VanishService.java`, "utf8");
+
+// Four features decide visibility. While each computed its own pairs, the last pass to run won —
+// so a vanished admin was revealed by an unrelated AFK recompute. Only one class may call
+// show/hidePlayer, or that bug comes straight back.
+const callers = ["afk", "auth", "staff", "lobby", "listener", "survival"].flatMap(dir => {
+    const path = `${pluginSrc}/${dir}`;
+    return existsSync(path)
+        ? readdirSync(path)
+              .filter(file => file.endsWith(".java"))
+              .filter(file => /\.(?:show|hide)Player\(/.test(readFileSync(`${path}/${file}`, "utf8")))
+              .map(file => `${dir}/${file}`)
+        : [];
+});
+
+check("only the visibility service touches player visibility", callers, ["lobby/PlayerVisibilityService.java"]);
+check("it accounts for vanish", /vanished\.test/.test(visibility), true);
+check("it accounts for AFK and auth", /isolated\(/.test(visibility), true);
+check("vanish delegates rather than computing", /refreshVisibility\.run\(\)/.test(vanish), true);
+
+console.log("\n--- /hide and /fly are reachable ---");
+
+for (const [cmd, node] of [["hide", "robtic.staff.vanish"], ["fly", "robtic.staff.fly"]] as const) {
+    check(`/${cmd} is declared`, new RegExp(`^\\s{2}${cmd}:`, "m").test(pluginYml), true);
+    check(`/${cmd} is bound`, mainClass.includes(`bind("${cmd}"`) || /StaffCommands/.test(mainClass), true);
+    check(`${node} is declared`, pluginYml.includes(`${node}:`), true);
+}
+
+check("granting flight to others is a separate node", pluginYml.includes("robtic.staff.fly.others:"), true);
+check("vanishing moves staff to the admin gate", /teleportToGate/.test(vanish), true);
+
+console.log("\n--- no screen depends on a network call to render ---");
+
+// The bug: the legacy screen was only drawn inside the recovery callback, so a failed request meant
+// no screen at all — the player saw nothing and could not act. Rendering must never be downstream of
+// an API result.
+check(
+    "the setup dialog draws from memory, not from a callback",
+    /NEEDS_PASSWORD -> player\.showDialog\(completeSetup\(auth\.heldCode/.test(dialog),
+    true,
+);
+check("a held code is a plain memory read", /public RecoveryCode heldCode/.test(read("AuthService.java")), true);
+check(
+    "the chat fallback prints before it fetches",
+    /chat-setup-intro[\s\S]{0,400}?requestRecovery/.test(chat),
+    true,
+);
+
+console.log("\n--- robtic.tester ---");
+
+check("the node is declared", pluginYml.includes("robtic.tester:"), true);
+check("it is op-only", /robtic\.tester:[\s\S]{0,200}?default:\s*op/.test(pluginYml), true);
+
+// Granted via Bukkit permission children rather than `*`, which would also hand out other plugins'
+// nodes. Every command node the plugin declares must be a child, or a tester hits a wall on it.
+const declaredNodes = [...pluginYml.matchAll(/^ {2}(robtic\.[a-z.]+):/gm)]
+    .map(match => match[1]!)
+    .filter(node => node !== "robtic.tester");
+const testerChildren = new Set(
+    [...(pluginYml.match(/robtic\.tester:[\s\S]*?(?=\n {2}robtic\.afk\.admin:)/) ?? [""])[0]
+        .matchAll(/^ {6}(robtic\.[a-z.]+):\s*true/gm)].map(match => match[1]!),
+);
+
+check(
+    "every permission is a child of it",
+    declaredNodes.filter(node => !testerChildren.has(node)),
+    [],
+);
+check(
+    "premium limits are lifted for testers",
+    /tester\.test\(uuid\)[\s\S]{0,120}?Entitlements\.tester\(\)/.test(
+        readFileSync(`${pluginSrc}/survival/SurvivalCacheService.java`, "utf8"),
+    ),
+    true,
+);
+
 console.log(`\n${checks - failures}/${checks} checks passed`);
 if (failures > 0) process.exitCode = 1;
