@@ -280,5 +280,44 @@ check(
     true,
 );
 
+console.log("\n--- the password is asked for before the world loads ---");
+
+const preJoin = read("AuthConfigurationListener.java");
+
+check("it hooks the configuration phase", preJoin.includes("AsyncPlayerConnectionConfigureEvent"), true);
+check("it shows a dialog to the connection", /getAudience\(\)\.showDialog/.test(preJoin), true);
+check("responses arrive as PlayerCustomClickEvent", preJoin.includes("PlayerCustomClickEvent"), true);
+
+// The three ways this could lock somebody out permanently. Each must be handled.
+check(
+    "Bedrock is passed through, not held",
+    /getMostSignificantBits\(\) == 0L[\s\S]{0,120}?return;/.test(preJoin),
+    true,
+);
+check("the wait is bounded", preJoin.includes("completeOnTimeout"), true);
+check("a dropped connection releases the thread", preJoin.includes("PlayerConnectionCloseEvent"), true);
+check("a failed dialog does not hang the connection", /catch \(RuntimeException/.test(preJoin), true);
+
+// An outage must refuse, never admit — the same rule the in-world path follows.
+check(
+    "an unreachable API disconnects rather than letting them in",
+    /state == null[\s\S]*?disconnect/.test(preJoin),
+    true,
+);
+
+// Only players who already have a password are held; anyone needing Discord goes to the link world.
+check(
+    "only NEEDS_LOGIN is held at the dialog",
+    /outcome\(\) != AuthState\.Outcome\.NEEDS_LOGIN[\s\S]{0,80}?return;/.test(preJoin),
+    true,
+);
+
+check("it can be turned off", /preJoinLogin\(\)/.test(preJoin), true);
+check(
+    "it is only registered when dialogs exist",
+    /preJoinLogin\(\) && platform\.supportsDialogs\(\)/.test(mainClass),
+    true,
+);
+
 console.log(`\n${checks - failures}/${checks} checks passed`);
 if (failures > 0) process.exitCode = 1;
