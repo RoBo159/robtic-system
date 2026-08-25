@@ -22,7 +22,7 @@ import {
     authLinkModalHandler,
     authUnlinkModalHandler,
 } from "@bot/components/minecraft/auth-modals.component";
-import { readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 
 let checks = 0;
 let failures = 0;
@@ -131,13 +131,13 @@ for (const source of [adminCommands, consumer, mainClass]) {
     for (const match of source.matchAll(/"auth\.((?!yml")[a-z-]+)"/g)) referenced.add(match[1]!);
 }
 
-for (const file of [
-    "AuthService.java",
-    "AuthMenuListener.java",
-    "AuthInventoryPrompt.java",
-    "AuthRestrictionListener.java",
-    "AuthPlacementListener.java",
-]) {
+// Scanned rather than listed: a hard-coded file list goes stale the moment a surface is added or
+// removed, and the check would then quietly stop covering it.
+for (const file of readdirSync("apps/minecraft-plugin/src/main/java/org/robtic/minecraft/auth")) {
+    // AuthSettings reads auth.yml, where "auth.enabled" and friends are *config* paths that share
+    // the prefix but are not message keys at all.
+    if (file === "AuthSettings.java") continue;
+
     const source = readFileSync(`apps/minecraft-plugin/src/main/java/org/robtic/minecraft/auth/${file}`, "utf8");
     // `[a-z-]+` alone also matches the string "auth.yml", which is a filename rather than a key.
     for (const match of source.matchAll(/"auth\.((?!yml")[a-z-]+)"/g)) referenced.add(match[1]!);
@@ -145,6 +145,52 @@ for (const file of [
 
 const missing = [...referenced].filter(key => !new RegExp(`^\\s{2}${key}:`, "m").test(authSection)).sort();
 check(`every auth message key exists (${referenced.size} referenced)`, missing, []);
+
+console.log("\n--- the login UX cannot deadlock ---");
+
+const authDir = "apps/minecraft-plugin/src/main/java/org/robtic/minecraft/auth";
+const read = (file: string) => readFileSync(`${authDir}/${file}`, "utf8");
+
+const dialog = read("AuthDialogPrompt.java");
+const chat = read("AuthChatPrompt.java");
+const router = read("AuthPromptRouter.java");
+const restrictions = read("AuthRestrictionListener.java");
+
+// The bug: the instruction screen reopened itself on close, so a player told to run /link could
+// never reach chat to run it. Nothing may reopen a prompt on a close event ever again.
+check("no inventory close handler survives", existsSync(`${authDir}/AuthMenuListener.java`), false);
+check("the anvil prompt is gone", existsSync(`${authDir}/AuthInventoryPrompt.java`), false);
+check("no inventory holder remains", existsSync(`${authDir}/AuthMenuHolder.java`), false);
+check("nothing references an anvil", /Anvil|ANVIL/.test(dialog + chat + router + restrictions), false);
+check("the router never re-shows on its own", /reshow|InventoryCloseEvent/.test(router), false);
+
+// The instruction screen must be dismissable and must carry the action it asks for, rather than
+// telling the player to type a command it prevents.
+check("instructions are closable", dialog.includes("canCloseWithEscape(true)"), true);
+check("instructions run /link for the player", dialog.includes('commandTemplate("link")'), true);
+
+// The login screen may be modal precisely because the password field is inside it.
+check("login is modal", dialog.includes("canCloseWithEscape(false)"), true);
+check("every screen dismisses itself", dialog.includes("DialogAfterAction.CLOSE"), true);
+
+console.log("\n--- legacy linked accounts are a migration, not an error ---");
+
+// linked && no password must reach a "complete setup" screen, never a scolding.
+check("a setup screen exists", dialog.includes("completeSetup"), true);
+check("NEEDS_PASSWORD routes to it", /NEEDS_PASSWORD -> .*completeSetup/.test(dialog), true);
+check("the chat fallback has one too", chat.includes("completeSetup"), true);
+
+const authMessages = readFileSync("apps/minecraft-plugin/src/main/resources/messages.yml", "utf8");
+const authBlock = authMessages.slice(authMessages.indexOf("\nauth:"), authMessages.indexOf("\nchat:"));
+
+// The exact sentence the user reported. It framed a normal migration state as the player's fault.
+check(
+    'the "you have not set a password" wording is gone',
+    /you have not set a password/i.test(authBlock),
+    false,
+);
+check("setup wording explains the migration", /linked before password/i.test(authBlock), true);
+check("a first-password code reads as setup, not recovery", authBlock.includes("setup-code-issued:"), true);
 
 console.log(`\n${checks - failures}/${checks} checks passed`);
 if (failures > 0) process.exitCode = 1;
