@@ -167,7 +167,9 @@ check("the router never re-shows on its own", /reshow|InventoryCloseEvent/.test(
 // The instruction screen must be dismissable and must carry the action it asks for, rather than
 // telling the player to type a command it prevents.
 check("instructions are closable", dialog.includes("canCloseWithEscape(true)"), true);
-check("instructions run /link for the player", dialog.includes('commandTemplate("link")'), true);
+// Asserts the behaviour, not the mechanism: this used to check for `commandTemplate("link")`, which
+// was itself the bug — that action is a macro template and rejects a plain command.
+check("instructions run /link for the player", /performCommand\("link"\)/.test(dialog), true);
 
 // The login screen may be modal precisely because the password field is inside it.
 check("login is modal", dialog.includes("canCloseWithEscape(false)"), true);
@@ -279,6 +281,44 @@ check(
     ),
     true,
 );
+
+console.log("\n--- dialog buttons are constructed legally ---");
+
+// `DialogAction.customClick(callback, options)` dereferences its second argument. Passing null
+// throws out of dialog construction, and the player just sees no screen — invisible until somebody
+// hits it in production, which is exactly how it reached a live server.
+const dialogSources = readdirSync(authDir)
+    .filter(file => file.endsWith(".java"))
+    .map(file => [file, readFileSync(`${authDir}/${file}`, "utf8")] as const);
+
+check(
+    "no customClick passes null",
+    dialogSources
+        .filter(([, source]) => /customClick\([^)]*,\s*null\s*\)/s.test(source))
+        .map(([file]) => file),
+    [],
+);
+
+// Adventure defaults a click callback to a SINGLE use. On a login button that means the first wrong
+// password permanently disables it, leaving a dialog whose Login does nothing.
+check(
+    "callback buttons allow repeated presses",
+    /uses\(ClickCallback\.UNLIMITED_USES\)/.test(dialog),
+    true,
+);
+
+// `commandTemplate` is a MACRO action: it parses its argument for $(…) variables and throws when
+// there are none. A plain command belongs in a callback, not a template.
+check(
+    "no plain command is passed to commandTemplate",
+    /commandTemplate\("[^"$]*"\)/.test(dialog),
+    false,
+);
+
+// Every screen is built once at boot, so a construction fault is a console line rather than a
+// player with no way to log in. Three separate bugs of exactly that shape reached production.
+check("every dialog is built at startup", /public boolean selfTest\(\)/.test(dialog), true);
+check("the self-test runs on enable", /dialogPrompt\.selfTest\(\)/.test(mainClass), true);
 
 console.log("\n--- the password is asked for before the world loads ---");
 
