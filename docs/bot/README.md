@@ -43,6 +43,7 @@ loader reports a collision rather than letting one silently overwrite the other.
 - [minecraft.md](./minecraft.md) — Minecraft architecture: linking, shared economy, chat bridge, LuckPerms sync
 - [minecraft-setup.md](./minecraft-setup.md) — Operator guide: API keys, chat wiring, logging channels, full command reference
 - [modal.md](./modal.md) — modal patterns
+- [placeholders.md](./placeholders.md) — every `%robtic_…%` PlaceholderAPI variable the Minecraft plugin exposes
 - [premium.md](./premium.md) — the Premium Engine: global tiers, per-server role mappings, and every perk
 - [quests.md](./quests.md) — quest generation, claiming, automatic progress and the weekly community challenge
 - [shortcuts.md](./shortcuts.md) — `/shortcut` triggers and their cleanup modes

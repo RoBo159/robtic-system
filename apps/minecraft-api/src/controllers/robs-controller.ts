@@ -72,7 +72,7 @@ export const robsRoutes: Route[] = [
                 guildId: schema.snowflake(),
                 uuid: schema.uuid(),
                 username: schema.username(),
-                amount: v.number({ min: 1, integer: true }),
+                amount: v.robs({ min: 0.01 }),
                 reason: schema.reason(),
                 requestId: schema.requestId(),
                 ...schema.serverIdentity(),
@@ -98,7 +98,7 @@ export const robsRoutes: Route[] = [
                 guildId: schema.snowflake(),
                 uuid: schema.uuid(),
                 username: schema.username(),
-                amount: v.number({ min: 1, integer: true }),
+                amount: v.robs({ min: 0.01 }),
                 reason: schema.reason(),
                 requestId: schema.requestId(),
                 ...schema.serverIdentity(),
@@ -194,7 +194,7 @@ export const robsRoutes: Route[] = [
             const body = validateBody(context.body, {
                 guildId: schema.snowflake(),
                 itemKey: schema.itemKey(),
-                price: v.optional(v.number({ min: MINECRAFT_PRICE_LIMITS.min, max: MINECRAFT_PRICE_LIMITS.max, integer: true })),
+                price: v.optional(v.robs({ min: MINECRAFT_PRICE_LIMITS.min, max: MINECRAFT_PRICE_LIMITS.max })),
                 enabled: v.optional(v.boolean()),
             });
 

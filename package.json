@@ -20,6 +20,8 @@
     "test:premium": "bun --preload ./libs/shared/src/preload.ts scripts/premium-check.ts",
     "test:prefix": "bun --preload ./libs/shared/src/preload.ts scripts/prefix-check.ts",
     "test:moderation": "bun --preload ./libs/shared/src/preload.ts scripts/moderation-guard-check.ts",
+    "test:robs": "bun --preload ./libs/shared/src/preload.ts scripts/robs-check.ts",
+    "test:placeholders": "bash scripts/placeholder-docs-check.sh",
     "test:auth": "bun --preload ./libs/shared/src/preload.ts scripts/auth-check.ts",
     "test:auth:wiring": "bun --preload ./libs/shared/src/preload.ts scripts/auth-wiring-check.ts",
     "test:help": "bun --preload ./libs/shared/src/preload.ts scripts/help-check.ts",

@@ -1,5 +1,6 @@
 import { ApiError, normaliseUuid, type SellLine, type SellResponse } from "@sdk";
 import { RobsRepository, RobTransactionRepository } from "@database/repositories";
+import { roundRobs } from "@constants";
 import { getItemPrices } from "@core/minecraft";
 
 /**
@@ -66,12 +67,17 @@ export class RobsService {
         username: string,
         amount: number,
     ): Promise<{ uuid: string; robs: number; applied: number }> {
-        if (amount <= 0) throw ApiError.validation({ amount: "must be greater than zero" });
+        // Rounded before the comparison as well as before the write. An amount below half a
+        // hundredth is not a payment, and letting it through would write a value the scale cannot
+        // hold and then report a balance that disagrees with what was asked for.
+        const rounded = roundRobs(amount);
+
+        if (rounded <= 0) throw ApiError.validation({ amount: "must be greater than zero" });
 
         const normalised = normaliseUuid(uuid);
-        const updated = await RobsRepository.addRobs(normalised, username, amount);
+        const updated = await RobsRepository.addRobs(normalised, username, rounded);
 
-        return { uuid: normalised, robs: updated.robs, applied: amount };
+        return { uuid: normalised, robs: roundRobs(updated.robs), applied: rounded };
     }
 
     /**
@@ -86,13 +92,15 @@ export class RobsService {
         username: string,
         amount: number,
     ): Promise<{ uuid: string; robs: number; applied: number }> {
-        if (amount <= 0) throw ApiError.validation({ amount: "must be greater than zero" });
+        const rounded = roundRobs(amount);
+
+        if (rounded <= 0) throw ApiError.validation({ amount: "must be greater than zero" });
 
         const normalised = normaliseUuid(uuid);
-        const updated = await RobsRepository.tryDebit(normalised, username, amount);
+        const updated = await RobsRepository.tryDebit(normalised, username, rounded);
         if (!updated) throw ApiError.insufficientFunds();
 
-        return { uuid: normalised, robs: updated.robs, applied: -amount };
+        return { uuid: normalised, robs: roundRobs(updated.robs), applied: -rounded };
     }
 
     /**
@@ -123,10 +131,14 @@ export class RobsService {
             if (line.amount <= 0) {
                 throw ApiError.validation({ [`lines.${line.itemKey}`]: "amount must be greater than zero" });
             }
-            return { ...line, unitPrice: price.price, robs: price.price * line.amount };
+            // Rounded per line, because each line is recorded as its own transaction and a stored
+            // figure that does not round-trip is one a player can catch the server getting wrong.
+            return { ...line, unitPrice: price.price, robs: roundRobs(price.price * line.amount) };
         });
 
-        const credited = priced.reduce((total, line) => total + line.robs, 0);
+        // Rounded again over the sum: adding two already-rounded doubles can still land a hair off
+        // the scale, and this is the number that becomes a balance.
+        const credited = roundRobs(priced.reduce((total, line) => total + line.robs, 0));
         const updated = await RobsRepository.addRobs(uuid, input.username, credited);
 
         await Promise.all(

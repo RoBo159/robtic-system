@@ -1,3 +1,5 @@
+import { formatRobs } from "@sdk/constants/robs";
+
 function plural(value: number): string {
     return value === 1 ? "" : "s";
 }
@@ -12,7 +14,7 @@ export const ROBS_MESSAGES = {
     guildOnly: "This command can only be used in a server.",
 
     balance: (username: string, robs: number) =>
-        `⛏️ **${username}** has **${robs}** rob${plural(robs)}.`,
+        `⛏️ **${username}** has **${formatRobs(robs)}** rob${plural(robs)}.`,
 
     /**
      * Shown when the caller has not linked a Minecraft account.

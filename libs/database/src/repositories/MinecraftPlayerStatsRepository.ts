@@ -1,3 +1,4 @@
+import { roundRobs } from "@constants";
 import { MinecraftPlayerStats, type IMinecraftPlayerStats } from "@database/models/MinecraftPlayerStats";
 
 /**
@@ -87,7 +88,10 @@ export class MinecraftPlayerStatsRepository {
         const seenAt = input.at ?? new Date();
         const day = this.todayKey(seenAt);
         const afkMs = Math.max(0, Math.round(input.afkMs));
-        const robs = Math.max(0, Math.round(input.robs));
+
+        // Rounded to the currency scale, not to a whole number. Rounding to an integer here would
+        // discard the fraction of a rob that short AFK sessions are entirely made of.
+        const robs = Math.max(0, roundRobs(input.robs));
 
         return MinecraftPlayerStats.findOneAndUpdate(
             { minecraftUuid: this.key(input.uuid) },

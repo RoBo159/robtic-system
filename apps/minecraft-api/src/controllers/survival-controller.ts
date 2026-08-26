@@ -585,7 +585,7 @@ export const survivalRoutes: Route[] = [
                 // honest response to an implausible figure is to refuse it rather than to write a
                 // total nobody can explain afterwards.
                 afkMs: v.number({ min: 0, max: 7 * 24 * 60 * 60 * 1000, integer: true }),
-                robs: v.number({ min: 0, max: 100_000, integer: true }),
+                robs: v.robs({ min: 0, max: 100_000 }),
                 requestId: schema.requestId(),
                 ...schema.serverIdentity(),
             });

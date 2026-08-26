@@ -91,8 +91,23 @@ export const MINECRAFT_AUTH = {
     password: { minLength: 8, maxLength: 128 },
 } as const;
 
-/** Bounds enforced on `/minecraft price set`. */
-export const MINECRAFT_PRICE_LIMITS = { min: 1, max: 1_000_000 } as const;
+/**
+ * Robs carry two decimal places.
+ *
+ * Re-exported from the SDK rather than declared here, so there is exactly one definition of how the
+ * currency rounds. See `libs/sdk/src/constants/robs.ts` for why it lives there and why it exists at
+ * all — in short, robs were whole numbers and every payout that did not land on one was floored,
+ * which silently paid nothing for anything earned by the minute.
+ */
+export { ROBS_SCALE, roundRobs, isValidRobs, formatRobs } from "@sdk/constants/robs";
+
+/**
+ * Bounds enforced on `/minecraft price set`.
+ *
+ * The floor is a hundredth rather than 1: an item may legitimately be worth a fraction of a rob now,
+ * and a minimum of one would have quietly made the smallest expressible price impossible to set.
+ */
+export const MINECRAFT_PRICE_LIMITS = { min: 0.01, max: 1_000_000 } as const;
 
 /** Bridge/queue tuning shared by the bot consumer and the plugin poller. */
 export const MINECRAFT_BRIDGE = {

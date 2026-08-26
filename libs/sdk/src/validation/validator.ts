@@ -1,3 +1,5 @@
+import { roundRobs } from "../constants/robs";
+
 import { ApiError } from "../errors/api-error";
 
 /**
@@ -52,6 +54,41 @@ export const v = {
                 fail(errors, field, `must be at most ${options.max}`);
             }
             return parsed;
+        };
+    },
+
+    /**
+     * An amount of robs.
+     *
+     * Its own combinator rather than `v.number({ integer: true })` at each call site, which is what
+     * this replaced. Every one of those had to be found and changed when robs gained decimal places,
+     * and the one that was missed would have rejected a legitimate payment with "must be a whole
+     * number" — so the rule lives in one place now and the call sites state only their bounds.
+     *
+     * Rounds rather than rejecting a value with too many decimals. The sender is a game server whose
+     * own arithmetic produced the figure, and refusing 0.8333 outright would fail a payment over a
+     * rounding difference neither side disagrees about; snapping it to the storable scale is both
+     * what the caller meant and what the database will hold.
+     */
+    robs(options: { min?: number; max?: number } = {}): Validator<number> {
+        return (value, field, errors) => {
+            const parsed = typeof value === "string" ? Number(value) : value;
+
+            if (typeof parsed !== "number" || !Number.isFinite(parsed)) {
+                fail(errors, field, "must be a number");
+                return 0;
+            }
+
+            const rounded = roundRobs(parsed);
+
+            if (options.min !== undefined && rounded < options.min) {
+                fail(errors, field, `must be at least ${options.min}`);
+            }
+            if (options.max !== undefined && rounded > options.max) {
+                fail(errors, field, `must be at most ${options.max}`);
+            }
+
+            return rounded;
         };
     },
 

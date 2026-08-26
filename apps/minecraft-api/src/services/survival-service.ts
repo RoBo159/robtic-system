@@ -12,6 +12,7 @@ import {
     type SpawnResponse,
     type WorldLocationDto,
 } from "@sdk";
+import { roundRobs } from "@constants";
 import {
     MinecraftBackUsageRepository,
     MinecraftChestRepository,
@@ -439,7 +440,12 @@ export class SurvivalService {
         robs: number;
     }): Promise<ReportAfkSessionResponse> {
         const uuid = normaliseUuid(input.uuid);
-        const robs = Math.max(0, Math.round(input.robs));
+
+        // Rounded to the currency's scale, not to a whole number. `Math.round` here was the other
+        // half of why AFK appeared to pay nothing: the game server sent 0.83 for a five-minute
+        // session and this turned it into 1 — or, for anything under half a rob, into 0 — so even
+        // once the plugin stopped flooring, the API was still discarding the fraction.
+        const robs = Math.max(0, roundRobs(input.robs));
 
         const stats = await MinecraftPlayerStatsRepository.recordAfkSession({
             uuid,
@@ -448,11 +454,12 @@ export class SurvivalService {
             robs,
         });
 
-        // A session too short to have earned a whole rob is the ordinary case, not a failure — the
-        // time is still recorded, and the fraction is carried by the game server into the next one.
+        // A session can still be too short to have earned even a hundredth — a few seconds — and
+        // that is the ordinary case rather than a failure. The time is recorded either way; there is
+        // simply nothing to credit.
         const balance = robs > 0
             ? (await RobsService.credit(uuid, input.username, robs)).robs
-            : (await RobsRepository.get(uuid))?.robs ?? 0;
+            : roundRobs((await RobsRepository.get(uuid))?.robs ?? 0);
 
         return { uuid, afk: this.afkStatisticsOf(stats), balance };
     }
