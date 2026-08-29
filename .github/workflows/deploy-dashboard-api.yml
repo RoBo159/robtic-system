@@ -1,9 +1,5 @@
 name: Deploy dashboard API
 
-# Runs on push like the Minecraft API rather than chaining behind it: the two share no code path and
-# neither is a client of the other, so serialising them would only make every dashboard change wait
-# on a bot deploy. The `deploy-compose` concurrency group below is what actually keeps them from
-# running `docker compose` on the server at the same time.
 on:
   push:
     branches: [ main ]
@@ -18,16 +14,11 @@ permissions:
   contents: read
   packages: write
 
-# Shared with every other deploy workflow — not per-workflow. Two runs doing `docker compose` on the
-# same server would race, and the second to finish would decide what is live regardless of which is
-# newer. The group name is the server, so anything that touches it queues.
 concurrency:
   group: deploy-compose
   cancel-in-progress: false
 
 jobs:
-  # Content-addressed: the signature of everything that can change this image is looked up in the
-  # Actions cache. A hit means this exact content was already built and deployed.
   changes:
     name: What changed
     runs-on: ubuntu-latest
@@ -61,11 +52,6 @@ jobs:
     secrets:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 
-  # `compose up -d` returns as soon as the container is *started*, which says nothing about whether
-  # the process inside it survived. This service exits at boot when a required variable is missing,
-  # so without this job the workflow went green while the API was dead — and the failure surfaced
-  # one workflow later as "dependency failed to start" on the dashboard, which names neither the
-  # broken service nor the reason.
   verify:
     name: Verify the API is serving
     needs: [changes, deploy]
@@ -104,8 +90,6 @@ jobs:
           echo "::error::robtic-dashboard-api never became healthy within 120s"
           exit 1
 
-      # Only on failure, and only names — never values. A missing variable is by far the most common
-      # cause, and this turns a 20-minute log hunt into a line in the job summary.
       - name: Report why
         if: failure()
         run: |
@@ -133,9 +117,6 @@ jobs:
           echo "--- last 120 log lines ---"
           $compose logs --tail=120 --no-color robtic-dashboard-api || true
 
-  # Claims the signature, but only after the deploy succeeded *and* the API was observed serving.
-  # Sealing on `deploy` alone marked a dead service as shipped, so the next push skipped it as
-  # "unchanged" and the outage survived every subsequent deploy.
   seal:
     name: Record what was deployed
     needs: [changes, deploy, verify]
@@ -148,8 +129,6 @@ jobs:
           printf '%s %s %s\n' "${{ github.sha }}" "$(date -u +%FT%TZ)" "${{ github.run_id }}" \
             > .deploy-signatures/dashboard-api
 
-      # continue-on-error: a concurrent run may have claimed the same key first. That is a
-      # duplicate, not a failure — the deploy already happened either way.
       - uses: actions/cache/save@v4
         continue-on-error: true
         with:

@@ -1,8 +1,5 @@
 name: Deploy Minecraft API
 
-# First of the two, because the bot and every Minecraft server are clients of it: it must be up
-# before anything that depends on it restarts. `deploy-bot.yml` waits on this workflow finishing
-# rather than on a job, which is what lets the two live in separate files without racing.
 on:
   push:
     branches: [ main ]
@@ -17,16 +14,11 @@ permissions:
   contents: read
   packages: write
 
-# Shared with the bot workflow — not per-workflow. Two runs doing `docker compose` on the same
-# server would race, and the second to finish would decide what is live regardless of which is
-# newer. The group name is the server, so anything that touches it queues.
 concurrency:
   group: deploy-compose
   cancel-in-progress: false
 
 jobs:
-  # Content-addressed: the signature of everything that can change this image is looked up in the
-  # Actions cache. A hit means this exact content was already built and deployed.
   changes:
     name: What changed
     runs-on: ubuntu-latest
@@ -60,10 +52,6 @@ jobs:
     secrets:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 
-  # `compose up -d` returns as soon as the container is *started*, which says nothing about whether
-  # the process inside it survived. This service calls process.exit(1) at boot when MONGODB_URI is
-  # missing, so without this job the workflow goes green while the API is dead — and the failure
-  # surfaces one workflow later as a bot that cannot reach it.
   verify:
     name: Verify the API is serving
     needs: [changes, deploy]
@@ -102,8 +90,6 @@ jobs:
           echo "::error::robtic-minecraft-api never became healthy within 120s"
           exit 1
 
-      # Only on failure, and only names — never values. A missing variable is by far the most common
-      # cause, and this turns a 20-minute log hunt into a line in the job summary.
       - name: Report why
         if: failure()
         run: |
@@ -128,9 +114,6 @@ jobs:
           echo "--- last 120 log lines ---"
           $compose logs --tail=120 --no-color robtic-minecraft-api || true
 
-  # Claims the signature, but only after the deploy succeeded *and* the API was observed serving.
-  # Sealing on `deploy` alone marks a dead service as shipped, so the next push skips it as
-  # "unchanged" and the outage survives every subsequent deploy.
   seal:
     name: Record what was deployed
     needs: [changes, deploy, verify]
@@ -143,8 +126,6 @@ jobs:
           printf '%s %s %s\n' "${{ github.sha }}" "$(date -u +%FT%TZ)" "${{ github.run_id }}" \
             > .deploy-signatures/minecraft-api
 
-      # continue-on-error: a concurrent run may have claimed the same key first. That is a
-      # duplicate, not a failure — the deploy already happened either way.
       - uses: actions/cache/save@v4
         continue-on-error: true
         with:

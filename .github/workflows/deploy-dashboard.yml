@@ -1,12 +1,5 @@
 name: Deploy dashboard
 
-# Chained to the dashboard API's *workflow* rather than to a job, because the two live in separate
-# files. `workflow_run` fires once that one finishes, whatever it decided — including when it
-# skipped its deploy as unchanged, which must not stop the web app going out.
-#
-# A failed dashboard API run is the one case that does stop it: every page here is a client of that
-# service, and a web app served against a half-deployed API shows the operator errors on screens
-# that were working a minute ago.
 on:
   workflow_run:
     workflows: ["Deploy dashboard API"]
@@ -22,8 +15,6 @@ permissions:
   contents: read
   packages: write
 
-# Shared with every other deploy workflow, so a manual run of one queues behind the other instead
-# of running `docker compose` on the same server at the same time.
 concurrency:
   group: deploy-compose
   cancel-in-progress: false
@@ -65,9 +56,6 @@ jobs:
     secrets:
       DISCORD_WEBHOOK_DEPLOY: ${{ secrets.DISCORD_WEBHOOK_DEPLOY }}
 
-  # This web app declares `depends_on: robtic-dashboard-api: service_healthy`, so a dead API fails
-  # *this* deploy with "dependency failed to start: … is unhealthy" — a message about the dashboard
-  # that is never about the dashboard. This job says so out loud and points at the real service.
   diagnose:
     name: Why it failed
     needs: [changes, deploy]
@@ -93,8 +81,6 @@ jobs:
           echo "--- robtic-dashboard-api, last 120 lines ---"
           $compose logs --tail=120 --no-color robtic-dashboard-api || true
 
-  # Claims the signature, but only after the deploy actually succeeded — a failed run leaves it
-  # unclaimed so the next push retries instead of skipping a service that never shipped.
   seal:
     name: Record what was deployed
     needs: [changes, deploy]
@@ -107,8 +93,6 @@ jobs:
           printf '%s %s %s\n' "${{ github.sha }}" "$(date -u +%FT%TZ)" "${{ github.run_id }}" \
             > .deploy-signatures/dashboard
 
-      # continue-on-error: a concurrent run may have claimed the same key first. That is a
-      # duplicate, not a failure — the deploy already happened either way.
       - uses: actions/cache/save@v4
         continue-on-error: true
         with:
