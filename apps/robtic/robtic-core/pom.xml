@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.robtic</groupId>
+        <artifactId>robtic-parent</artifactId>
+        <version>4.0.0</version>
+    </parent>
+
+    <artifactId>robtic-core</artifactId>
+    <packaging>jar</packaging>
+
+    <name>RobticCore</name>
+    <description>
+        Shared infrastructure for the Robtic ecosystem: the plugin API, service registry,
+        configuration, player data, economy, statistics, titles, licences, the GUI and item
+        frameworks, PlaceholderAPI, and the utilities every feature plugin uses.
+    </description>
+
+    <!--
+      RobticCore depends on no other Robtic plugin, and never will. That is the one rule the whole
+      ecosystem's dependency graph rests on: if Core could depend on a feature plugin, every cycle
+      the refactor set out to remove would be reachable again.
+    -->
+
+    <dependencies>
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+        </dependency>
+
+        <!--
+          Compile-only, for the licence NPC hook and nothing else.
+
+          Citizens types appear in exactly one class (LicenseNpcHook), so a server without Citizens
+          never loads that class and never needs these types to resolve. Renewal through an NPC is
+          the feature that turns off; every other part of the licence system is unaffected.
+        -->
+        <dependency>
+            <groupId>net.citizensnpcs</groupId>
+            <artifactId>citizensapi</artifactId>
+        </dependency>
+
+        <!--
+          Provided by the server — see the parent pom for why this is not shaded. Core's public API
+          exposes JsonObject across plugin boundaries, and a relocated copy cannot do that.
+        -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+    </dependencies>
+
+    <!--
+      No shade plugin. Nothing is bundled: every dependency is either provided by the server
+      (paper-api, Gson) or an optional integration compiled against and never packaged (LuckPerms,
+      PlaceholderAPI, Citizens). Core's jar contains Core's classes and nothing else.
+    -->
+</project>

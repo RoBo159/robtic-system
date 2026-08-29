@@ -1,0 +1,173 @@
+name: RobticEssentials
+version: ${project.version}
+main: org.robtic.essentials.RobticEssentialsPlugin
+api-version: '1.21'
+author: Robtic
+description: Homes, spawn, friends, chests, cosmetics, lobby and AFK.
+
+# See RobticPlugin for why RobticCore is softdepend rather than depend: softdepend gives load order
+# without throwing, and the requirement is enforced in code with one clear line.
+#
+# RobticMail and RobticStaff are listed for load ORDER, not because they are required. Mail supplies
+# the profile menu's mailbox button and Staff answers "is this player on duty" for the AFK exemption;
+# both are resolved through Core's service registry and both degrade to nothing when absent.
+softdepend: [RobticCore, RobticMail, RobticStaff]
+
+# Every command keeps the name, usage and aliases it had in RobticMinecraft 3.x.
+#
+# Several of these have limits that premium raises — homes, /back, locked chests, the portable ender
+# chest, cosmetics. They are declared here and not in RobticPremium on purpose: they exist for every
+# player, and premium only changes the ceiling. Moving them would delete them for free players.
+commands:
+  spawn:
+    description: Teleport to the server spawn.
+    usage: /spawn
+  setspawn:
+    description: Set the server spawn to where you are standing.
+    usage: /setspawn
+    permission: robtic.spawn.set
+  sethome:
+    description: Create or move a home.
+    usage: /sethome [name]
+  home:
+    description: Teleport to one of your homes.
+    usage: /home [name]
+  homes:
+    description: Open your home list.
+    usage: /homes
+  delhome:
+    description: Delete a home.
+    usage: /delhome <name>
+  renamehome:
+    description: Rename a home.
+    usage: /renamehome <old> <new>
+  back:
+    description: Return to where you last teleported from or died.
+    usage: /back
+  profile:
+    description: Open a player profile.
+    usage: /profile [player]
+  friend:
+    description: Manage your friends.
+    usage: /friend <add|accept|deny|remove|cancel|tp|tpaccept|tpdeny|settings> [player]
+  friends:
+    description: Open your friend list.
+    usage: /friends
+    aliases: [ friendlist ]
+  ec:
+    description: Open your ender chest from anywhere.
+    usage: /ec
+    aliases: [ enderchest ]
+  lock:
+    description: Lock the chest you are looking at.
+    usage: /lock
+  unlock:
+    description: Unlock the chest you are looking at.
+    usage: /unlock
+  locks:
+    description: List the chests you have locked.
+    usage: /locks
+  linkchest:
+    description: Link the chest you are looking at to /chest.
+    usage: /linkchest
+  chest:
+    description: Open your linked chest from anywhere.
+    usage: /chest
+  particle:
+    description: Choose your particle trail.
+    usage: /particle [name|off]
+  joinmessage:
+    description: Set your custom join message.
+    usage: /joinmessage <text|reset>
+  leavemessage:
+    description: Set your custom leave message.
+    usage: /leavemessage <text|reset>
+
+  # ─── Lobby ────────────────────────────────────────────────────────────────────────────────
+  players:
+    description: Show or hide other players.
+    usage: /players
+    aliases: [ playertoggle, toggleplayers ]
+  settings:
+    description: Open your personal settings.
+    usage: /settings
+    aliases: [ preferences ]
+
+  # ─── AFK ──────────────────────────────────────────────────────────────────────────────────
+  afk:
+    description: Go AFK, or manage the AFK lobby.
+    usage: /afk [back|setlobby|reload|status]
+    aliases: [ backfromafk ]
+
+permissions:
+  robtic.spawn:
+    description: Use /spawn.
+    default: true
+  robtic.spawn.set:
+    description: Move the server spawn point.
+    default: op
+  robtic.home:
+    description: Use the home commands.
+    default: true
+  robtic.friend:
+    description: Use the friend system.
+    default: true
+  # The premium features are NOT gated by these nodes. Whether somebody may lock a chest or use
+  # /back is decided by their premium tier, which comes from Discord through the API — a permission
+  # node would be a second, silently disagreeing source of the same answer. These nodes only decide
+  # whether the ordinary commands are available at all.
+  robtic.enderchest:
+    description: Use /ec without a premium tier.
+    default: op
+  robtic.lobby.bypass:
+    # Exempts from every lobby restriction, so the lobby can be built without disabling the module.
+    description: Ignore the lobby restrictions.
+    default: op
+  robtic.afk.admin:
+    description: Set the AFK lobby, reload afk.yml and read AFK status.
+    default: op
+  robtic.tester:
+    # Lifts every premium limit this server enforces in memory, so staff can exercise a paid feature
+    # without buying it. The API's own limits are unaffected — see Entitlements#tester.
+    #
+    # The children matter as much as the node itself: holding robtic.tester is meant to grant every
+    # Robtic permission at once, and without them a tester is only exempt from the premium *limits*
+    # while still lacking the permissions to reach the commands those limits apply to.
+    #
+    # Several of these are declared by other plugins. That is fine — Bukkit resolves children by
+    # name, and a child naming a node no installed plugin declares is simply inert. So this list is
+    # the full set and it degrades correctly on a server running only some of the ecosystem.
+    description: Use and test every Robtic command, including premium-gated features.
+    default: op
+    children:
+      robtic.admin: true
+      robtic.auth.admin: true
+      robtic.afk.admin: true
+      robtic.link: true
+      robtic.robs: true
+      robtic.robs.admin: true
+      robtic.robs.give: true
+      robtic.chat.bridge: true
+      robtic.spawn: true
+      robtic.spawn.set: true
+      robtic.home: true
+      robtic.friend: true
+      robtic.enderchest: true
+      robtic.lobby.bypass: true
+      robtic.staff: true
+      robtic.staff.freeze: true
+      robtic.staff.jail: true
+      robtic.staff.vanish: true
+      robtic.staff.admin: true
+      robtic.staff.rank: true
+      robtic.staff.roster: true
+      robtic.staff.fly: true
+      robtic.staff.fly.others: true
+      robtic.staff.seehidden: true
+      robtic.jobs: true
+      robtic.titles: true
+      robtic.jobs.admin: true
+      robtic.jobs.workspace.bypass: true
+      robtic.markers: true
+      robtic.license.use: true
+      robtic.license.admin: true

@@ -1,0 +1,117 @@
+# DragonBattle — cinematics, played by CS Cinematic.
+#
+# This plugin does not implement camera logic. It knows the NAME you gave a cinematic inside CS
+# Cinematic and plays it at the right moment; everything about how that cinematic looks — positions,
+# interpolation, sounds, zoom — is authored in CS Cinematic itself.
+#
+# The internal respawn animation this plugin used to draw has been removed. If you want beams and
+# particles when the dragon is summoned, build that as a cinematic and name it under `ritual_start`.
+#
+# ─── Setting one up ───────────────────────────────────────────────────────────────────────────
+#
+#   1. In game:  /cs create dragon_spawn
+#   2. Fly to each camera position and run  /cs pos add
+#   3. Save it:  /cs save
+#   4. Put the name you chose on the right-hand side below.
+#
+# Nothing here is hardcoded in the plugin. A name you do not configure simply never plays.
+
+# Turn every cinematic off at once. The battle runs identically without them, so this is safe to
+# switch off mid-fight.
+enabled: true
+
+# ─── The cinematics plugin ────────────────────────────────────────────────────────────────────
+#
+# Checked before anything is dispatched. If it is not installed, or is disabled, the cinematic is
+# skipped and a single warning is logged — the fight is never interrupted.
+#
+# This is the plugin's own name, which is also its folder under plugins/. Change it only if you run
+# a fork or a rename.
+plugin: CSCinematic
+
+# The command used to play a cinematic.
+#
+# CS Cinematic documents:
+#   /cs play <name>            play for the sender
+#   /cs play <name> <player>   force a specific player to watch
+#
+# Placeholders:
+#   %cinematic%  the name from the `cinematics` section below
+#   %player%     one viewer's name — see `audience`
+#   %trigger%    which moment fired, e.g. dragon_spawn
+#   %arena%      the arena's name
+#   %world%      the world the arena's dragon spawns in
+#
+# If the command contains %player% it is run ONCE PER VIEWER, which is what CS Cinematic's
+# per-player form needs. If it does not, it is run ONCE regardless of how many people are watching —
+# which is what you want for a command that already carries its own selector.
+command: "cs play %cinematic% %player%"
+
+# Who counts as a viewer.
+#
+#   ARENA_WORLD  everyone in the world the arena's dragon spawns in   (default)
+#   ALL          everyone on the server
+#   NONE         nobody — the command still runs once with %player% empty, for a command that uses
+#                its own selector
+audience: ARENA_WORLD
+
+# ─── Cinematics ───────────────────────────────────────────────────────────────────────────────
+#
+# trigger: "the name of your cinematic in CS Cinematic"
+#
+# The four moments most fights want:
+#
+#   dragon_spawn   the dragon appears
+#   dragon_death   the dragon is dying
+#   fight_start    the fight proper begins — the dragon is flying and can be hit
+#   fight_finish   everything is over: portal built, beacon lit, gateways open
+#
+# Plus one for the summoning:
+#
+#   ritual_start   the crystals are complete and the respawn begins
+#
+# Leave a value blank, or delete the line, and that moment simply has no cinematic.
+#
+# ─── Any other moment ─────────────────────────────────────────────────────────────────────────
+#
+# Every stage of the battle is also addressable by its own name, so you are not limited to the five
+# above. These all work as keys here:
+#
+#   waiting            crystals_placed     respawn_animation   dragon_spawn
+#   active_fight       landing             takeoff             dragon_death
+#   portal_opening     beacon_spawn        gateway_opening     completed
+#
+# A stage added to the plugin in a future version becomes configurable here immediately, with no
+# change to this file's format.
+#
+# Note that `fight_start` and `active_fight` are the same moment, as are `fight_finish` and
+# `completed`. Configure one or the other — if you set both, the plugin warns and keeps the first.
+
+cinematics:
+  ritual_start: "dragon_ritual"
+  dragon_spawn: "dragon_spawn"
+  fight_start: ""
+  dragon_death: "dragon_death"
+  fight_finish: "dragon_finish"
+
+  # Fired every time the dragon comes down onto a perch and leaves again — several times per fight.
+  # Usually left blank: a cutscene mid-combat takes control away from players who are fighting.
+  landing: ""
+  takeoff: ""
+
+  portal_opening: ""
+  beacon_spawn: ""
+  gateway_opening: ""
+
+# ─── Extra commands ───────────────────────────────────────────────────────────────────────────
+#
+# Anything else to run at a moment, beyond the cinematic. The same placeholders apply, and the same
+# %player% rule decides whether it runs once or once per viewer.
+#
+# These do NOT go through CS Cinematic and are not skipped when it is missing — they are a title, a
+# sound, a broadcast or another plugin entirely, and gating them on a cinematics plugin would make
+# an unrelated feature depend on it.
+commands:
+  dragon_death:
+    - "title @a times 10 60 20"
+  fight_finish: [ ]

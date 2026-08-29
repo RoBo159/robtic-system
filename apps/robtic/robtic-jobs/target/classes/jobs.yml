@@ -1,0 +1,625 @@
+# Jobs — professions discovered by exploring.
+#
+# A job is entirely configuration. There is no code that knows Miner exists, and adding a profession
+# needs no release: a section here, a recruiter in npc.yml, and a marker sign in the schematic.
+#
+# HOW A PLAYER GETS ONE
+#
+#   BetterStructures generates a guild building
+#     ↓
+#   Robtic finds the hidden marker sign inside it and deletes it
+#     ↓
+#   a recruitment NPC is spawned where the sign stood
+#     ↓
+#   a player right-clicks it and takes the job
+#     ↓
+#   the building becomes their workplace, and the recruiter is replaced by a workplace NPC
+#
+# Robtic never generates structures. It reads a marker inside one and reacts.
+#
+# THE MARKER SIGN
+#
+#   line 1   [robtic]
+#   line 2   miner            ← the job id from this file
+#   line 3   offset=0,1,0     ← optional; where the NPC stands relative to the sign
+#   line 4   yaw=180          ← optional; which way it faces
+#
+# The sign is destroyed the moment it is read, so players never see it. Put several in one building
+# to make a guild hall that offers a choice — the player takes one and the rest disappear.
+
+# ─── Global ───────────────────────────────────────────────────────────────────────────────────
+
+# How often progression is written to storage, in seconds.
+#
+# XP arrives many times a second while a player is mining, so it is not saved on each gain. The
+# events that matter — claiming, resigning, equipping a title, quitting — save immediately whatever
+# this says; this only bounds how much XP a crash can cost.
+save-interval-seconds: 300
+
+# The timezone daily sell quotas reset in.
+#
+# A zone rather than a rolling 24 hours, so "daily" means the same thing to every player and can be
+# stated plainly. Any IANA name, or UTC.
+quota-timezone: "UTC"
+
+# ─── Discovery ────────────────────────────────────────────────────────────────────────────────
+#
+# How a profession reaches a player who is exploring.
+#
+# This plugin does NOT scan the world. RobticWorld owns the building marker system: it notices a
+# generated structure, reads its markers, validates them and announces the result. This plugin
+# listens for that announcement and spawns a recruiter for whatever the recruiter marker says.
+#
+# So a new guild hall is a schematic with markers in it. Place a Job Recruiter marker, look at it,
+# and run:
+#
+#   /structure marker set job miner
+#
+# There is no coordinate anywhere in this file, and no code knows the building exists.
+
+discovery:
+  # Whether structures become professions at all. Turning this off leaves RobticWorld scanning and
+  # validating normally — it simply stops this plugin acting on what it finds. Jobs can still be
+  # granted by command.
+  enabled: true
+
+  # Worlds to accept structures from. Empty means every world.
+  worlds: []
+
+  # The marker NPC roles that mean "recruiter", from markers.yml.
+  #
+  # Empty uses the shipped pair, which covers the ordinary recruiter and the rare multi-profession
+  # one. A server that invents a third recruiter marker lists its role here; nothing else changes.
+  recruiter-roles: []
+
+# ─── Premium limits ───────────────────────────────────────────────────────────────────────────
+#
+#   owned    how many professions a player may hold
+#   active   how many earn XP at once
+#
+# The two do different work. The owned limit makes discovering a structure a decision; the active
+# limit is what premium sells. Switching an active job loses NOTHING — an inactive profession keeps
+# its XP, level, statistics and titles and simply stops earning — so a player can move between them
+# freely, and only resigning is destructive.
+#
+# `robtic.tester` lifts both entirely.
+
+limits:
+  default:
+    owned: 1
+    active: 1
+
+  tiers:
+    1:
+      owned: 2
+      active: 1
+    2:
+      owned: 3
+      active: 2
+
+# ─── Jobs ─────────────────────────────────────────────────────────────────────────────────────
+#
+#   display      shown to players; & colour codes allowed
+#   icon         the material in the jobs menu
+#   description  a line, or a list
+#   max-level    the cap, 1–1000
+#   permission   an extra node required to take it, for staff-only or event professions
+#   license      id from licenses.yml of a licence the player must hold to take it. Omit to leave
+#                the profession ungated. Checked last, after every other rule, because a licence may
+#                be consumable — see the miner section
+#   recruiter    id from npc.yml of the NPC that offers it. Defaults to <id>_recruiter
+#
+#   xp-curve     how XP converts to levels
+#     type       linear | polynomial | exponential | table
+#     base       the scale
+#     factor     the steepness (polynomial and exponential)
+#     levels     an explicit per-level list, for `table`
+#
+#     Only total XP is stored; the level is always derived from it. That means editing a curve
+#     re-levels everyone consistently instead of leaving stored levels disagreeing with stored XP.
+#
+#   rewards      what earns XP. Keys are "<verb>:<target>", values are XP
+#     verbs      break, place, harvest, fish, kill, breed, smelt, sell
+#     wildcards  "break:*" applies to anything not matched by a specific key
+#
+#     Player-placed blocks earn nothing when broken, and immature crops earn nothing at all — so
+#     place-and-break farming is worthless without any per-job configuration.
+#
+#   prices       what the workplace NPC pays. A number, or {server, minimum}
+#     server     what the NPC pays per item
+#     minimum    the floor for player-market listings. Never below `server`, so undercutting the
+#                server — and the instant-flip arbitrage that would follow — is impossible
+#
+#   sell         requirements before the server will buy
+#     require          a list of unlock conditions, same syntax as titles.yml
+#     daily-quota      items per day, 0 for unlimited
+#     cooldown-seconds gap between sales, 0 for none
+#
+#   titles       the milestone ladder: level → a full title definition
+#
+#     Defined here rather than in titles.yml so a profession and its titles live together. They are
+#     registered into the same catalog and are ordinary titles afterwards — the same menu, filters
+#     and commands apply, and nothing downstream treats "job title" as a special case.
+#
+#     `source: job` is applied automatically. Unlocking is automatic at the level; equipping stays
+#     manual.
+#
+#   workspace    what claiming the structure creates
+#     enabled            false for a profession with no building
+#     npc                id from npc.yml of the seller NPC that staffs it, used instead of the
+#                        generic one workspace.yml names for the seller role
+#     protection-radius  blocks around the marker only the owner may build in or open. Omit it to
+#                        use the server-wide radius from workspace.yml
+#
+#     This section was once spelled `workplace`, which nothing read — so every job silently had no
+#     workspace at all and no structure could be claimed. That spelling is still accepted, with a
+#     warning on load, so an older file keeps working. Use `workspace`.
+
+jobs:
+
+  # ─── Miner ──────────────────────────────────────────────────────────────────────────────────
+
+  miner:
+    display: "&8Miner"
+    icon: IRON_PICKAXE
+    description:
+      - "Ore, stone and the dark places."
+    max-level: 100
+    recruiter: miner_recruiter
+
+    # The RobticCore licence a player must hold to take this profession.
+    #
+    # Checked last, immediately before the claim commits, because a licence can be configured as
+    # consumable — spending one on a claim that is then refused for a limit would cost the player a
+    # single-use item for nothing.
+    #
+    # Remove the line to leave the profession ungated. An id that licenses.yml does not define
+    # refuses every claim rather than allowing them, and is named in the console at startup.
+    license: workspace
+
+    xp-curve:
+      type: polynomial
+      base: 100
+      factor: 1.5
+
+    rewards:
+      "break:STONE": 1
+      "break:DEEPSLATE": 1
+      "break:COAL_ORE": 4
+      "break:DEEPSLATE_COAL_ORE": 5
+      "break:COPPER_ORE": 5
+      "break:DEEPSLATE_COPPER_ORE": 6
+      "break:IRON_ORE": 8
+      "break:DEEPSLATE_IRON_ORE": 10
+      "break:GOLD_ORE": 12
+      "break:DEEPSLATE_GOLD_ORE": 14
+      "break:REDSTONE_ORE": 10
+      "break:DEEPSLATE_REDSTONE_ORE": 12
+      "break:LAPIS_ORE": 12
+      "break:DEEPSLATE_LAPIS_ORE": 14
+      "break:DIAMOND_ORE": 30
+      "break:DEEPSLATE_DIAMOND_ORE": 35
+      "break:EMERALD_ORE": 40
+      "break:DEEPSLATE_EMERALD_ORE": 45
+      "break:NETHER_QUARTZ_ORE": 6
+      "break:NETHER_GOLD_ORE": 8
+      "break:ANCIENT_DEBRIS": 120
+      "smelt:IRON_INGOT": 3
+      "smelt:GOLD_INGOT": 4
+
+    prices:
+      COAL: 2
+      RAW_COPPER: 3
+      RAW_IRON: 6
+      RAW_GOLD: 10
+      REDSTONE: 4
+      LAPIS_LAZULI: 5
+      DIAMOND: 45
+      EMERALD: 55
+      QUARTZ: 5
+      ANCIENT_DEBRIS:
+        server: 220
+        minimum: 260
+
+    sell:
+      require:
+        - type: attribute-at-least
+          path: job.miner.level
+          value: 5
+          describe: "Miner level 5"
+      daily-quota: 0
+      cooldown-seconds: 0
+
+    titles:
+      1:
+        id: miner_prospector
+        display: "&7Prospector"
+        rarity: common
+        icon: WOODEN_PICKAXE
+        description: "Took up the pick."
+      10:
+        id: miner_stonebreaker
+        display: "&7Stonebreaker"
+        rarity: uncommon
+        icon: STONE_PICKAXE
+        description: "Stone yields."
+      25:
+        id: miner_iron_delver
+        display: "&fIron Delver"
+        rarity: rare
+        icon: IRON_PICKAXE
+        description: "Down where the iron runs."
+      50:
+        id: miner_deep_excavator
+        display: "&3Deep Excavator"
+        rarity: epic
+        icon: DIAMOND_PICKAXE
+        description: "The deepslate holds no secrets."
+      100:
+        id: miner_earth_shaper
+        display: "&6Earth Shaper"
+        rarity: legendary
+        icon: NETHERITE_PICKAXE
+        description:
+          - "A hundred levels underground."
+          - "The mountain moved."
+
+    workspace:
+      enabled: true
+      npc: miner_seller
+      protection-radius: 16
+
+  # ─── Farmer ─────────────────────────────────────────────────────────────────────────────────
+
+  farmer:
+    display: "&aFarmer"
+    icon: IRON_HOE
+    description:
+      - "Crops, livestock and patience."
+    max-level: 100
+    recruiter: farmer_recruiter
+
+    # See the miner section above for what this gates and when it is checked.
+    license: workspace
+
+    xp-curve:
+      type: polynomial
+      base: 90
+      factor: 1.45
+
+    rewards:
+      # Only fully grown crops pay — breaking a seedling earns nothing, handled by the listener
+      # rather than needing a key here.
+      "break:WHEAT": 5
+      "break:CARROTS": 5
+      "break:POTATOES": 5
+      "break:BEETROOTS": 5
+      "break:NETHER_WART": 7
+      "break:PUMPKIN": 6
+      "break:MELON": 6
+      "break:SUGAR_CANE": 3
+      "break:COCOA": 5
+      "place:WHEAT": 1
+      "place:CARROTS": 1
+      "place:POTATOES": 1
+      "breed:COW": 15
+      "breed:SHEEP": 12
+      "breed:PIG": 12
+      "breed:CHICKEN": 10
+
+    prices:
+      WHEAT: 2
+      CARROT: 2
+      POTATO: 2
+      BEETROOT: 2
+      PUMPKIN: 4
+      MELON_SLICE: 1
+      SUGAR_CANE: 2
+      NETHER_WART: 5
+      LEATHER: 6
+      BEEF: 4
+      PORKCHOP: 4
+      CHICKEN: 3
+      MUTTON: 4
+
+    sell:
+      require: []
+      daily-quota: 0
+      cooldown-seconds: 0
+
+    titles:
+      1:
+        id: farmer_field_hand
+        display: "&7Field Hand"
+        rarity: common
+        icon: WHEAT_SEEDS
+        description: "First furrow."
+      10:
+        id: farmer_cultivator
+        display: "&aCultivator"
+        rarity: uncommon
+        icon: WHEAT
+        description: "The soil answers."
+      25:
+        id: farmer_harvester
+        display: "&2Harvester"
+        rarity: rare
+        icon: HAY_BLOCK
+        description: "Season after season."
+      50:
+        id: farmer_shepherd
+        display: "&eShepherd"
+        rarity: epic
+        icon: SHEARS
+        description: "Herds follow."
+      100:
+        id: farmer_harvest_lord
+        display: "&6Harvest Lord"
+        rarity: legendary
+        icon: GOLDEN_HOE
+        description: "Nothing goes hungry here."
+
+    workspace:
+      enabled: true
+      npc: farmer_seller
+      protection-radius: 20
+
+  # ─── Fisher ─────────────────────────────────────────────────────────────────────────────────
+
+  fisher:
+    display: "&bFisher"
+    icon: FISHING_ROD
+    description:
+      - "Still water and long afternoons."
+    max-level: 100
+    recruiter: fisher_recruiter
+
+    # See the miner section above for what this gates and when it is checked.
+    license: workspace
+
+    xp-curve:
+      type: polynomial
+      base: 110
+      factor: 1.5
+
+    rewards:
+      "fish:COD": 10
+      "fish:SALMON": 14
+      "fish:TROPICAL_FISH": 30
+      "fish:PUFFERFISH": 25
+      "fish:*": 8
+
+    prices:
+      COD: 4
+      SALMON: 6
+      TROPICAL_FISH: 25
+      PUFFERFISH: 18
+
+    sell:
+      require: []
+      daily-quota: 0
+      cooldown-seconds: 0
+
+    titles:
+      1:
+        id: fisher_angler
+        display: "&7Angler"
+        rarity: common
+        icon: FISHING_ROD
+        description: "Cast out."
+      10:
+        id: fisher_baitmaster
+        display: "&bBaitmaster"
+        rarity: uncommon
+        icon: COD
+        description: "They come to you."
+      25:
+        id: fisher_deep_liner
+        display: "&3Deep Liner"
+        rarity: rare
+        icon: SALMON
+        description: "Past the shallows."
+      50:
+        id: fisher_tidecaller
+        display: "&9Tidecaller"
+        rarity: epic
+        icon: TROPICAL_FISH
+        description: "The water listens."
+      100:
+        id: fisher_leviathan
+        display: "&6Leviathan"
+        rarity: legendary
+        icon: HEART_OF_THE_SEA
+        description: "Something enormous, patient."
+
+    workspace:
+      enabled: true
+      npc: fisher_seller
+      protection-radius: 14
+
+  # ─── Lumberjack ─────────────────────────────────────────────────────────────────────────────
+
+  lumberjack:
+    display: "&6Lumberjack"
+    icon: IRON_AXE
+    description:
+      - "Timber, and the quiet after."
+    max-level: 100
+    recruiter: lumberjack_recruiter
+
+    # See the miner section above for what this gates and when it is checked.
+    license: workspace
+
+    xp-curve:
+      type: polynomial
+      base: 95
+      factor: 1.45
+
+    rewards:
+      # A wildcard baseline with specific overrides — how "all logs, except these" is expressed
+      # without listing every wood type.
+      "break:OAK_LOG": 4
+      "break:BIRCH_LOG": 4
+      "break:SPRUCE_LOG": 4
+      "break:JUNGLE_LOG": 5
+      "break:ACACIA_LOG": 5
+      "break:DARK_OAK_LOG": 5
+      "break:MANGROVE_LOG": 6
+      "break:CHERRY_LOG": 7
+      "break:CRIMSON_STEM": 8
+      "break:WARPED_STEM": 8
+
+    prices:
+      OAK_LOG: 2
+      BIRCH_LOG: 2
+      SPRUCE_LOG: 2
+      JUNGLE_LOG: 3
+      ACACIA_LOG: 3
+      DARK_OAK_LOG: 3
+      MANGROVE_LOG: 4
+      CHERRY_LOG: 5
+      CRIMSON_STEM: 6
+      WARPED_STEM: 6
+
+    sell:
+      require: []
+      daily-quota: 0
+      cooldown-seconds: 0
+
+    titles:
+      1:
+        id: lumberjack_woodcutter
+        display: "&7Woodcutter"
+        rarity: common
+        icon: WOODEN_AXE
+        description: "First felling."
+      10:
+        id: lumberjack_timberhand
+        display: "&6Timberhand"
+        rarity: uncommon
+        icon: STONE_AXE
+        description: "Knows where it will fall."
+      25:
+        id: lumberjack_grovewarden
+        display: "&2Grovewarden"
+        rarity: rare
+        icon: IRON_AXE
+        description: "Takes only what grows back."
+      50:
+        id: lumberjack_forest_walker
+        display: "&aForest Walker"
+        rarity: epic
+        icon: DIAMOND_AXE
+        description: "At home under the canopy."
+      100:
+        id: lumberjack_heartwood
+        display: "&6Heartwood"
+        rarity: legendary
+        icon: NETHERITE_AXE
+        description: "Older than most of the trees."
+
+    workspace:
+      enabled: true
+      npc: lumberjack_seller
+      protection-radius: 18
+
+  # ─── Hunter ─────────────────────────────────────────────────────────────────────────────────
+
+  hunter:
+    display: "&cHunter"
+    icon: BOW
+    description:
+      - "Tracks, traps and the long wait."
+    max-level: 100
+    recruiter: hunter_recruiter
+
+    # See the miner section above for what this gates and when it is checked.
+    license: workspace
+
+    xp-curve:
+      type: polynomial
+      base: 120
+      factor: 1.55
+
+    rewards:
+      "kill:ZOMBIE": 6
+      "kill:SKELETON": 7
+      "kill:SPIDER": 6
+      "kill:CREEPER": 10
+      "kill:ENDERMAN": 18
+      "kill:WITCH": 20
+      "kill:PILLAGER": 15
+      "kill:RAVAGER": 40
+      "kill:BLAZE": 22
+      "kill:WITHER_SKELETON": 30
+      "kill:PIGLIN_BRUTE": 35
+
+    prices:
+      ROTTEN_FLESH: 1
+      BONE: 2
+      STRING: 2
+      GUNPOWDER: 5
+      ENDER_PEARL: 20
+      BLAZE_ROD: 25
+
+    sell:
+      require: []
+      daily-quota: 0
+      cooldown-seconds: 0
+
+    titles:
+      1:
+        id: hunter_tracker
+        display: "&7Tracker"
+        rarity: common
+        icon: BOW
+        description: "Reads the ground."
+      10:
+        id: hunter_stalker
+        display: "&cStalker"
+        rarity: uncommon
+        icon: ARROW
+        description: "Never heard coming."
+      25:
+        id: hunter_beastslayer
+        display: "&4Beastslayer"
+        rarity: rare
+        icon: IRON_SWORD
+        description: "The big ones, too."
+      50:
+        id: hunter_nightstalker
+        display: "&5Nightstalker"
+        rarity: epic
+        icon: CROSSBOW
+        description: "Works the dark hours."
+      100:
+        id: hunter_apex
+        display: "&6Apex"
+        rarity: legendary
+        icon: NETHERITE_SWORD
+        description: "Nothing hunts this one."
+
+    workspace:
+      enabled: true
+      npc: hunter_seller
+      protection-radius: 16
+
+# ─── Discord ──────────────────────────────────────────────────────────────────────────────────
+#
+# Optional, and off by default. RobticJobs works completely without Discord. This only mirrors profession and workspace events into a channel.
+#
+# With `enabled: false` nothing is checked and nothing is logged at startup. With it on and
+# RobticDiscord missing you get exactly one warning and the plugin carries on normally.
+#
+# Channel IDs are the long numbers Discord shows under "Copy Channel ID" with Developer Mode on.
+# A value that is not 17-20 digits is reported at startup — a channel *name* pasted here looks
+# fine and silently delivers nothing.
+discord:
+  enabled: false
+
+  channels:
+    logs: ""
+
+  # Per-action routing. Anything not listed goes to `logs`.
+  # Action IDs owned by this plugin: workspace_claimed, workspace_upgraded, job_joined, job_left
+  log-actions: {}

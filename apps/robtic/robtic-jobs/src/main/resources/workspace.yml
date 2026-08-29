@@ -1,0 +1,558 @@
+# Workspaces — a player's business, not just a protected building.
+#
+# When somebody discovers a profession structure and claims it, the building becomes theirs: a
+# protected region, virtual storage, staff NPCs, and an upgrade path. Future Robtic systems —
+# reputation, contracts, collections, events, badges — plug into it without this file changing,
+# through capabilities and the extension API.
+
+workspace:
+
+  # Turning this off disables claiming, protection and workspace NPCs. Existing workspaces are kept
+  # and come back untouched when it is switched on again — nothing here ever deletes player data.
+  enabled: true
+
+  # ─── Region ─────────────────────────────────────────────────────────────────────────────────
+  #
+  # The protected volume, built around the structure's marker.
+  #
+  # A box rather than the building's true shape, deliberately: recording the real extent would mean
+  # scanning every structure, which is the multi-second freeze this system is designed to avoid.
+  # Protecting slightly more than the walls costs an owner nothing.
+  #
+  # Vertical extent is asymmetric because buildings grow upward far more than down.
+
+  region:
+    # ─── When the structure's own markers define the area ──────────────────────────────────────
+    #
+    # A structure scanned by RobticWorld carries an Origin and an End marker, and the box between
+    # them is what the builder actually built. That box is what gets protected, grown by this much:
+    #
+    #   marker-padding  blocks outward on X and Z, so the ground around the walls is covered
+    #   height          blocks above the top marker, shared with the fallback below
+    #
+    # Zero protects exactly what was marked out and nothing more.
+    marker-padding: 4
+
+    # ─── When no marked region is known ────────────────────────────────────────────────────────
+    #
+    # The fallback, used for a workspace claimed from a recruiter that outlived a restart or from a
+    # profession granted by command. A box centred on the marker rather than the building, so it is
+    # a poorer fit by nature — the values below are deliberately generous to compensate.
+
+    # Blocks outward on X and Z from the marker.
+    radius: 16
+
+    # Blocks below the marker. Enough for a cellar, not enough to protect pointless bedrock.
+    depth: 8
+
+    # Blocks above it. Generous, so a tower or a roof is covered.
+    height: 32
+
+    # A safety limit. A claim producing a larger volume is refused with a warning naming this key,
+    # rather than silently protecting a quarter of the world because of a mistyped radius.
+    max-volume: 250000
+
+  # ─── Protection ─────────────────────────────────────────────────────────────────────────────
+  #
+  # The workspace is a reward, so it must stay intact without needing a moderator. Each of these is
+  # a separate class of damage; there is no single "protect this region" hook in Bukkit.
+  #
+  # Block breaking, placing and container access by non-owners are always blocked and have no
+  # toggle — that is what ownership means.
+
+  protection:
+    # TNT, creepers, end crystals, beds in the Nether.
+    #
+    # Blocks inside a workspace are removed from the explosion rather than the explosion being
+    # cancelled, so a creeper going off half outside still craters the ground outside.
+    explosions: true
+
+    # Ignition, burning and fire spreading in from outside. An owner may still light their own.
+    fire: true
+
+    # Lava and water flowing IN. Fluid already inside moves normally, so an owner's farm still works.
+    fluids: true
+
+    # Pistons pushing blocks in or pulling them out — how a piston door gets built through a wall.
+    pistons: true
+
+  # ─── Storage ────────────────────────────────────────────────────────────────────────────────
+  #
+  # Virtual, not chests. A chest can be broken, hopper-drained, chunk-unloaded or rolled back, and
+  # its 27 slots are fixed by Minecraft rather than by the upgrade tier. Storage that lives in data
+  # has none of those failure modes and grows with the workspace.
+  #
+  # Capacity is a number of ITEMS. It comes from the `storage` UPGRADE rather than from the base
+  # level, so a player who wants more room buys room instead of a headquarters they have no other
+  # use for.
+
+  storage:
+    # Accept only what this profession deals in — the job's own sell list.
+    #
+    # Worth understanding before changing: storage holds counts, not stacks, so item metadata is not
+    # preserved. That is harmless for ore and crops, and would silently strip enchantments from a
+    # tool. Set this to false only if that is acceptable for what players will put in.
+    profession-items-only: true
+
+    # Materials accepted whatever the profession filter says.
+    always-allow: []
+
+    # What a business holds before buying any storage at all.
+    #
+    # A floor, not a first purchase. A freshly claimed business has to be usable before its owner has
+    # spent anything, and this is the number that makes that true.
+    base-capacity: 512
+
+    # Which upgrade adds capacity on top of the floor. Named here rather than hard-coded, so the
+    # upgrade can be renamed without touching code.
+    upgrade: storage
+
+  # ─── Base levels ────────────────────────────────────────────────────────────────────────────
+  #
+  # The company's headquarters. A base level is not a bigger building — it is what the business
+  # BECOMES, and what that lets it do. The schematic is the visible consequence, not the point.
+  #
+  #   display        shown in the upgrade menu
+  #   cost           Robs to reach this level FROM THE ONE BELOW, not cumulative
+  #   schematic      the file pasted when the business reaches this level. Omit to leave the
+  #                  building alone — level 1 has none, because BetterStructures generated it
+  #   npcs           which roles are staffed here (see npc-roles below)
+  #   unlocks        open-ended feature flags other systems gate on
+  #   workers        how many of each kind may be employed here
+  #   tax-multiplier scales the base tax, so a bigger headquarters costs more to keep
+  #   requirements   conditions beyond the money, in Core's condition syntax. Omit for none
+  #
+  # ─── Levels are unlimited ───────────────────────────────────────────────────────────────────
+  #
+  # Eight ship. A ninth, or a fifteenth, is a block of YAML and nothing else: nothing in the code
+  # names a level, counts them, or has an opinion about how many there are. The one rule is that
+  # they must be contiguous from 1 — a gap makes everything above it unreachable, because upgrading
+  # is one rung at a time, and the console says so on load.
+  #
+  # ─── Unlocks are the extension point ────────────────────────────────────────────────────────
+  #
+  # They are arbitrary strings, matched by whoever cares. `workers` is read by the worker system;
+  # a future contracts module ships with `contracts` in level 5's list and needs no code here. A
+  # level naming an unlock nobody implements is harmless, which is what makes it safe to write the
+  # configuration before the system that reads it exists.
+  #
+  # ─── Upgrading never costs a player anything ────────────────────────────────────────────────
+  #
+  # Storage, purchased upgrades, statistics, profession data, licences and ownership all carry
+  # across. That is guaranteed in code rather than by convention: the upgrade path copies them and
+  # has no way to reach them. The building is replaced only after the record has committed, so a
+  # failed paste costs the walls their new look and never the business its data.
+
+  base-levels:
+    1:
+      display: "Workshop"
+      cost: 0
+      # No schematic: this is the building BetterStructures generated and the player claimed.
+      npcs: [seller, upgrade]
+      unlocks: []
+      workers:
+        npc: 0
+        player: 0
+      tax-multiplier: 1.0
+
+    2:
+      display: "Trade Post"
+      cost: 5000
+      schematic: "base/trade_post.schem"
+      npcs: [seller, upgrade]
+      # The second level is what opens up the upgrade catalogue proper. Level 1 can buy storage and
+      # nothing else, which keeps a brand-new business's menu readable.
+      unlocks: [decorations, mailbox]
+      workers:
+        npc: 0
+        player: 0
+      tax-multiplier: 1.5
+
+    3:
+      display: "Guildhouse"
+      cost: 20000
+      schematic: "base/guildhouse.schem"
+      npcs: [seller, upgrade, manager]
+      # The first employee, and with it the Worker Manager NPC. Hiring also needs a Manager Licence
+      # — see the `license` section — so reaching this level is necessary and not sufficient.
+      unlocks: [decorations, mailbox, workers, market]
+      workers:
+        npc: 1
+        player: 0
+      tax-multiplier: 2.0
+
+    4:
+      display: "Enterprise"
+      cost: 75000
+      schematic: "base/enterprise.schem"
+      npcs: [seller, upgrade, manager]
+      unlocks: [decorations, mailbox, workers, market, player_workers, tax_office]
+      workers:
+        npc: 3
+        player: 1
+      tax-multiplier: 3.0
+
+    5:
+      display: "Grand Company"
+      cost: 250000
+      schematic: "base/grand_company.schem"
+      npcs: [seller, upgrade, manager]
+      unlocks: [decorations, mailbox, workers, market, player_workers, tax_office, workshop, contracts]
+      workers:
+        npc: 5
+        player: 5
+      tax-multiplier: 4.0
+
+    6:
+      display: "Consortium"
+      cost: 600000
+      schematic: "base/consortium.schem"
+      npcs: [seller, upgrade, manager]
+      unlocks: [decorations, mailbox, workers, market, player_workers, tax_office, workshop, contracts, events]
+      workers:
+        npc: 6
+        player: 5
+      tax-multiplier: 5.0
+
+    7:
+      display: "Syndicate"
+      cost: 1400000
+      schematic: "base/syndicate.schem"
+      npcs: [seller, upgrade, manager]
+      unlocks: [decorations, mailbox, workers, market, player_workers, tax_office, workshop, contracts, events, reputation]
+      workers:
+        npc: 9
+        player: 5
+      tax-multiplier: 6.0
+
+    8:
+      display: "Conglomerate"
+      cost: 3000000
+      schematic: "base/conglomerate.schem"
+      npcs: [seller, upgrade, manager]
+      unlocks: [decorations, mailbox, workers, market, player_workers, tax_office, workshop, contracts, events, reputation, machines]
+      workers:
+        npc: 10
+        player: 8
+      tax-multiplier: 8.0
+
+  # ─── Workspace upgrades ─────────────────────────────────────────────────────────────────────
+  #
+  # The second axis, and deliberately independent of the first. A base level is what a business IS;
+  # an upgrade is what it HAS. Each climbs on its own, and a player chooses where to invest.
+  #
+  #   display          shown in the menu
+  #   icon             the menu item
+  #   description      lore under the name
+  #   requires-unlock  a base-level unlock that must be present before this is offered at all
+  #   levels           what each step costs and gives
+  #
+  # Each step takes:
+  #
+  #   cost            Robs to reach this step from the one below
+  #   min-base-level  the headquarters level needed before it may be bought. This is the ONLY
+  #                   coupling between the two axes — "Storage IV requires Base Level 4" is this
+  #                   one number
+  #   value           what the step grants. What the number means belongs to the system that reads
+  #                   it: items of capacity for storage, a percentage for the tax office. It is
+  #                   untyped on purpose, so inventing a new upgrade never needs a code change
+  #   requires        other upgrades that must already be at a level, as `id: level`
+  #
+  # Steps must be contiguous from 1, for the same reason base levels must be.
+
+  upgrades:
+
+    storage:
+      display: "&eStorage"
+      icon: CHEST
+      description:
+        - "&7How much your business can hold."
+      levels:
+        1:
+          cost: 2500
+          min-base-level: 1
+          value: 1536
+        2:
+          cost: 10000
+          min-base-level: 2
+          value: 7680
+        3:
+          cost: 40000
+          min-base-level: 3
+          value: 32256
+        4:
+          # The brief's own example: Storage IV requires Base Level 4.
+          cost: 150000
+          min-base-level: 4
+          value: 130560
+        5:
+          cost: 500000
+          min-base-level: 6
+          value: 524288
+
+    mailbox:
+      display: "&bMailbox"
+      icon: BARREL
+      description:
+        - "&7Receive business correspondence"
+        - "&7on site."
+      requires-unlock: mailbox
+      levels:
+        1:
+          cost: 7500
+          min-base-level: 2
+          value: 1
+
+    market:
+      display: "&6Market Stall"
+      icon: EMERALD
+      description:
+        - "&7List your output on the"
+        - "&7player marketplace from here."
+      requires-unlock: market
+      levels:
+        1:
+          cost: 25000
+          min-base-level: 3
+          value: 4
+        2:
+          cost: 80000
+          min-base-level: 4
+          value: 8
+          requires:
+            storage: 2
+
+    tax_office:
+      display: "&aTax Office"
+      icon: PAPER
+      description:
+        - "&7Reduces the maintenance your"
+        - "&7business owes each interval."
+      requires-unlock: tax_office
+      levels:
+        # `value` here is a percentage off the bill. Nothing in the workspace core knows that — the
+        # tax service does, which is exactly the split the untyped value buys.
+        1:
+          cost: 60000
+          min-base-level: 4
+          value: 5
+        2:
+          cost: 200000
+          min-base-level: 6
+          value: 10
+        3:
+          cost: 650000
+          min-base-level: 8
+          value: 20
+
+    workshop:
+      display: "&dWorkshop"
+      icon: SMITHING_TABLE
+      description:
+        - "&7Lets your workers process"
+        - "&7what they gather."
+      requires-unlock: workshop
+      levels:
+        1:
+          cost: 120000
+          min-base-level: 5
+          value: 1
+          requires:
+            storage: 3
+        2:
+          cost: 400000
+          min-base-level: 7
+          value: 2
+
+    decorations:
+      display: "&7Decorations"
+      icon: FLOWER_POT
+      description:
+        - "&7Cosmetic only. Never suspended,"
+        - "&7and never affects trade."
+      requires-unlock: decorations
+      levels:
+        1:
+          cost: 5000
+          min-base-level: 2
+          value: 1
+        2:
+          cost: 20000
+          min-base-level: 4
+          value: 2
+        3:
+          cost: 75000
+          min-base-level: 6
+          value: 3
+
+  # ─── NPC roles ──────────────────────────────────────────────────────────────────────────────
+  #
+  # What each NPC at a workspace does. Registered rather than enumerated, so a future contract,
+  # event, merchant or assistant NPC is a section here plus a handler — nothing in the workspace
+  # core changes.
+  #
+  #   npc          the definition from npc.yml
+  #   offset-*     where it stands relative to the marker. Several NPCs share one building, so they
+  #                cannot all be at the anchor
+  #   suspendable  whether unpaid tax disables it. A decoration should not vanish over a tax bill
+
+  npc-roles:
+    seller:
+      display: "Buyer"
+      npc: workspace_seller
+      offset-x: 0.0
+      offset-y: 1.0
+      offset-z: 0.0
+      suspendable: true
+
+    upgrade:
+      display: "Foreman"
+      npc: workspace_foreman
+      offset-x: 2.0
+      offset-y: 1.0
+      offset-z: 0.0
+      suspendable: true
+
+    # Hiring, firing and assigning workers. Arrives at the base level that unlocks `workers`, which
+    # is what makes the NPC's presence the visible signal that the system is now available.
+    #
+    # Suspendable, emphatically: a business that cannot trade must not be able to take on staff.
+    manager:
+      display: "Worker Manager"
+      npc: workspace_manager
+      offset-x: -2.0
+      offset-y: 1.0
+      offset-z: 0.0
+      suspendable: true
+
+  # ─── Tax ────────────────────────────────────────────────────────────────────────────────────
+  #
+  # Recurring maintenance, paid in Robs.
+  #
+  # Unpaid tax SUSPENDS the workspace's NPCs and does nothing else. It never deletes the workspace,
+  # removes ownership, empties storage or lowers the tier — a player who takes a fortnight off comes
+  # back to a bill, not to an empty plot. Paying restores everything instantly, because nothing was
+  # thrown away.
+  #
+  # Gameplay may call this monthly; the interval is whatever you set.
+
+  tax:
+    enabled: true
+
+    # How often it falls due. 10080 minutes = one week.
+    interval-minutes: 10080
+
+    # The base amount, before the tier's tax-multiplier.
+    base-amount: 500
+
+    # How long after it falls due before services are suspended. 1440 = one day.
+    #
+    # Grace exists so somebody logging in a few hours late finds a warning rather than a dead
+    # workspace. The goal is a nudge, not a trap.
+    grace-minutes: 1440
+
+    # How often the background sweep looks for lapsed workspaces.
+    #
+    # Deliberately slow. Any workspace a player is using is evaluated when they interact with it, so
+    # this only has to notice the ones nobody has visited.
+    sweep-minutes: 60
+
+  # ─── Licences ───────────────────────────────────────────────────────────────────────────────
+  #
+  # The Workspace Licence is what permits a business to operate at all. When it lapses the business
+  # is SUSPENDED: no selling, no upgrades, no hiring, no worker management, no marketplace. Nothing
+  # is deleted and nothing is taken away — renewing restores everything instantly, because nothing
+  # was thrown away.
+  #
+  # ─── Grace, and what happens after it ───────────────────────────────────────────────────────
+  #
+  # After the licence lapses a grace period runs. Renewing during it restores the business exactly
+  # as it was. If it runs out, the business is ABANDONED: the base level resets to 1, every upgrade
+  # and worker is removed, and the building is offered to somebody else with a new random
+  # profession. See `professions` below.
+  #
+  # `grace-minutes` is the single most consequential number in this file. When it elapses, somebody
+  # loses everything they built. 4320 = three days.
+  #
+  # ─── How an offline owner is judged ─────────────────────────────────────────────────────────
+  #
+  # A licence is an item in the owner's inventory, so reading one needs them online — but the owner
+  # who most needs judging is the one who has not logged in for a month. So the expiry is SNAPSHOT
+  # onto the business whenever anybody can look, and the sweep works from the snapshot.
+  #
+  # A business nobody has ever been able to look at is treated as licensed, always. Failing open
+  # costs an unlicensed business a few extra days of trading; failing closed destroys somebody's
+  # work because the server could not read an inventory.
+
+  license:
+    # The licence a business must hold to operate. Must exist in RobticCore's licenses.yml.
+    id: workspace
+
+    # The licence required before any worker may be hired. Reaching the base level that unlocks
+    # workers is necessary but not sufficient — this is the other half.
+    manager-id: manager
+
+    # How long after the licence lapses before the business is abandoned. Three days.
+    grace-minutes: 4320
+
+    # When to warn the owner, in minutes before expiry.
+    #
+    # Delivered through Core's notification system, so each one reaches in-game chat, mail and
+    # Discord according to what notifications.yml routes the `business` category to. Mail is what
+    # makes these trustworthy: it is the only channel that reaches somebody who is not online.
+    #
+    # Each fires once per licence period, not once per sweep. Renewing resets them, so a licence
+    # renewed and then left to lapse again warns again.
+    #
+    # 4320 = 3 days, 1440 = 1 day, 720 = 12 hours, 60 = 1 hour.
+    warn-before-minutes: [4320, 1440, 720, 60]
+
+  # ─── Abandonment ────────────────────────────────────────────────────────────────────────────
+  #
+  # What happens when the grace period runs out. This is the one destructive path in the whole
+  # system, so it is worth reading before changing.
+  #
+  # The business is reset to base level 1, every upgrade is removed, every NPC and player worker is
+  # dismissed, worker and business configuration are cleared, marketplace integration is dropped and
+  # temporary state is discarded. The building itself is not touched — it is returned to the world
+  # and offered to somebody else.
+  #
+  # ─── The new profession is rolled, not kept ─────────────────────────────────────────────────
+  #
+  # Every workspace uses the same building; only the trade differs. So an abandoned building does
+  # not need replacing, it needs REASSIGNING — and the next player to find it should not be able to
+  # predict what they will get.
+  #
+  # Weights are relative, not percentages: with miner 30 and hunter 10, a miner is three times as
+  # likely. A weight of 0 retires a trade from reassignment WITHOUT deleting it, so existing owners
+  # keep theirs and no new ones appear.
+  #
+  # Equal chances are never assumed. Professions are not equally valuable, equally easy or equally
+  # in demand, and the mix of trades in the world is the operator's decision.
+  #
+  # The trade the building just had is avoided where possible: handing the next owner the same
+  # profession the last one abandoned is correct and reads as nothing having happened. It is a
+  # preference rather than a rule — with one profession configured, reassignment still works.
+
+  abandonment:
+    professions:
+      miner: 30
+      farmer: 25
+      fisher: 15
+      lumberjack: 20
+      hunter: 10
+
+  # ─── Limits ─────────────────────────────────────────────────────────────────────────────────
+  #
+  # How many workspaces a player may own, by premium tier. A player may hold one per profession at
+  # most, so this only matters for somebody with several professions.
+  #
+  # `robtic.jobs.workspace.bypass` is the permission that overrides workspace ownership checks. It is
+  # a staff permission, not a tester one — it also lets its holder build in and open other players'
+  # workspaces, so it should not be handed out to bypass a limit.
+
+  limits:
+    default: 1
+    tiers:
+      1: 2
+      2: 3

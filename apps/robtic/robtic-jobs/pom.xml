@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.robtic</groupId>
+        <artifactId>robtic-parent</artifactId>
+        <version>4.0.0</version>
+    </parent>
+
+    <artifactId>robtic-jobs</artifactId>
+    <packaging>jar</packaging>
+
+    <name>RobticJobs</name>
+    <description>Professions and workspaces: the profession system, workspace claiming and upgrades, selling, reputation, collections, contracts and badges. Uses structures; never generates them.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.robtic</groupId>
+            <artifactId>robtic-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.robtic</groupId>
+            <artifactId>robtic-world</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+        </dependency>
+
+        <!-- Job and title placeholders, contributed to Core's single expansion. -->
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+        </dependency>
+
+        <!-- Workspace NPCs. Compile-only: Citizens types appear in one provider class. -->
+        <dependency>
+            <groupId>net.citizensnpcs</groupId>
+            <artifactId>citizensapi</artifactId>
+        </dependency>
+    </dependencies>
+</project>

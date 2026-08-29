@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.robtic</groupId>
+    <artifactId>robtic-parent</artifactId>
+    <version>4.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>Robtic</name>
+    <description>
+        The Robtic plugin ecosystem: one shared core and nine feature plugins, split out of the
+        RobticMinecraft monolith.
+    </description>
+
+    <!--
+      ─── Why this lives beside the monolith rather than replacing it ─────────────────────────────
+
+      apps/minecraft-plugin still builds RobticMinecraft-3.3.2.jar and still runs every feature.
+      This tree is additive: modules are scaffolded here, code migrates into them one plugin at a
+      time, and the monolith is retired only when the last feature has moved and been verified.
+
+      The alternative — converting the monolith into the parent and moving all 295 files at once —
+      would mean a server with no working plugin at all until every module compiled, and a data
+      migration that could not be tested incrementally. Player progress is not something to bet on
+      a big-bang cutover.
+
+      ─── Versioning ─────────────────────────────────────────────────────────────────────────────
+
+      4.0.0, because the ecosystem is a breaking change from the 3.x monolith even though every
+      feature survives it: server owners go from installing one jar to installing several, and the
+      major version is how that gets communicated.
+    -->
+
+    <modules>
+        <!-- Depends on nothing. Everything else depends on it. -->
+        <module>robtic-core</module>
+
+        <!-- Core only. -->
+        <module>robtic-world</module>
+        <module>robtic-essentials</module>
+        <module>robtic-premium</module>
+        <module>robtic-staff</module>
+        <module>robtic-discord</module>
+        <module>robtic-mail</module>
+        <module>robtic-market</module>
+
+        <!-- Core plus one other feature plugin. Declared after what they depend on. -->
+        <module>robtic-auth</module>
+        <module>robtic-jobs</module>
+    </modules>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!--
+          1.21.7 is the floor for the Dialog API, which is RobticAuth's primary login surface on
+          Java. Minecraft added dialogs in 1.21.6 and Paper exposed them in 1.21.7, so this is the
+          oldest version that can build the login screen at all.
+        -->
+        <paper.version>1.21.7-R0.1-SNAPSHOT</paper.version>
+        <luckperms.version>5.4</luckperms.version>
+        <gson.version>2.11.0</gson.version>
+        <placeholderapi.version>2.11.6</placeholderapi.version>
+        <citizens.version>2.0.43-SNAPSHOT</citizens.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>papermc</id>
+            <url>https://repo.papermc.io/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>luckperms</id>
+            <url>https://repo.lucko.me/</url>
+        </repository>
+        <repository>
+            <id>placeholderapi</id>
+            <url>https://repo.extendedclip.com/releases/</url>
+        </repository>
+        <repository>
+            <id>citizens</id>
+            <url>https://repo.citizensnpcs.co/</url>
+        </repository>
+    </repositories>
+
+    <!--
+      Versions are managed here and never repeated in a module. Ten modules each pinning their own
+      Paper version is ten chances for two plugins on the same server to have been compiled against
+      different APIs, which produces NoSuchMethodError at runtime rather than an error at build time.
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.papermc.paper</groupId>
+                <artifactId>paper-api</artifactId>
+                <version>${paper.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>net.luckperms</groupId>
+                <artifactId>api</artifactId>
+                <version>${luckperms.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <!--
+              Provided rather than shaded, always. PlaceholderAPI must be the server's own instance
+              for an expansion registered against it to be the one other plugins resolve through.
+            -->
+            <dependency>
+                <groupId>me.clip</groupId>
+                <artifactId>placeholderapi</artifactId>
+                <version>${placeholderapi.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>net.citizensnpcs</groupId>
+                <artifactId>citizensapi</artifactId>
+                <version>${citizens.version}</version>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
+            <!--
+              ─── Gson is provided by the server, and deliberately NOT shaded ───────────────────
+
+              The monolith shaded Gson and relocated it, to avoid coupling to whatever version Paper
+              bundles. That was a reasonable trade for one plugin. It is actively broken for an
+              ecosystem, and the reason is worth recording because it is not obvious until it fails:
+
+              A relocated library cannot appear in a public API that crosses a plugin boundary.
+              RobticCore exposes types whose methods return JsonObject; if Core's copy is rewritten
+              to org.robtic.core.lib.gson while RobticWorld compiles against com.google.gson, the two
+              are unrelated classes and nothing assigns to anything. The compiler catches it, which is
+              the good case — the bad case is a signature that erases to Object and fails at runtime.
+
+              paper-api declares com.google.code.gson:gson:2.11.0 at compile scope, which is the exact
+              version this build pinned, so the coupling the shading was avoiding does not exist. One
+              Gson, on the server classpath, shared by every plugin — which is also what "avoid
+              duplicate infrastructure" asks for.
+            -->
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+                <version>${gson.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.robtic</groupId>
+                <artifactId>robtic-core</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.robtic</groupId>
+                <artifactId>robtic-world</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.robtic</groupId>
+                <artifactId>robtic-discord</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Every module compiles against the server API. -->
+        <dependency>
+            <groupId>io.papermc.paper</groupId>
+            <artifactId>paper-api</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!--
+          Every module's jar is named after the plugin rather than the artifact, because that is the
+          name a server owner sees in their plugins folder and in /plugins.
+        -->
+        <finalName>${project.name}-${project.version}</finalName>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>plugin.yml</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>plugin.yml</exclude>
+                </excludes>
+            </resource>
+        </resources>
+
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>3.6.0</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,117 @@
+# Staff system behaviour.
+
+freeze:
+  # Commands a FROZEN player may still run.
+  #
+  # This is a whitelist, deliberately. A deny-list would be one unknown /tpa alias away from
+  # letting someone walk out of a freeze, and plugins add aliases constantly. Namespaced forms
+  # (essentials:msg) are matched against the bare name, so listing "msg" covers both.
+  allowed-commands:
+    - msg
+    - r
+    - reply
+    - tell
+    - w
+    - discord
+    - help
+
+  # How often the reminder is re-sent. Minecraft fades the action bar after a few seconds, and a
+  # frozen player who sees nothing assumes the server has hung. 20 ticks = 1 second.
+  actionbar-interval-ticks: 20
+
+  block-interact: true
+  block-drop: true
+  block-vehicles: true
+
+jail:
+  # Commands a JAILED player may still run. Same whitelist reasoning as above.
+  allowed-commands:
+    - msg
+    - r
+    - reply
+    - tell
+    - w
+    - discord
+    - help
+    - jail-time
+
+vanish:
+  # Remove a vanished player from the tab list.
+  #
+  # The hiding itself already does this — Bukkit's hidePlayer drops the tab entry along with the
+  # entity, which is exactly why vanish uses it instead of an invisibility effect. What this setting
+  # additionally controls is whether a vanished player still counts towards the sleep vote; leave it
+  # on unless a TAB plugin manages the list itself.
+  hide-from-tab: true
+  suppress-join-quit: true
+  silent-chest-open: true
+
+  # Teleport to the admin gate when vanishing.
+  #
+  # The same place /admin drops staff, set with /staff gate — so there is one "admin base" rather
+  # than two. Vanishing where you stand leaves you in the middle of whatever you were watching, and
+  # the first thing most staff want is to be somewhere they can work from.
+  #
+  # Turning this off vanishes you in place, which is what you want if you are already observing
+  # something and do not want to lose your position.
+  teleport-to-gate: true
+
+book:
+  # "lobby" opens the lobby menu; "inspect" switches the book to player inspection instead.
+  mode: lobby
+
+clock:
+  # Actions offered by the clock, in menu order. Ids are listed in items.yml.
+  actions:
+    - toggle_flight
+    - toggle_night_vision
+    - toggle_spectator
+    - toggle_speed
+    - random_teleport
+    - teleport_back
+
+gui:
+  # Rows in the online-player grid (1-6).
+  player-list-rows: 6
+  # Ask for confirmation before a destructive action taken from a menu.
+  confirm-destructive: true
+
+# ─── Reports ──────────────────────────────────────────────────────────────────────────────────
+reports:
+  # Teleport the staff member to the reporter the moment they accept a report.
+  #
+  # On by default: looking at the problem is the first thing they do, and making them type a
+  # teleport as well is a step with no decision in it.
+  teleport-on-accept: true
+
+# ─── Discord ──────────────────────────────────────────────────────────────────────────────────
+#
+# Optional. RobticStaff works completely without RobticDiscord installed — this only adds Discord
+# copies of moderation actions that already happen and are already logged in game.
+#
+# Off by default. With `enabled: false` nothing is checked and nothing is logged at startup; with it
+# on and RobticDiscord missing you get one warning and the plugin carries on.
+#
+# Channel IDs are the long numbers Discord shows under "Copy Channel ID" with Developer Mode on.
+# A value that is not 17-20 digits is reported at startup, because a channel *name* pasted here
+# looks fine and silently delivers nothing.
+#
+# Upgrading from RobticMinecraft 3.x? These are filled in automatically from its config.yml on first
+# start — its discord.log-channel becomes `logs`, and the moderation entries from
+# discord.log-actions land under log-actions below. The original file is not modified.
+discord:
+  enabled: false
+
+  channels:
+    # Fallback for every moderation action without its own channel in log-actions.
+    logs: ""
+    # The staff chat channel, bridged both directions.
+    staff: ""
+
+  # Per-action routing. Anything not listed goes to `logs`.
+  #
+  # These action IDs belong to this plugin. Other plugins own theirs in their own configs — a
+  # workspace log is RobticJobs' business, not this file's.
+  log-actions: {}
+  #  jail: "123456789012345678"
+  #  warning_added: "123456789012345678"

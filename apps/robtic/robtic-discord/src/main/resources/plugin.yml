@@ -1,0 +1,37 @@
+name: RobticDiscord
+version: ${project.version}
+main: org.robtic.discord.RobticDiscordPlugin
+api-version: '1.21'
+author: Robtic
+description: Account linking and the Discord bridge.
+
+# RobticAuth is deliberately NOT listed here, and must never be.
+#
+# RobticAuth softdepends on this plugin because it genuinely requires it — it disables itself
+# without it. Listing RobticAuth here as well made that a cycle, and a cycle is not an ordering:
+# Paper breaks it arbitrarily, so on some starts RobticAuth enabled first, found this plugin not yet
+# enabled, and disabled itself with "Missing required plugin: RobticDiscord" on a server where
+# RobticDiscord was installed and perfectly healthy.
+#
+# Nothing is lost by dropping it. The AuthBridge and ModerationBridge are resolved per event rather
+# than captured at enable — see BridgeConsumerService — so a bridge registered after this plugin
+# starts is picked up on the next poll.
+#
+# RobticStaff stays: it does not depend on this plugin, so it is an ordering rather than a cycle.
+softdepend: [RobticCore, RobticStaff]
+
+commands:
+  link:
+    description: Generate a one-time code to link this account to Discord.
+    usage: /link
+  unlink:
+    description: Unlink your Minecraft account from Discord.
+    usage: /unlink
+
+permissions:
+  robtic.link:
+    description: Link a Minecraft account to Discord.
+    default: true
+  robtic.chat.bridge:
+    description: Have your chat relayed to Discord.
+    default: true

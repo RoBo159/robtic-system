@@ -1,0 +1,139 @@
+# Robtic Minecraft Integration
+#
+# The Robtic API owns the data. This plugin is a client: it reads and writes through HTTPS and
+# never holds a balance, a price or a database credential of its own.
+#
+# Connection settings live in api.yml. This file is about this server's identity and behaviour.
+
+server:
+  # Stable identifier, unique per Minecraft server sharing the guild. Every action is attributed
+  # to it, so changing it later orphans this server's history.
+  id: "survival"
+  # Name shown in Discord embeds and the status panel.
+  name: "Survival"
+  # Free-form category: survival, skyblock, prison, minigames.
+  type: "survival"
+  # Public connect address, reported to the bot's !ip command.
+  address: "mc.robtic.org"
+  port: 25565
+  # Client versions your proxy accepts, reported to !version.
+  supported-versions:
+    - "1.20.x"
+    - "1.21.x"
+
+# Discord wiring.
+#
+# This is the whole Discord-side setup, and it lives here rather than behind slash commands. The
+# plugin pushes it to the API on startup and on /robtic reload, and the bot reads it from there —
+# so this file is what you edit, and nothing has to be repeated with /minecraft config.
+#
+# Channel ids are the long numbers Discord shows under "Copy Channel ID" with Developer Mode on.
+# Leave any of them blank to turn that feature off.
+discord:
+  # Optional: api.yml's guild-id takes precedence when both are set.
+  guild-id: ""
+
+  # Channel hosting the auto-updating server status embed.
+  status-channel: ""
+
+  # Channel bridged to public in-game chat, both directions.
+  chat-channel: ""
+
+  # Channel bridged to in-game staff chat, both directions.
+  staff-channel: ""
+
+  # Fallback destination for every moderation log without its own channel below.
+  log-channel: ""
+
+  # Per-action log routing. Anything not listed here goes to log-channel.
+  # Action ids: freeze, unfreeze, jail, release, warning_added, warning_removed, note_added,
+  # player_linked, player_unlinked, staff_enabled, staff_disabled, coins_sold, player_report,
+  # server_started, server_stopped.
+  log-actions: {}
+  #  jail: "123456789012345678"
+  #  warning_added: "123456789012345678"
+
+  # Feature switches, previously /minecraft config toggle.
+  chat-bridge: true
+  role-sync: true
+  staff-system: true
+
+staff:
+  # Master switch for the whole staff system.
+  enabled: true
+  # Tell online staff when a player with warnings, jails or reports joins.
+  join-alerts: true
+
+  # Where /admin puts a staff member. Leave the world blank to keep them where they are.
+  spawn:
+    world: ""
+    x: 0.0
+    y: 100.0
+    z: 0.0
+    yaw: 0.0
+    pitch: 0.0
+
+  # Where /jail puts a player. Set it in game with /jail-set rather than by hand.
+  jail:
+    world: ""
+    x: 0.0
+    y: 100.0
+    z: 0.0
+    yaw: 0.0
+    pitch: 0.0
+
+  # Where a released player is sent. Falls back to world spawn when the world is blank.
+  jail-release:
+    world: ""
+    x: 0.0
+    y: 100.0
+    z: 0.0
+    yaw: 0.0
+    pitch: 0.0
+
+bridge:
+  # Relay public in-game chat to Discord.
+  chat-to-discord: true
+  # Relay staff chat to the Discord staff channel.
+  staff-chat-to-discord: true
+  # Announce joins and quits in the bridged Discord channel.
+  announce-connections: true
+
+permissions:
+  # Synchronise LuckPerms groups from Discord roles. Requires LuckPerms.
+  # Only groups named in roles.yml are ever added or removed.
+  sync-enabled: true
+
+verification:
+  # Tell unlinked players how to link when they join.
+  notify-on-join: true
+  # Block the exchange menu for unlinked players.
+  #
+  # Off by default now that the currency is robs: robs are keyed by Minecraft UUID and have no
+  # relation to a Discord account, so an unlinked player can earn and spend them normally. Turn it
+  # back on only if you want linking to be a prerequisite for selling.
+  require-link-for-economy: false
+
+npc:
+  # Right-clicking an entity whose name matches one of these opens the exchange menu.
+  # Works with Citizens and any other plugin that gives its NPC a custom name.
+  enabled: true
+  names:
+    - "Coin Exchange"
+    - "Ore Trader"
+
+exchange:
+  title: "Coin Exchange"
+  # Rows in the main menu (1-6).
+  rows: 4
+
+# Verbose logging for diagnosing an integration problem.
+debug: false
+
+# ─── Survival ─────────────────────────────────────────────────────────────────────────────────
+survival:
+  # Homes a player with no premium tier may set.
+  #
+  # A display fallback only: the API enforces the real limit and this is what the plugin shows when
+  # it cannot reach the API. Keep it equal to freeHomeLimit on the API side.
+  free-home-limit: 2

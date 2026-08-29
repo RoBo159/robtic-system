@@ -1,0 +1,179 @@
+# NPCs — the figures standing in profession structures.
+#
+# These are plain server entities, not a Citizens dependency: movement off, gravity off,
+# invulnerable, silent, persistent, and marked as ours in their persistent data. That last part is
+# what makes them survive restarts and chunk unloads and still be recognised afterwards — a memory
+# map would leave the world full of villagers the server no longer knew anything about.
+#
+#   kind
+#     RECRUITER   offers a job. Disappears once somebody takes it
+#     SELLER      buys the owner's output at a claimed workplace
+#     DECORATION  does nothing; populates a building without every mob being clickable
+#
+#   type            any living entity. PLAYER is not usable
+#   name            the floating name; & colour codes allowed
+#   subtitle        extra lore, unused by the entity itself but read by future menus
+#   profession      villager profession, when type is VILLAGER. Ignored otherwise
+#   job             the job this NPC recruits for or serves
+#   glowing         outline it, so it can be found inside a dark structure
+#   look-at-players whether it turns to face people nearby
+#
+# A recruiter is referenced by a job's `recruiter` key; a seller by a workspace NPC role in
+# workspace.yml, or by a job's own `workspace.npc`. An NPC defined here and referenced by nothing is
+# simply never spawned.
+
+# ─── Backend ──────────────────────────────────────────────────────────────────────────────────
+#
+# Which plugin actually puts NPCs into the world.
+#
+#   auto        FancyNPCs, then Citizens, then builtin — first one installed wins
+#   fancynpcs   FancyNPCs, falling back to builtin if it is not installed
+#   citizens    Citizens, falling back to builtin
+#   builtin     plain server entities, which always work
+#
+# FancyNPCs is preferred by `auto` because its NPCs are packets: they do not count against the mob
+# cap, cost no entity ticks, and cannot be killed or pushed. Citizens is second because it is what
+# most servers already run. The builtin needs nothing installed at all — which is why neither plugin
+# is a requirement.
+#
+# Naming a backend that is not installed falls back with a warning rather than disabling NPCs: a
+# config typo should not take every recruiter off the server.
+#
+# Switching backends is safe. Old NPCs are still recognised and removed by whichever backend created
+# them, and workspaces respawn their staff on the next start.
+backend: auto
+
+npcs:
+
+  # ─── Recruiters ─────────────────────────────────────────────────────────────────────────────
+
+  miner_recruiter:
+    kind: RECRUITER
+    type: VILLAGER
+    profession: WEAPONSMITH
+    name: "&8Miner&7's Guild"
+    subtitle: "&7Right-click to join"
+    job: miner
+    glowing: true
+
+  farmer_recruiter:
+    kind: RECRUITER
+    type: VILLAGER
+    profession: FARMER
+    name: "&aFarmer&7's Guild"
+    subtitle: "&7Right-click to join"
+    job: farmer
+    glowing: true
+
+  fisher_recruiter:
+    kind: RECRUITER
+    type: VILLAGER
+    profession: FISHERMAN
+    name: "&bFishing Dock"
+    subtitle: "&7Right-click to join"
+    job: fisher
+    glowing: true
+
+  lumberjack_recruiter:
+    kind: RECRUITER
+    type: VILLAGER
+    profession: TOOLSMITH
+    name: "&6Lumber Camp"
+    subtitle: "&7Right-click to join"
+    job: lumberjack
+    glowing: true
+
+  hunter_recruiter:
+    kind: RECRUITER
+    type: VILLAGER
+    profession: BUTCHER
+    name: "&cHunter&7's Camp"
+    subtitle: "&7Right-click to join"
+    job: hunter
+    glowing: true
+
+  # ─── Workplace sellers ──────────────────────────────────────────────────────────────────────
+  #
+  # Spawned where the recruiter stood, once the building is claimed. Not glowing: by then the player
+  # knows where their own workplace is, and a permanently glowing NPC in a building somebody lives
+  # in becomes an annoyance rather than a signpost.
+
+  miner_seller:
+    kind: SELLER
+    type: VILLAGER
+    profession: WEAPONSMITH
+    name: "&8Ore Buyer"
+    subtitle: "&7Right-click to sell"
+    job: miner
+
+  farmer_seller:
+    kind: SELLER
+    type: VILLAGER
+    profession: FARMER
+    name: "&aProduce Buyer"
+    subtitle: "&7Right-click to sell"
+    job: farmer
+
+  fisher_seller:
+    kind: SELLER
+    type: VILLAGER
+    profession: FISHERMAN
+    name: "&bFishmonger"
+    subtitle: "&7Right-click to sell"
+    job: fisher
+
+  lumberjack_seller:
+    kind: SELLER
+    type: VILLAGER
+    profession: TOOLSMITH
+    name: "&6Timber Buyer"
+    subtitle: "&7Right-click to sell"
+    job: lumberjack
+
+  hunter_seller:
+    kind: SELLER
+    type: VILLAGER
+    profession: BUTCHER
+    name: "&cTrophy Buyer"
+    subtitle: "&7Right-click to sell"
+    job: hunter
+
+  # ─── Decoration ─────────────────────────────────────────────────────────────────────────────
+  #
+  # Referenced from a marker sign like any other, but does nothing when clicked. For populating a
+  # guild hall without every figure in it offering a job.
+
+  guild_bystander:
+    kind: DECORATION
+    type: VILLAGER
+    profession: NONE
+    name: "&7Guild Member"
+    look-at-players: true
+
+  # ─── Workspace staff ────────────────────────────────────────────────────────────────────────
+  #
+  # Staffed at a claimed workspace by the roles in workspace.yml, and generic rather than per-job:
+  # the workspace already knows which profession it is, so one definition serves all of them.
+  #
+  # The sellers above are the per-job ones a job's own `workspace.npc` key can point at instead.
+  #
+  # Every NPC used by a workspace role must be `kind: SELLER`, whatever the role is actually for.
+  # SELLER is the kind the interaction listener routes to the workspace, which then dispatches on the
+  # role the workspace recorded for that NPC — so the Foreman below is a SELLER by kind and an
+  # `upgrade` by role. An NPC of any other kind never reaches the workspace and ignores every click;
+  # the config check fails the build over it.
+
+  workspace_seller:
+    kind: SELLER
+    type: VILLAGER
+    profession: NONE
+    name: "&6Buyer"
+    subtitle: "&7Right-click to trade"
+
+  workspace_foreman:
+    kind: SELLER
+    type: VILLAGER
+    profession: MASON
+    name: "&eForeman"
+    subtitle: "&7Right-click to upgrade"
+

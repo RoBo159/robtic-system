@@ -1,0 +1,538 @@
+# Statistics — the one place every tracked number on the server lives.
+#
+# This is infrastructure, not a feature. Jobs, titles, badges, reputation, collections,
+# leaderboards, contracts, achievements, economy analytics, exploration, NPC memory and everything
+# after them read and write through it. None of them keeps a counter of its own, which is the whole
+# point: two systems counting the same event is how a server ends up with a badge saying 5,000 and a
+# leaderboard saying 4,880 and no way to tell which is wrong.
+#
+# Statistics record facts and never decide what they mean. "Mined 5,000 coal" belongs here.
+# "Is now a level 10 Miner" is a judgement, and belongs to whichever system is making it — those
+# systems listen for StatisticChangedEvent and draw their own conclusions.
+
+statistics:
+
+  enabled: true
+
+  # Where values are persisted.
+  #
+  #   file   one JSON file per player under plugins/RobticMinecraft/statistics
+  #   api    the Robtic API, alongside the rest of this plugin's player data
+  #
+  # `file` is the default because the API routes are written on this side and not deployed on the
+  # other yet. Pointing at them before they exist means every save fails and the repository refuses
+  # to write — which is loud and safe, but is not a running system. Both backends speak the same
+  # JSON, so switching later is a copy rather than a conversion.
+  storage: file
+
+  # ─── Behaviour ──────────────────────────────────────────────────────────────────────────────
+
+  # Whether a write to an id nothing has declared quietly creates a plain counter for it.
+  #
+  # Off, deliberately. An unregistered id is nearly always a typo, and silently creating a second
+  # counter beside the real one is exactly the failure this system exists to prevent. Switch it on
+  # while prototyping a new system, and declare the statistics properly before it ships.
+  #
+  # Either way an unknown id is reported in the console — once, not once per write.
+  auto-register: false
+
+  # How often changed statistics are written out.
+  #
+  # Writes are debounced, not immediate: a player mining generates a write every tick, and saving on
+  # each would make this the slowest system on the server. Everything is also saved on quit and on
+  # shutdown, so this only bounds what a crash can cost.
+  save-interval-seconds: 120
+
+  # How often periodic resets are checked for players who stay online across a rollover.
+  #
+  # Nothing is scheduled for midnight. Each player's record carries the period its values belong to
+  # and a reset happens when that no longer matches — so a server that was down at midnight, and a
+  # player who was offline for a month, are both correct without anything having had to run.
+  reset-sweep-minutes: 10
+
+  # The timezone daily, weekly and monthly resets roll over in.
+  timezone: UTC
+
+  # ─── Categories ─────────────────────────────────────────────────────────────────────────────
+  #
+  # Groupings, for menus and for resetCategory(). Registered rather than hard-coded, so a future
+  # system adds its own from code or from here without this file's list being exhaustive.
+  #
+  #   display      the heading; & colour codes allowed
+  #   description  one line, for a tooltip
+  #   icon         material name, for a future menu. Not resolved by this module — it draws nothing
+  #   order        lower first; ties broken by id so the order is stable between restarts
+
+  categories:
+    player:
+      display: "&fPlayer"
+      description: "Time played, sessions, and the basics."
+      icon: PLAYER_HEAD
+      order: 10
+
+    combat:
+      display: "&cCombat"
+      description: "What you killed, and what killed you."
+      icon: IRON_SWORD
+      order: 20
+
+    world:
+      display: "&aWorld"
+      description: "Blocks broken and placed."
+      icon: GRASS_BLOCK
+      order: 30
+
+    economy:
+      display: "&6Economy"
+      description: "Robs earned and spent."
+      icon: GOLD_INGOT
+      order: 40
+
+    exploration:
+      display: "&bExploration"
+      description: "What you have found."
+      icon: FILLED_MAP
+      order: 50
+
+    workspace:
+      display: "&eWorkspace"
+      description: "Your business."
+      icon: OAK_DOOR
+      order: 60
+
+    npc:
+      display: "&dNPC"
+      description: "Who you have spoken to."
+      icon: VILLAGER_SPAWN_EGG
+      order: 70
+
+    jobs:
+      display: "&2Jobs"
+      description: "Your professions."
+      icon: IRON_PICKAXE
+      order: 80
+
+    market:
+      display: "&3Market"
+      description: "Trading."
+      icon: EMERALD
+      order: 90
+
+    # The category anything that names none falls into. A statistic referencing a category that was
+    # never declared still works — it gets a placeholder category and sorts last — because losing a
+    # statistic, and every value already recorded against it, over a missing heading would be far
+    # worse than a heading that reads "dungeons" instead of "Dungeons".
+    custom:
+      display: "&7Other"
+      description: "Everything else."
+      icon: BOOK
+      order: 1000
+
+  # ─── Statistics ─────────────────────────────────────────────────────────────────────────────
+  #
+  #   category     which group it belongs to
+  #   display      shown to players
+  #   description  one line explaining what it counts
+  #   type         long | double | boolean | duration | timestamp | text
+  #   default      the value a player who has never recorded one is treated as having
+  #   hidden       whether a generic menu lists it. Hidden statistics still record, still resolve
+  #                through the API and still have placeholders — this is presentation, not access
+  #   persistent   whether it survives a restart
+  #   reset        never | session | daily | weekly | monthly
+  #   metadata     open-ended, for systems this module knows nothing about
+  #
+  # Adding one here is all it takes: the API, the placeholders and any menu that lists statistics
+  # pick it up with no code anywhere. A plugin can equally register its own from code, and those
+  # survive a reload of this file.
+
+  statistics:
+
+    # ─── Player ─────────────────────────────────────────────────────────────────────────────
+
+    playtime:
+      category: player
+      display: "Time Played"
+      description: "How long you have been on the server."
+      type: duration
+
+    session_playtime:
+      category: player
+      display: "This Session"
+      type: duration
+      # Cleared every time the player's data loads, and never written to storage.
+      reset: session
+
+    joins:
+      category: player
+      display: "Sessions"
+      type: long
+
+    first_join:
+      category: player
+      display: "First Joined"
+      type: timestamp
+
+    last_seen:
+      category: player
+      display: "Last Seen"
+      type: timestamp
+
+    # ─── Combat ─────────────────────────────────────────────────────────────────────────────
+
+    mobs_killed:
+      category: combat
+      display: "Mobs Killed"
+      type: long
+
+    players_killed:
+      category: combat
+      display: "Players Killed"
+      type: long
+
+    deaths:
+      category: combat
+      display: "Deaths"
+      type: long
+
+    zombies_killed:
+      category: combat
+      display: "Zombies Killed"
+      type: long
+
+    skeletons_killed:
+      category: combat
+      display: "Skeletons Killed"
+      type: long
+
+    creepers_killed:
+      category: combat
+      display: "Creepers Killed"
+      type: long
+
+    # ─── World ──────────────────────────────────────────────────────────────────────────────
+
+    blocks_broken:
+      category: world
+      display: "Blocks Broken"
+      type: long
+
+    blocks_placed:
+      category: world
+      display: "Blocks Placed"
+      type: long
+
+    stone_mined:
+      category: world
+      display: "Stone Mined"
+      type: long
+
+    coal_mined:
+      category: world
+      display: "Coal Mined"
+      type: long
+
+    iron_mined:
+      category: world
+      display: "Iron Mined"
+      type: long
+
+    gold_mined:
+      category: world
+      display: "Gold Mined"
+      type: long
+
+    diamond_mined:
+      category: world
+      display: "Diamonds Mined"
+      type: long
+
+    ancient_debris_mined:
+      category: world
+      display: "Ancient Debris Mined"
+      type: long
+
+    logs_chopped:
+      category: world
+      display: "Logs Chopped"
+      type: long
+
+    crops_harvested:
+      category: world
+      display: "Crops Harvested"
+      type: long
+
+    fish_caught:
+      category: world
+      display: "Fish Caught"
+      type: long
+
+    items_crafted:
+      category: world
+      display: "Items Crafted"
+      type: long
+
+    # ─── Economy ────────────────────────────────────────────────────────────────────────────
+
+    robs_earned:
+      category: economy
+      display: "Robs Earned"
+      description: "Everything you have ever been paid."
+      type: long
+
+    robs_spent:
+      category: economy
+      display: "Robs Spent"
+      type: long
+
+    daily_robs_earned:
+      category: economy
+      display: "Robs Earned Today"
+      type: long
+      reset: daily
+
+    # ─── Market ─────────────────────────────────────────────────────────────────────────────
+
+    items_sold:
+      category: market
+      display: "Items Sold"
+      type: long
+
+    daily_items_sold:
+      category: market
+      display: "Items Sold Today"
+      type: long
+      reset: daily
+
+    # ─── Exploration ────────────────────────────────────────────────────────────────────────
+
+    structures_discovered:
+      category: exploration
+      display: "Structures Found"
+      type: long
+
+    # ─── Workspace ──────────────────────────────────────────────────────────────────────────
+
+    workspaces_claimed:
+      category: workspace
+      display: "Workspaces Claimed"
+      type: long
+
+    workspace_upgrades:
+      category: workspace
+      display: "Workspace Upgrades"
+      type: long
+
+    workspace_tax_paid:
+      category: workspace
+      display: "Maintenance Paid"
+      type: long
+
+    workspace_items_stored:
+      category: workspace
+      display: "Items Stored"
+      type: long
+
+    # ─── Business ───────────────────────────────────────────────────────────────────────────
+    #
+    # A workspace is a business, and these are the numbers that describe one over its life rather
+    # than at a moment. Kept in the workspace category because that is where a player looks for
+    # them; separated here because they are about the enterprise, not the building.
+    #
+    # `businesses_lost` and `businesses_abandoned` are deliberately different statistics. Lost
+    # counts every way a business ended, including resigning from the profession voluntarily.
+    # Abandoned counts only the licence lapsing through its grace period — the one that was not a
+    # choice. Collapsing them would make it impossible to tell a player who moved on from one who
+    # was away too long, which is exactly the distinction anybody analysing retention wants.
+
+    businesses_owned:
+      category: workspace
+      display: "Businesses Owned"
+      type: long
+
+    businesses_lost:
+      category: workspace
+      display: "Businesses Lost"
+      type: long
+
+    businesses_abandoned:
+      category: workspace
+      display: "Businesses Abandoned"
+      type: long
+
+    business_base_levels:
+      category: workspace
+      display: "Base Levels Reached"
+      type: long
+
+    workers_hired:
+      category: workspace
+      display: "Workers Hired"
+      type: long
+
+    npc_workers_purchased:
+      category: workspace
+      display: "NPC Workers Purchased"
+      type: long
+
+    player_workers_hired:
+      category: workspace
+      display: "Players Hired"
+      type: long
+
+    business_revenue:
+      category: workspace
+      display: "Business Revenue"
+      type: long
+
+    taxes_missed:
+      category: workspace
+      display: "Maintenance Missed"
+      type: long
+
+    business_license_renewals:
+      category: workspace
+      display: "Licence Renewals"
+      type: long
+
+    # Total time businesses have been held, in minutes. Accumulated when one ends, so it is a
+    # lifetime rather than an age — a player who has run four businesses for a month each reads
+    # four months, which is the number that means anything.
+    business_lifetime:
+      category: workspace
+      display: "Business Lifetime"
+      type: long
+
+    # ─── NPC ────────────────────────────────────────────────────────────────────────────────
+
+    npc_interactions:
+      category: npc
+      display: "NPCs Spoken To"
+      type: long
+
+    # ─── Licences ───────────────────────────────────────────────────────────────────────────
+    #
+    # Recorded by the licence system through the API. Declared here so a menu can list them and a
+    # placeholder can resolve them without the licence system publishing anything of its own.
+
+    licenses_obtained:
+      category: custom
+      display: "Licences Obtained"
+      type: long
+
+    licenses_renewed:
+      category: custom
+      display: "Licences Renewed"
+      type: long
+
+    licenses_expired:
+      category: custom
+      display: "Licences Expired"
+      type: long
+
+    licenses_used:
+      category: custom
+      display: "Licences Used"
+      type: long
+
+    licenses_revoked:
+      category: custom
+      display: "Licences Revoked"
+      type: long
+      hidden: true
+
+    license_renewal_spent:
+      category: economy
+      display: "Spent on Renewals"
+      type: double
+
+    # ─── Jobs ───────────────────────────────────────────────────────────────────────────────
+    #
+    # Recorded by the jobs system through the API. Declared here so a menu can list them and a
+    # placeholder can resolve them without the jobs system publishing anything of its own.
+
+    jobs_joined:
+      category: jobs
+      display: "Jobs Taken"
+      type: long
+
+    job_levels_gained:
+      category: jobs
+      display: "Levels Gained"
+      type: long
+
+    titles_unlocked:
+      category: jobs
+      display: "Titles Unlocked"
+      type: long
+
+    contracts_completed:
+      category: jobs
+      display: "Contracts Completed"
+      type: long
+
+  # ─── Vanilla recording ──────────────────────────────────────────────────────────────────────
+  #
+  # Which facts the server itself produces map to which statistics.
+  #
+  # Every other system records its own domain facts by calling the API — the workspace module records
+  # its upgrades, the economy records what was spent. Nobody owns "a player broke a block", so it is
+  # recorded here; and it is recorded from configuration rather than from code so that adding
+  # amethyst is a line in this file rather than a release.
+  #
+  # `any` is incremented for every event of that kind. The specific mapping is incremented as well,
+  # so breaking coal counts once in `blocks_broken` and once in `coal_mined`.
+  #
+  # Leave a key out and nothing is recorded for it. Leave the whole section out and the listener is
+  # never registered at all, so the server does not pay a handler call per block break to find out it
+  # has nothing to do.
+
+  record:
+    blocks-broken:
+      any: blocks_broken
+      materials:
+        STONE: stone_mined
+        DEEPSLATE: stone_mined
+        COBBLESTONE: stone_mined
+        COAL_ORE: coal_mined
+        DEEPSLATE_COAL_ORE: coal_mined
+        IRON_ORE: iron_mined
+        DEEPSLATE_IRON_ORE: iron_mined
+        GOLD_ORE: gold_mined
+        DEEPSLATE_GOLD_ORE: gold_mined
+        NETHER_GOLD_ORE: gold_mined
+        DIAMOND_ORE: diamond_mined
+        DEEPSLATE_DIAMOND_ORE: diamond_mined
+        ANCIENT_DEBRIS: ancient_debris_mined
+        OAK_LOG: logs_chopped
+        BIRCH_LOG: logs_chopped
+        SPRUCE_LOG: logs_chopped
+        JUNGLE_LOG: logs_chopped
+        ACACIA_LOG: logs_chopped
+        DARK_OAK_LOG: logs_chopped
+        MANGROVE_LOG: logs_chopped
+        CHERRY_LOG: logs_chopped
+        WHEAT: crops_harvested
+        CARROTS: crops_harvested
+        POTATOES: crops_harvested
+        BEETROOTS: crops_harvested
+        NETHER_WART: crops_harvested
+
+    blocks-placed:
+      any: blocks_placed
+
+    kills:
+      any: mobs_killed
+      entities:
+        ZOMBIE: zombies_killed
+        SKELETON: skeletons_killed
+        CREEPER: creepers_killed
+
+    player-kills: players_killed
+    deaths: deaths
+    joins: joins
+    first-join: first_join
+    last-seen: last_seen
+    playtime: playtime
+    session-playtime: session_playtime
+    fish-caught: fish_caught
+    items-crafted: items_crafted

@@ -1,0 +1,67 @@
+# Premium tiers.
+#
+# Premium is bought and managed on Discord, so this is the one place where a Discord role is the
+# SOURCE of something rather than a reflection of it:
+#
+#   Discord role  →  LuckPerms group  →  the limits below
+#
+# That is the opposite direction to staff ranks (see roles.yml), where the LuckPerms group is the
+# authority and the Discord role mirrors it. The two never collide because they touch different
+# things — but that is only true while the sets stay separate:
+#
+#   DO NOT put a staff rank's group here, and do not give a premium group a rank's Discord role.
+#   Doing so makes both systems write the same state, and the last one to run wins.
+#
+# This file is pushed to the API on start and on /robtic reload. The API resolves each player's tier
+# from the roles they hold and hands the limits back; nothing here is enforced by the plugin alone.
+
+# Homes a player with no tier may set.
+free-home-limit: 2
+
+# How long the /back budget window lasts, in minutes. Uses reset once this has elapsed.
+back-window-minutes: 240
+
+tiers:
+  tier1:
+    name: "Premium I"
+    # Higher wins when somebody holds several tiers.
+    level: 1
+    discord-role-id: ""
+    luckperms-group: "premium"
+    home-limit: 5
+    # /back uses per window.
+    back-uses: 2
+    locked-chest-limit: 2
+    # /linkchest and /chest.
+    portable-chest: false
+    # /ec, /particle and a custom join message.
+    cosmetics: true
+
+  tier2:
+    name: "Premium II"
+    level: 2
+    discord-role-id: ""
+    luckperms-group: "premium-plus"
+    home-limit: 7
+    back-uses: 5
+    locked-chest-limit: 5
+    portable-chest: true
+    cosmetics: true
+
+# ─── Discord ──────────────────────────────────────────────────────────────────────────────────
+#
+# Optional, and off by default. Premium tiers work entirely without RobticDiscord: the tier itself
+# comes from the API, and the LuckPerms group is applied locally.
+#
+# What this adds is the reverse direction — granting a Discord role when a tier is held. The role
+# IDs each tier already carries as `discord-role-id` above are what the *bot* uses; these are for
+# roles this server grants directly.
+discord:
+  enabled: false
+
+  channels:
+    logs: ""
+
+  roles:
+    # Granted to anyone holding any premium tier, on top of their tier's own role.
+    premium: ""

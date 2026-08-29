@@ -1,0 +1,54 @@
+name: RobticJobs
+version: ${project.version}
+main: org.robtic.jobs.RobticJobsPlugin
+api-version: '1.21'
+author: Robtic
+description: Professions, workspaces, selling and contracts.
+
+# RobticCore and RobticWorld are both REQUIRED, enforced in code by RobticPlugin with one clear line.
+# RobticPremium is optional: without it every player is held to the free profession and workspace
+# limits, and nothing breaks.
+# WorldEdit and FastAsyncWorldEdit are both optional and interchangeable: either one enables
+# base-level buildings being replaced by their schematic. Without one, base levels still unlock
+# everything they unlock and the building simply keeps the shape it was generated with.
+softdepend: [RobticCore, RobticWorld, RobticPremium, Citizens, WorldEdit, FastAsyncWorldEdit]
+
+# ─── /workspace ───────────────────────────────────────────────────────────────────────────────
+#
+# This plugin takes `workspace` as its primary command. RobticWorld keeps it as an alias of
+# `/structure` for backwards compatibility, and Bukkit resolves a primary command ahead of another
+# plugin's alias — so installing this plugin moves /workspace here automatically, and the marker
+# tooling stays reachable as /structure. See MarkerCommand#COMMAND.
+commands:
+  jobs:
+    description: View your professions, their progress and their titles.
+    usage: /jobs [info|leave|activate|admin]
+    permission: robtic.jobs
+    aliases: [job, profession, professions]
+  titles:
+    description: Browse and wear the titles you have unlocked.
+    usage: /titles [equip|unequip|list]
+    permission: robtic.titles
+    aliases: [title]
+  workspace:
+    description: Manage the workspace you have claimed.
+    usage: /workspace
+    permission: robtic.jobs
+
+permissions:
+  robtic.jobs:
+    description: Use /jobs and hold a profession.
+    default: true
+  robtic.titles:
+    description: Use /titles and wear titles.
+    default: true
+  robtic.jobs.admin:
+    # Grants and removes professions and titles for other players. Op-only: granting a title is
+    # harmless, but taking a profession destroys every level and title the player earned in it.
+    description: Grant and remove professions and titles, and reload the progression configs.
+    default: op
+  robtic.jobs.workspace.bypass:
+    # Build inside somebody else's workspace. For staff repairing a build, and nothing else — the
+    # protection exists precisely so ordinary players cannot.
+    description: Ignore workspace protection.
+    default: op

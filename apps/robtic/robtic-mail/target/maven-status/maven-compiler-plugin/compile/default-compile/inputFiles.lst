@@ -1,0 +1,10 @@
+/app/robtic-mail/src/main/java/org/robtic/mail/ApiMailSender.java
+/app/robtic-mail/src/main/java/org/robtic/mail/BukkitMailbox.java
+/app/robtic-mail/src/main/java/org/robtic/mail/Mail.java
+/app/robtic-mail/src/main/java/org/robtic/mail/MailCommand.java
+/app/robtic-mail/src/main/java/org/robtic/mail/MailConnectionListener.java
+/app/robtic-mail/src/main/java/org/robtic/mail/MailMenu.java
+/app/robtic-mail/src/main/java/org/robtic/mail/MailMenuHolder.java
+/app/robtic-mail/src/main/java/org/robtic/mail/MailMenuListener.java
+/app/robtic-mail/src/main/java/org/robtic/mail/MailService.java
+/app/robtic-mail/src/main/java/org/robtic/mail/RobticMailPlugin.java

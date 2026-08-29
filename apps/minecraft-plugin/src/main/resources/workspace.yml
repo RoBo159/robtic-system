@@ -1,0 +1,211 @@
+# Workspaces — a player's business, not just a protected building.
+#
+# When somebody discovers a profession structure and claims it, the building becomes theirs: a
+# protected region, virtual storage, staff NPCs, and an upgrade path. Future Robtic systems —
+# reputation, contracts, collections, events, badges — plug into it without this file changing,
+# through capabilities and the extension API.
+
+workspace:
+
+  # Turning this off disables claiming, protection and workspace NPCs. Existing workspaces are kept
+  # and come back untouched when it is switched on again — nothing here ever deletes player data.
+  enabled: true
+
+  # ─── Region ─────────────────────────────────────────────────────────────────────────────────
+  #
+  # The protected volume, built around the structure's marker.
+  #
+  # A box rather than the building's true shape, deliberately: recording the real extent would mean
+  # scanning every structure, which is the multi-second freeze this system is designed to avoid.
+  # Protecting slightly more than the walls costs an owner nothing.
+  #
+  # Vertical extent is asymmetric because buildings grow upward far more than down.
+
+  region:
+    # Blocks outward on X and Z from the marker.
+    radius: 16
+
+    # Blocks below the marker. Enough for a cellar, not enough to protect pointless bedrock.
+    depth: 8
+
+    # Blocks above it. Generous, so a tower or a roof is covered.
+    height: 32
+
+    # A safety limit. A claim producing a larger volume is refused with a warning naming this key,
+    # rather than silently protecting a quarter of the world because of a mistyped radius.
+    max-volume: 250000
+
+  # ─── Protection ─────────────────────────────────────────────────────────────────────────────
+  #
+  # The workspace is a reward, so it must stay intact without needing a moderator. Each of these is
+  # a separate class of damage; there is no single "protect this region" hook in Bukkit.
+  #
+  # Block breaking, placing and container access by non-owners are always blocked and have no
+  # toggle — that is what ownership means.
+
+  protection:
+    # TNT, creepers, end crystals, beds in the Nether.
+    #
+    # Blocks inside a workspace are removed from the explosion rather than the explosion being
+    # cancelled, so a creeper going off half outside still craters the ground outside.
+    explosions: true
+
+    # Ignition, burning and fire spreading in from outside. An owner may still light their own.
+    fire: true
+
+    # Lava and water flowing IN. Fluid already inside moves normally, so an owner's farm still works.
+    fluids: true
+
+    # Pistons pushing blocks in or pulling them out — how a piston door gets built through a wall.
+    pistons: true
+
+  # ─── Storage ────────────────────────────────────────────────────────────────────────────────
+  #
+  # Virtual, not chests. A chest can be broken, hopper-drained, chunk-unloaded or rolled back, and
+  # its 27 slots are fixed by Minecraft rather than by the upgrade tier. Storage that lives in data
+  # has none of those failure modes and grows with the workspace.
+  #
+  # Capacity is a number of ITEMS, set per tier below.
+
+  storage:
+    # Accept only what this profession deals in — the job's own sell list.
+    #
+    # Worth understanding before changing: storage holds counts, not stacks, so item metadata is not
+    # preserved. That is harmless for ore and crops, and would silently strip enchantments from a
+    # tool. Set this to false only if that is acceptable for what players will put in.
+    profession-items-only: true
+
+    # Materials accepted whatever the profession filter says.
+    always-allow: []
+
+  # ─── Upgrade tiers ──────────────────────────────────────────────────────────────────────────
+  #
+  #   display        shown in the upgrade menu
+  #   cost           Robs to reach this tier FROM THE ONE BELOW, not cumulative
+  #   storage        how many items the virtual storage holds
+  #   npcs           which roles are staffed here (see npc-roles below)
+  #   capabilities   open-ended feature flags a future system can gate on
+  #   tax-multiplier scales the base tax, so a bigger workspace costs more to keep
+  #
+  # Upgrading NEVER touches storage. That is guaranteed in code, not by convention: the upgrade path
+  # copies the storage across and has no way to reach a player's items. Players should never
+  # hesitate to upgrade.
+  #
+  # The capability strings are the extension point. A future contracts module ships with `contracts`
+  # in tier 3's list and asks the workspace whether it has it — no code here changes.
+
+  tiers:
+    1:
+      display: "Workshop"
+      cost: 0
+      storage: 512
+      npcs: [seller]
+      capabilities: []
+      tax-multiplier: 1.0
+
+    2:
+      display: "Trade Post"
+      cost: 5000
+      storage: 2048
+      npcs: [seller, upgrade]
+      capabilities: [decorations]
+      tax-multiplier: 1.5
+
+    3:
+      display: "Guildhouse"
+      cost: 20000
+      storage: 8192
+      npcs: [seller, upgrade]
+      capabilities: [decorations, contracts]
+      tax-multiplier: 2.0
+
+    4:
+      display: "Enterprise"
+      cost: 75000
+      storage: 32768
+      npcs: [seller, upgrade]
+      capabilities: [decorations, contracts, employees]
+      tax-multiplier: 3.0
+
+    5:
+      display: "Grand Company"
+      cost: 250000
+      storage: 131072
+      npcs: [seller, upgrade]
+      capabilities: [decorations, contracts, employees, machines]
+      tax-multiplier: 4.0
+
+  # ─── NPC roles ──────────────────────────────────────────────────────────────────────────────
+  #
+  # What each NPC at a workspace does. Registered rather than enumerated, so a future contract,
+  # event, merchant or assistant NPC is a section here plus a handler — nothing in the workspace
+  # core changes.
+  #
+  #   npc          the definition from npc.yml
+  #   offset-*     where it stands relative to the marker. Several NPCs share one building, so they
+  #                cannot all be at the anchor
+  #   suspendable  whether unpaid tax disables it. A decoration should not vanish over a tax bill
+
+  npc-roles:
+    seller:
+      display: "Buyer"
+      npc: workspace_seller
+      offset-x: 0.0
+      offset-y: 1.0
+      offset-z: 0.0
+      suspendable: true
+
+    upgrade:
+      display: "Foreman"
+      npc: workspace_foreman
+      offset-x: 2.0
+      offset-y: 1.0
+      offset-z: 0.0
+      suspendable: true
+
+  # ─── Tax ────────────────────────────────────────────────────────────────────────────────────
+  #
+  # Recurring maintenance, paid in Robs.
+  #
+  # Unpaid tax SUSPENDS the workspace's NPCs and does nothing else. It never deletes the workspace,
+  # removes ownership, empties storage or lowers the tier — a player who takes a fortnight off comes
+  # back to a bill, not to an empty plot. Paying restores everything instantly, because nothing was
+  # thrown away.
+  #
+  # Gameplay may call this monthly; the interval is whatever you set.
+
+  tax:
+    enabled: true
+
+    # How often it falls due. 10080 minutes = one week.
+    interval-minutes: 10080
+
+    # The base amount, before the tier's tax-multiplier.
+    base-amount: 500
+
+    # How long after it falls due before services are suspended. 1440 = one day.
+    #
+    # Grace exists so somebody logging in a few hours late finds a warning rather than a dead
+    # workspace. The goal is a nudge, not a trap.
+    grace-minutes: 1440
+
+    # How often the background sweep looks for lapsed workspaces.
+    #
+    # Deliberately slow. Any workspace a player is using is evaluated when they interact with it, so
+    # this only has to notice the ones nobody has visited.
+    sweep-minutes: 60
+
+  # ─── Limits ─────────────────────────────────────────────────────────────────────────────────
+  #
+  # How many workspaces a player may own, by premium tier. A player may hold one per profession at
+  # most, so this only matters for somebody with several professions.
+  #
+  # `robtic.jobs.workspace.bypass` is the permission that overrides workspace ownership checks. It is
+  # a staff permission, not a tester one — it also lets its holder build in and open other players'
+  # workspaces, so it should not be handed out to bypass a limit.
+
+  limits:
+    default: 1
+    tiers:
+      1: 2
+      2: 3

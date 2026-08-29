@@ -1,0 +1,7 @@
+/app/src/test/java/org/robtic/minecraft/license/ConfigCheck.java
+/app/src/test/java/org/robtic/minecraft/license/LogicCheck.java
+/app/src/test/java/org/robtic/minecraft/license/SigCheck.java
+/app/src/test/java/org/robtic/minecraft/progression/ProgressionConfigCheck.java
+/app/src/test/java/org/robtic/minecraft/structure/ConfigCheck.java
+/app/src/test/java/org/robtic/minecraft/structure/RegionCheck.java
+/app/src/test/java/org/robtic/minecraft/structure/ValidationCheck.java

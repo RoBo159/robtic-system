@@ -1,0 +1,143 @@
+name: RobticStaff
+version: ${project.version}
+main: org.robtic.staff.RobticStaffPlugin
+api-version: '1.21'
+author: Robtic
+description: Moderation, staff tools, logs and reports.
+
+# See RobticPlugin for why RobticCore is softdepend rather than depend: softdepend gives load order
+# without throwing, and the requirement is enforced in code with one clear line.
+softdepend: [RobticCore, LuckPerms]
+
+# Every command keeps the name, aliases and permission it had in RobticMinecraft 3.x. A staff
+# member's muscle memory is not something a refactor gets to change.
+#
+# /players is deliberately NOT here: it is a lobby command (LobbyCommands#togglePlayers) and belongs
+# to RobticEssentials, despite sitting next to these in the monolith's descriptor.
+commands:
+  report:
+    description: Report a player to the staff team, or act on a report.
+    usage: /report <player> <reason> | /report accept|refuse <id> [duration] | /report list
+  admin:
+    description: Toggle staff mode.
+    usage: /admin
+    permission: robtic.staff
+  a:
+    description: Send a message to staff chat.
+    usage: /a <message>
+    permission: robtic.staff
+  hide:
+    description: Toggle vanish while in staff mode.
+    usage: /hide
+    permission: robtic.staff.vanish
+  fly:
+    description: Toggle flight for yourself or another player.
+    usage: /fly [player]
+    permission: robtic.staff.fly
+  staff:
+    description: Open the staff dashboard, or change a player's rank.
+    usage: /staff [promote|demote <player> [rank]]
+    permission: robtic.staff
+  freeze:
+    description: Freeze or unfreeze a player.
+    usage: /freeze <player> [reason]
+    permission: robtic.staff.freeze
+  jail:
+    description: Jail a player, or manage the jail.
+    usage: /jail <player> <duration|perm> <reason> | /jail set | /jail history <player>
+    permission: robtic.staff.jail
+
+  # ─── The three hyphenated verbs ─────────────────────────────────────────────────────────────
+  #
+  # `/jail set` and `/jail history` are the forms a human types; these are the same actions bound
+  # as their own commands, which is what the staff menu dispatches to and what the monolith bound.
+  # They were registered in code and missing here, so Bukkit had nothing to give an executor to and
+  # each logged a warning at startup — leaving the jail location unsettable, the admin gate
+  # unsettable, and the menu's Jail History button silently doing nothing.
+  jail-set:
+    description: Set the jail location to where you are standing.
+    usage: /jail-set
+    permission: robtic.staff.jail
+  jail-history:
+    description: Show a player's jail history.
+    usage: /jail-history <player>
+    permission: robtic.staff.jail
+  set-admin-gate:
+    description: Set where /admin drops a staff member, to where you are standing.
+    usage: /set-admin-gate
+    permission: robtic.staff.admin
+
+  unjail:
+    description: Release a jailed player.
+    usage: /unjail <player> [reason]
+    permission: robtic.staff.jail
+  warn:
+    description: Issue a warning to a player.
+    usage: /warn <player> <reason>
+    permission: robtic.staff
+  warnings:
+    description: List a player's warnings.
+    usage: /warnings <player>
+    permission: robtic.staff
+  note:
+    description: Add a private staff note about a player.
+    usage: /note <player> <text>
+    permission: robtic.staff
+  notes:
+    description: List the staff notes about a player.
+    usage: /notes <player>
+    permission: robtic.staff
+  addstaff:
+    description: Make a player staff at the first configured rank.
+    usage: /addstaff <player> [rank]
+    permission: robtic.staff.roster
+  promotestaff:
+    description: Move a staff member up one rank.
+    usage: /promotestaff <player>
+    permission: robtic.staff.roster
+  demotestaff:
+    description: Move a staff member down one rank.
+    usage: /demotestaff <player>
+    permission: robtic.staff.roster
+  setstaffrole:
+    description: Set a staff member's rank directly.
+    usage: /setstaffrole <player> <role>
+    permission: robtic.staff.roster
+  firestaff:
+    description: Remove a player from the staff team.
+    usage: /firestaff <player>
+    permission: robtic.staff.roster
+
+permissions:
+  robtic.staff:
+    description: Use staff mode, staff chat and the moderation commands.
+    default: op
+  robtic.staff.roster:
+    description: Hire, promote, demote and remove staff.
+    default: op
+  robtic.staff.rank:
+    description: Change a staff member's rank from the dashboard.
+    default: op
+  robtic.staff.freeze:
+    description: Freeze and unfreeze players.
+    default: op
+  robtic.staff.jail:
+    description: Jail and release players.
+    default: op
+  robtic.staff.vanish:
+    description: Vanish while in staff mode.
+    default: op
+  robtic.staff.fly:
+    description: Toggle your own flight.
+    default: op
+  robtic.staff.fly.others:
+    description: Toggle another player's flight.
+    default: op
+  robtic.staff.admin:
+    description: Administrative staff actions.
+    default: op
+  robtic.staff.seehidden:
+    # Sees through every reason a player can be hidden at once: AFK, waiting in the link world, and
+    # vanished staff. An operator investigating a report needs to see who is actually on the server.
+    description: See hidden and vanished players.
+    default: op

@@ -1,0 +1,194 @@
+# Licences — official Robtic documents that permit an activity.
+#
+# A licence is not a renamed piece of paper. It is an item carrying signed, tamper-proof data: which
+# licence it is, when it was issued, when it lapses. The item IS the ownership record — there is no
+# database row saying you have one — so a licence given away takes its remaining time with it, and a
+# licence in your ender chest counts exactly as much as one in your hand.
+#
+# ─── Where a licence counts as held ───────────────────────────────────────────────────────────
+#
+#   * your inventory: main, hotbar, armour slots and offhand
+#   * your ender chest
+#
+# Anywhere else is storage, not possession. A licence in a chest at your base does not work.
+#
+# ─── Security ─────────────────────────────────────────────────────────────────────────────────
+#
+# Every licence item is signed with a key generated on first run and stored in licenses.key. An item
+# renamed in an anvil is not a licence, and neither is one whose data was written by an NBT editor
+# or a /give command — the signature will not match and the plugin ignores it.
+#
+# NEVER share licenses.key. Anyone holding it can mint licences. If it leaks, delete it: a new one
+# is generated and every existing licence stops validating, which is recoverable by reissuing.
+
+licenses:
+
+  enabled: true
+
+  # ─── The browser ────────────────────────────────────────────────────────────────────────────
+  #
+  # Opened by right-clicking a licence NPC, or with /license.
+  #
+  # The bottom two rows are reserved: one for category tabs, one for paging. With 6 rows that
+  # leaves 36 licences per page.
+
+  gui:
+    rows: 6
+    title: "&6Robtic Licences"
+
+  sounds:
+    open: BLOCK_ENDER_CHEST_OPEN
+    renew: ENTITY_PLAYER_LEVELUP
+    denied: BLOCK_NOTE_BLOCK_BASS
+
+  particles:
+    on-renew: true
+
+  # ─── Categories ─────────────────────────────────────────────────────────────────────────────
+  #
+  # Groupings, for the browser's tabs. Registered rather than hard-coded, so a future system adds
+  # its own from code or from here without this list being exhaustive.
+  #
+  # A licence naming a category nobody declared still works — it gets a placeholder category and
+  # sorts last. Losing a licence over a missing heading would be far worse.
+
+  categories:
+    profession:
+      display: "&aProfession"
+      icon: IRON_PICKAXE
+      order: 10
+
+    marketplace:
+      display: "&6Marketplace"
+      icon: EMERALD
+      order: 20
+
+    merchant:
+      display: "&eMerchant"
+      icon: VILLAGER_SPAWN_EGG
+      order: 30
+
+    premium:
+      display: "&dPremium"
+      icon: NETHER_STAR
+      order: 40
+
+    event:
+      display: "&bEvent"
+      icon: FIREWORK_ROCKET
+      order: 50
+
+    special:
+      display: "&cSpecial"
+      icon: DRAGON_EGG
+      order: 60
+
+    custom:
+      display: "&7Other"
+      icon: BOOK
+      order: 1000
+
+  # ─── Licences ───────────────────────────────────────────────────────────────────────────────
+  #
+  #   category          which group it belongs to
+  #   display           shown to players; & colour codes allowed
+  #   description       the lines under the name, on the item and in the browser
+  #   icon              material for the item and the browser entry
+  #   model-data        custom model data, for a resource pack. 0 for none
+  #   rarity            a free string — "common", "rare", "seasonal", whatever you use
+  #   duration-minutes  how long a fresh licence lasts. 0 means it NEVER expires
+  #   renewal-minutes   how much time a renewal adds
+  #   renewal-cost      robs to renew. Decimals are fine
+  #   renewable         whether the licence NPC will renew it
+  #   tradeable         whether it may be given to another player
+  #   consumable        whether using it destroys it
+  #   stackable         whether two of them stack. Forced false for anything with an expiry, because
+  #                     a stack has one set of data and renewing one would renew all of them
+  #   how-to-obtain     free text, shown in the browser for a licence you do not have
+  #   requirements      free text, shown always
+  #   statistic         a statistic incremented when this licence is used. Must exist in
+  #                     statistics.yml
+  #   metadata          open-ended, for systems this module knows nothing about
+  #
+  # Adding one here is all it takes: the browser, the placeholders, the commands and the statistics
+  # pick it up with no code anywhere. A plugin can equally register its own from code, and those
+  # survive a reload of this file.
+  #
+  # ─── Durations are in minutes ───────────────────────────────────────────────────────────────
+  #
+  #   1 day    = 1440        7 days  = 10080
+  #   14 days  = 20160       30 days = 43200
+
+  licenses:
+
+    workspace:
+      category: profession
+      display: "&aWorkspace Licence"
+      description:
+        - "&7Permits claiming and running"
+        - "&7a workspace of your own."
+      icon: PAPER
+      rarity: common
+      duration-minutes: 43200
+      renewal-minutes: 43200
+      renewal-cost: 2500
+      renewable: true
+      tradeable: true
+      how-to-obtain:
+        - "Complete the Guild introduction quest"
+        - "Buy one from the Licence Officer"
+      requirements:
+        - "Must hold at least one profession"
+      statistic: licenses_used
+
+    marketplace:
+      category: marketplace
+      display: "&6Marketplace Licence"
+      description:
+        - "&7Permits listing items for sale"
+        - "&7on the player marketplace."
+      icon: EMERALD
+      rarity: uncommon
+      duration-minutes: 20160
+      renewal-minutes: 20160
+      renewal-cost: 5000
+      renewable: true
+      tradeable: true
+      how-to-obtain:
+        - "Buy one from the Licence Officer"
+      requirements:
+        - "Reach 10,000 robs earned"
+
+    merchant:
+      category: merchant
+      display: "&eMerchant Licence"
+      description:
+        - "&7Permits trading with the"
+        - "&7travelling merchants."
+      icon: VILLAGER_SPAWN_EGG
+      rarity: uncommon
+      duration-minutes: 20160
+      renewal-minutes: 20160
+      renewal-cost: 3500
+      renewable: true
+      tradeable: true
+      how-to-obtain:
+        - "Found in dungeon loot"
+        - "Buy one from the Licence Officer"
+
+    founder:
+      category: premium
+      display: "&d&lFounder's Licence"
+      description:
+        - "&7Awarded to the first citizens"
+        - "&7of Robtic. Never expires."
+      icon: NETHER_STAR
+      model-data: 0
+      rarity: legendary
+      # Zero means permanent. A permanent licence cannot be renewed, and the browser says so
+      # rather than offering a button that does nothing.
+      duration-minutes: 0
+      renewable: false
+      tradeable: false
+      how-to-obtain:
+        - "Awarded by staff. Cannot be bought."

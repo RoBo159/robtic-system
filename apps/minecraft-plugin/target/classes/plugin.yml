@@ -1,0 +1,402 @@
+name: RobticMinecraft
+version: 3.3.2
+main: org.robtic.minecraft.RobticMinecraftPlugin
+api-version: '1.21'
+# Quoted: the interpolated description contains a colon, which is a YAML parse error bare.
+description: "Minecraft client for the Robtic platform - staff management, account linking, shared coin economy, ore exchange, chat bridge, and LuckPerms sync, all over the Robtic API."
+authors: [ Robtic ]
+# All optional. Listed so each one loads first when present: the placeholders must register against
+# an already-enabled PlaceholderAPI, and the NPC hooks look for their event classes at enable time.
+softdepend: [ LuckPerms, Citizens, PlaceholderAPI, FancyNpcs ]
+
+commands:
+  link:
+    description: Generate a one-time code to link this account to Discord.
+    usage: /link
+  unlink:
+    description: Unlink your Minecraft account from Discord.
+    usage: /unlink
+  robs:
+    description: Show your robs balance, or manage another player's.
+    usage: /robs [top|add|give|remove|see <player> [amount]]
+    # /bal and /balance are the shortcuts players actually type. Bukkit routes an alias through the
+    # command it belongs to, so all three arrive at the same executor.
+    aliases: [ bal, balance ]
+  exchange:
+    description: Open the ore exchange menu.
+    usage: /exchange
+    aliases: [ sell ]
+  report:
+    description: Report a player to the staff team, or act on a report.
+    usage: /report <player> <reason> | /report accept|refuse <id> [duration] | /report list
+  mail:
+    description: Open your mailbox.
+    usage: /mail
+    aliases: [ mailbox, mails ]
+  admin:
+    description: Toggle staff mode.
+    usage: /admin
+    permission: robtic.staff
+  a:
+    description: Send a message to staff chat.
+    usage: /a <message>
+    permission: robtic.staff
+  hide:
+    description: Toggle vanish while in staff mode.
+    usage: /hide
+    permission: robtic.staff.vanish
+  fly:
+    description: Toggle flight for yourself or another player.
+    usage: /fly [player]
+    permission: robtic.staff.fly
+  staff:
+    description: Open the staff dashboard, or change a player's rank.
+    usage: /staff [promote|demote <player> [rank]]
+    permission: robtic.staff
+  freeze:
+    description: Freeze or unfreeze a player.
+    usage: /freeze <player> [reason]
+    permission: robtic.staff.freeze
+  afk:
+    description: Go AFK, or manage the AFK lobby.
+    usage: /afk [back|setlobby|reload|status]
+    aliases: [ backfromafk ]
+  auth:
+    description: Manage a player's account link, password and sessions.
+    usage: /auth <forcelink|forceunlink|resetpassword|resetsession|sessions> <player> [discordId]
+    permission: robtic.auth.admin
+  jail:
+    description: Jail a player, or manage the jail.
+    usage: /jail <player> <duration|perm> <reason> | /jail set | /jail history <player>|perm> <reason>
+    permission: robtic.staff.jail
+  unjail:
+    description: Release a jailed player.
+    usage: /unjail <player> [reason]
+    permission: robtic.staff.jail
+  warn:
+    description: Issue a warning to a player.
+    usage: /warn <player> <reason>
+    permission: robtic.staff
+  warnings:
+    description: List a player's warnings.
+    usage: /warnings <player>
+    permission: robtic.staff
+  note:
+    description: Add a private staff note about a player.
+    usage: /note <player> <text>
+    permission: robtic.staff
+  notes:
+    description: List the staff notes about a player.
+    usage: /notes <player>
+    permission: robtic.staff
+  # ─── Survival ─────────────────────────────────────────────────────────────────────────────
+  spawn:
+    description: Teleport to the server spawn.
+    usage: /spawn
+  setspawn:
+    description: Set the server spawn to where you are standing.
+    usage: /setspawn
+    permission: robtic.spawn.set
+  sethome:
+    description: Create or move a home.
+    usage: /sethome [name]
+  home:
+    description: Teleport to one of your homes.
+    usage: /home [name]
+  homes:
+    description: Open your home list.
+    usage: /homes
+  delhome:
+    description: Delete a home.
+    usage: /delhome <name>
+  renamehome:
+    description: Rename a home.
+    usage: /renamehome <old> <new>
+  back:
+    description: Return to where you last teleported from or died.
+    usage: /back
+  profile:
+    description: Open a player profile.
+    usage: /profile [player]
+  friend:
+    description: Manage your friends.
+    usage: /friend <add|accept|deny|remove|cancel|tp|tpaccept|tpdeny|settings> [player]
+  friends:
+    description: Open your friend list.
+    usage: /friends
+    aliases: [ friendlist ]
+  ec:
+    description: Open your ender chest from anywhere.
+    usage: /ec
+    aliases: [ enderchest ]
+  lock:
+    description: Lock the chest you are looking at.
+    usage: /lock
+  unlock:
+    description: Unlock the chest you are looking at.
+    usage: /unlock
+  locks:
+    description: List the chests you have locked.
+    usage: /locks
+  linkchest:
+    description: Link the chest you are looking at to /chest.
+    usage: /linkchest
+  chest:
+    description: Open your linked chest from anywhere.
+    usage: /chest
+  particle:
+    description: Choose your particle trail.
+    usage: /particle [name|off]
+  joinmessage:
+    description: Set your custom join message.
+    usage: /joinmessage <text|reset>
+  leavemessage:
+    description: Set your custom leave message.
+    usage: /leavemessage <text|reset>
+
+  # ─── Lobby ────────────────────────────────────────────────────────────────────────────────
+  players:
+    description: Show or hide other players.
+    usage: /players
+    aliases: [ playertoggle, toggleplayers ]
+  settings:
+    description: Open your personal settings.
+    usage: /settings
+    aliases: [ preferences ]
+
+  # ─── Staff roster ─────────────────────────────────────────────────────────────────────────
+  addstaff:
+    description: Make a player staff at the first configured rank.
+    usage: /addstaff <player> [rank]
+    permission: robtic.staff.roster
+  promotestaff:
+    description: Move a staff member up one rank.
+    usage: /promotestaff <player>
+    permission: robtic.staff.roster
+  demotestaff:
+    description: Move a staff member down one rank.
+    usage: /demotestaff <player>
+    permission: robtic.staff.roster
+  setstaffrole:
+    description: Set a staff member's rank directly.
+    usage: /setstaffrole <player> <role>
+    permission: robtic.staff.roster
+  firestaff:
+    description: Remove a player from the staff team.
+    usage: /firestaff <player>
+    permission: robtic.staff.roster
+
+  robtic:
+    description: Administrative commands for the Robtic integration.
+    usage: /robtic <status|prices|reload|queue|refresh>
+    permission: robtic.admin
+
+  # ─── Progression ──────────────────────────────────────────────────────────────────────────
+  #
+  # No command takes a job — professions are found by exploring, which is the whole design. These
+  # open the menus and manage what a player already has.
+  jobs:
+    description: View your professions, their progress and their titles.
+    usage: /jobs [info|leave|activate|admin]
+    permission: robtic.jobs
+    aliases: [job, profession, professions]
+  titles:
+    description: Browse and wear the titles you have unlocked.
+    usage: /titles [equip|unequip|list]
+    permission: robtic.titles
+    aliases: [title]
+  license:
+    description: Browse, check and renew your Robtic licences.
+    usage: /license [list|info|check|renew|give|remove|setnpc]
+    permission: robtic.license.use
+    aliases: [licenses, licence, licences]
+  # Building markers. A design-time tool: this is how a builder tells a schematic what it is, and
+  # it is deliberately not gated behind the progression permissions — a builder laying out a
+  # dungeon has no reason to hold /jobs admin.
+  workspace:
+    description: Design structures by placing building markers.
+    usage: /workspace marker <edit|validate|scan|info|list|reload>
+    permission: robtic.markers
+    aliases: [ws, structure]
+
+permissions:
+  # ─── Testing ──────────────────────────────────────────────────────────────────────────────
+  #
+  # One node that grants every other, so a tester can exercise any command without being granted a
+  # dozen permissions by hand — and without `*`, which would also hand them other plugins' nodes.
+  #
+  # It additionally lifts the premium limits this server enforces in memory (locked chests, the
+  # portable chest, cosmetics) — see SurvivalCacheService#cachedPremium. It does NOT raise the
+  # limits the API owns, such as how many homes it will store: those are the network's answer for
+  # that account, and a game server overruling them would be lying to the rest of the platform.
+  #
+  # Deliberately op-only. This is a superset of every staff privilege, including the ones that can
+  # hand an account away.
+  robtic.tester:
+    description: Use and test every Robtic command, including premium-gated features.
+    default: op
+    children:
+      robtic.admin: true
+      robtic.auth.admin: true
+      robtic.afk.admin: true
+      robtic.link: true
+      robtic.robs: true
+      robtic.robs.admin: true
+      robtic.robs.give: true
+      robtic.chat.bridge: true
+      robtic.spawn: true
+      robtic.spawn.set: true
+      robtic.home: true
+      robtic.friend: true
+      robtic.enderchest: true
+      robtic.lobby.bypass: true
+      robtic.staff: true
+      robtic.staff.freeze: true
+      robtic.staff.jail: true
+      robtic.staff.vanish: true
+      robtic.staff.admin: true
+      robtic.staff.rank: true
+      robtic.staff.roster: true
+      robtic.staff.fly: true
+      robtic.staff.fly.others: true
+      robtic.staff.seehidden: true
+      robtic.jobs: true
+      robtic.titles: true
+      robtic.jobs.admin: true
+      robtic.jobs.workspace.bypass: true
+
+  robtic.afk.admin:
+    description: Set the AFK lobby, reload afk.yml and read AFK status.
+    default: op
+  robtic.auth.admin:
+    # Op-only, and deliberately not granted to ordinary staff. Force-linking decides which Discord
+    # account owns a Minecraft account, and resetting a password is the one action that can hand
+    # somebody else's account away — a wider privilege than anything in the moderation set.
+    description: Force link, force unlink, reset passwords and revoke sessions.
+    default: op
+  robtic.admin:
+    description: Manage the Robtic Minecraft integration.
+    default: op
+  robtic.link:
+    description: Link a Minecraft account to Discord.
+    default: true
+  robtic.robs:
+    description: Use the robs economy and the ore exchange.
+    default: true
+  robtic.chat.bridge:
+    description: Have your chat relayed to Discord.
+    default: true
+  # ─── Survival ─────────────────────────────────────────────────────────────────────────────
+  #
+  # The premium features are NOT gated by these nodes. Whether somebody may lock a chest or use
+  # /back is decided by their premium tier, which comes from Discord through the API — a permission
+  # node would be a second, silently disagreeing source of the same answer. These nodes only decide
+  # whether the ordinary commands are available at all.
+  robtic.spawn:
+    description: Use /spawn.
+    default: true
+  robtic.spawn.set:
+    description: Move the server spawn with /setspawn.
+    default: op
+  robtic.home:
+    description: Use the home commands.
+    default: true
+  robtic.friend:
+    description: Use the friend system.
+    default: true
+  robtic.enderchest:
+    description: Use /ec without a premium tier.
+    default: op
+  # ─── Lobby ────────────────────────────────────────────────────────────────────────────────
+  robtic.staff.roster:
+    # Hiring and firing. Deliberately op-only and separate from robtic.staff.rank: this changes who
+    # is staff at all, which is a wider privilege than moving somebody between existing rungs.
+    description: Add, promote, demote and remove staff members.
+    default: op
+  robtic.lobby.bypass:
+    # Exempts from every lobby restriction, so the lobby can be built without disabling the module.
+    description: Ignore the lobby restrictions.
+    default: op
+  # Staff access is granted by holding the rank's LuckPerms group, not by this node — the node only
+  # controls whether the command is visible. The rank itself is resolved from LuckPerms.
+  robtic.robs.admin:
+    description: Add, remove and inspect another player's robs.
+    default: op
+  robtic.robs.give:
+    # Kept op-only on purpose. An NPC or command block should run "/robs give" from the CONSOLE,
+    # which is implicitly permitted — granting this to players would let them run it by hand too.
+    description: Give and take robs from another player.
+    default: op
+  robtic.staff.rank:
+    # Deliberately op-only and separate from robtic.staff: this grants Discord roles, so holding it
+    # is a wider privilege than anything else the staff system exposes in game.
+    description: Promote and demote staff, applying the Discord role.
+    default: op
+  robtic.staff:
+    description: Use the staff commands.
+    default: true
+  robtic.staff.freeze:
+    description: Freeze players.
+    default: true
+  robtic.staff.jail:
+    description: Jail and release players.
+    default: true
+  robtic.staff.vanish:
+    description: Use vanish while in staff mode.
+    default: true
+  robtic.staff.fly:
+    description: Use /fly on yourself.
+    default: op
+  robtic.staff.fly.others:
+    # Separate from the node above: granting flight to somebody else is a different privilege from
+    # using it, and an event host who may fly should not thereby be able to hand it out.
+    description: Use /fly on another player.
+    default: op
+  robtic.staff.admin:
+    description: Change staff system locations.
+    default: op
+  # ─── Progression ──────────────────────────────────────────────────────────────────────────
+  robtic.jobs:
+    description: Use /jobs and hold a profession.
+    default: true
+  robtic.titles:
+    description: Use /titles and wear titles.
+    default: true
+  robtic.jobs.admin:
+    # Grants and removes professions and titles for other players. Op-only: granting a title is
+    # harmless, but taking a profession destroys every level and title the player earned in it.
+    description: Grant and remove professions and titles, and reload the progression configs.
+    default: op
+  robtic.jobs.workspace.bypass:
+    # Build inside somebody else's workspace. For staff repairing a build, and nothing else — the
+    # protection exists precisely so ordinary players cannot.
+    description: Ignore workplace protection.
+    default: op
+  robtic.markers:
+    # Place building markers and read them back. Op by default: a marker is not a gameplay item, and
+    # somebody who can place them can define where a structure's protected area runs.
+    description: Design structures with building markers.
+    default: op
+  robtic.staff.seehidden:
+    # Sees through every reason a player can be hidden at once: AFK, waiting in the link world, and
+    # vanished staff. Op by default, because an operator investigating a report needs to see who is
+    # actually on the server rather than who the visibility rules would like them to see.
+    #
+    # It only decides what the holder SEES. An op who vanishes is still hidden from everyone else,
+    # which is what makes it safe to leave on by default — see PlayerVisibilityService#canSee.
+    #
+    # Wider than robtic.staff.vanish, which shows only vanished staff and only while in staff mode.
+    description: See AFK, unauthenticated and vanished players.
+    default: op
+
+  # ─── Licences ───────────────────────────────────────────────────────────────────────────────
+  robtic.license.use:
+    # Held by everybody: opening the browser and checking your own licences is not a privilege, and
+    # a server that wants to gate the system does it with licenses.yml → enabled rather than here.
+    description: Open the licence browser and check your own licences.
+    default: true
+  robtic.license.admin:
+    # Issuing, revoking and expiring licences, and linking licence NPCs. Separate from the above
+    # because the browser is for everybody and /license give is emphatically not.
+    description: Issue, revoke and expire licences, and manage licence NPCs.
+    default: op

@@ -1,0 +1,19 @@
+# DragonBattle — plugin-wide settings.
+#
+# Everything about a *fight* lives in battle.yml and arenas.yml. This file holds only the handful of
+# settings that are not per arena.
+
+# How often a running battle is advanced, in ticks.
+#
+# Every state's timing is measured against this, so a lower value makes landings and takeoffs more
+# responsive at a proportional cost. 20 (once a second) is ample: nothing in the state machine needs
+# per-tick precision, and the dragon's own movement is handled by the server rather than by us.
+#
+# Minimum 1.
+tick-interval: 20
+
+# Extra logging: state transitions, perch selection and the reasons a landing was skipped.
+#
+# Off by default because it is noisy during a fight. Turn it on when an arena is not behaving and
+# you want to see what the machine decided.
+debug: false

@@ -1,0 +1,6 @@
+org/robtic/discord/ApiDiscordService.class
+org/robtic/discord/BridgeConsumerService.class
+org/robtic/discord/LinkCommands.class
+org/robtic/discord/RobticDiscordPlugin.class
+org/robtic/discord/ChatBridgeService.class
+org/robtic/discord/PlayerChatListener.class

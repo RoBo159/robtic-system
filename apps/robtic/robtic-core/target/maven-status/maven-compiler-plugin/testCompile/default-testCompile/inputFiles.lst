@@ -1,0 +1,3 @@
+/app/robtic-core/src/test/java/org/robtic/core/license/ConfigCheck.java
+/app/robtic-core/src/test/java/org/robtic/core/license/LogicCheck.java
+/app/robtic-core/src/test/java/org/robtic/core/license/SigCheck.java

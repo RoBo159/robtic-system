@@ -1,0 +1,78 @@
+# Robtic API connection.
+#
+# This is the only network configuration the plugin has. There is no database connection string
+# and no .env: the plugin never touches MongoDB, and the API key below is the only secret it holds.
+#
+# The key is read fresh on every request, so rotating it is: edit this file, run /robtic reload.
+# No server restart, and no dropped players.
+
+api:
+  # Base URL of the Robtic API. Use https in production.
+  url: "http://localhost:3002"
+
+  # Issued on Discord with /minecraft apikey create. Shown once — store it here and nowhere else.
+  api-key: "REPLACE_ME"
+
+  # Guild this server belongs to. May also be set as discord.guild-id in config.yml.
+  guild-id: ""
+
+  # Connection and read timeouts, in milliseconds.
+  connect-timeout-ms: 5000
+  request-timeout-ms: 10000
+
+  # How often (in ticks) a failed connection is retried and the offline queue is replayed.
+  # 200 ticks = 10 seconds.
+  retry-interval-ticks: 200
+
+  # How often cached prices, staff ranks and lobbies are refreshed. 6000 ticks = 5 minutes.
+  cache-refresh-ticks: 6000
+
+  # How often this server reports players, TPS and memory. 600 ticks = 30 seconds.
+  heartbeat-ticks: 600
+
+  # How often events queued by Discord are drained. 40 ticks = 2 seconds.
+  poll-ticks: 40
+
+  # How often the values behind the PlaceholderAPI placeholders are refreshed — coin balances,
+  # Discord roles and the leaderboard. 600 ticks = 30 seconds.
+  #
+  # A placeholder is resolved on the main thread and so can never fetch anything itself; this is
+  # what decides how out of date %robtic_robs% in a tab list may be. Each pass makes one request
+  # per online player plus one for the board, so lower it deliberately rather than by habit.
+  placeholder-refresh-ticks: 600
+
+  # Whether gameplay continues when the API is unreachable.
+  # Leave this true unless you have a strong reason not to: a network blip should not stop people
+  # playing.
+  fail-open: true
+
+# What keeps working while the API is down, and for how long.
+#
+# The plugin caches player profiles and balances, queues every write, and reconciles the lot when
+# the API comes back. A sale made during an outage pays the player immediately from cache, and the
+# queued credit is replayed under an idempotency key so it lands exactly once.
+offline:
+  # Show a cached balance when the API cannot be reached, rather than an error.
+  serve-cached-balances: true
+
+  # Allow selling while the API is down.
+  #
+  # Safe to leave on: selling only ever *credits* robs, the credit is queued under an idempotency
+  # key, and the API re-prices the sale from its own table when it replays — so the worst case is
+  # that the robs arrive a few minutes late.
+  allow-exchange: true
+
+  # Allow *spending* robs while the API is down. Off, and it should stay off until there is a
+  # reason to change it.
+  #
+  # A debit taken against a cached balance cannot be validated, so on a network running several
+  # servers the same robs could be spent on each of them during one outage. Nothing in game
+  # currently spends robs, so this costs nothing today.
+  allow-debit: false
+
+  # How long a cached profile is trusted before a refresh is attempted. 60000 = 1 minute.
+  profile-cache-ms: 60000
+
+  # The age past which cached data is discarded instead of served. A balance old enough to be
+  # actively wrong is worse than an honest "temporarily unavailable". 86400000 = 24 hours.
+  max-cache-age-ms: 86400000

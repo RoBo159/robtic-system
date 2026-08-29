@@ -1,0 +1,77 @@
+# Staff ranks.
+#
+# A rank IS a LuckPerms group. Whoever holds the group holds the rank — that is the whole rule, and
+# it is resolved on this server with no call to the API.
+#
+# The split is worth understanding, because it decides what breaks when:
+#
+#   LuckPerms  →  who HOLDS the rank
+#   this file  →  what the rank MEANS  (its name, its order, which Discord role mirrors it)
+#   Discord    →  a reflection, written by the API and never read back
+#
+# The direction is one-way. Giving somebody the Discord role does NOT make them staff; giving them
+# the LuckPerms group does, and the Discord role is applied to follow. Take the group away with
+# `/lp user <name> parent remove <group>` and the Discord role is removed on the next sync.
+#
+# Precedence is `priority`, ascending — lower wins when a player holds several. It is NOT Discord's
+# role hierarchy, so you can order your staff however your server works.
+#
+# `discord-role-id` is OPTIONAL. A rank without one is still a real rank in game; it simply has
+# nothing to mirror onto. Fill it in only for the rungs you want visible on Discord.
+
+# A group every staff member is expected to hold alongside their rank, for permissions common to
+# all staff. It is never added or removed by the plugin — entering and leaving /admin no longer
+# changes anybody's groups, and /staff promote only moves rank groups. Grant it with LuckPerms.
+base-group: "staff"
+
+# Role applied to a linked player for the duration of a jail sentence. Blank disables it.
+jail-role-id: ""
+
+# LuckPerms group → Discord role, for groups that are not staff ranks.
+#
+# Ranks below already carry their own `discord-role-id`; this is for everything else you want
+# reflected on Discord — donor tiers, a builder group, and so on. Note the direction: the KEY is the
+# LuckPerms group, because that is the side that decides.
+#
+# Only role ids named here or on a rank are ever REVOKED by the sync, so a Discord role you hand out
+# manually for something unrelated is never taken away by the game server.
+group-roles: {}
+#  "donor": "123456789012345678"
+#  "builder": "987654321098765432"
+
+ranks:
+  support:
+    group: "support"
+    discord-role-id: ""
+    name: "Support"
+    priority: 50
+
+  helper:
+    group: "helper"
+    discord-role-id: ""
+    name: "Helper"
+    priority: 40
+
+  moderator:
+    group: "moderator"
+    discord-role-id: ""
+    name: "Moderator"
+    priority: 30
+
+  admin:
+    group: "admin"
+    discord-role-id: ""
+    name: "Admin"
+    priority: 20
+
+  founder:
+    group: "founder"
+    discord-role-id: ""
+    name: "Founder"
+    priority: 10
+
+  owner:
+    group: "owner"
+    discord-role-id: ""
+    name: "Owner"
+    priority: 0

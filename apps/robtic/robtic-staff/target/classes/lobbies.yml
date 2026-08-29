@@ -1,0 +1,82 @@
+# Destinations offered by the staff book.
+#
+# A destination whose world is not loaded is shown greyed out rather than hidden, so a missing
+# world looks like the configuration problem it is instead of a silently absent button.
+
+menu:
+  title: "Staff Lobbies"
+  rows: 3
+
+lobbies:
+  staff_lobby:
+    name: "&bStaff Lobby"
+    world: "world"
+    x: 0.5
+    y: 100.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+    icon: BEACON
+    slot: 10
+    # Blank means every staff member may use it.
+    permission: ""
+
+  spawn:
+    name: "&aSpawn"
+    world: "world"
+    x: 0.5
+    y: 64.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+    icon: GRASS_BLOCK
+    slot: 11
+    permission: ""
+
+  survival:
+    name: "&2Survival"
+    world: "world"
+    x: 100.5
+    y: 64.0
+    z: 100.5
+    yaw: 0.0
+    pitch: 0.0
+    icon: OAK_SAPLING
+    slot: 12
+    permission: ""
+
+  mining:
+    name: "&7Mining"
+    world: "world"
+    x: 200.5
+    y: 32.0
+    z: 200.5
+    yaw: 0.0
+    pitch: 0.0
+    icon: IRON_PICKAXE
+    slot: 13
+    permission: ""
+
+  nether:
+    name: "&cNether"
+    world: "world_nether"
+    x: 0.5
+    y: 64.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+    icon: NETHERRACK
+    slot: 14
+    permission: ""
+
+  admin_base:
+    name: "&4Admin Base"
+    world: "world"
+    x: 500.5
+    y: 100.0
+    z: 500.5
+    yaw: 0.0
+    pitch: 0.0
+    icon: COMMAND_BLOCK
+    slot: 16
+    permission: "robtic.staff.admin"

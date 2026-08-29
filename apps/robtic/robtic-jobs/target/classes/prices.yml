@@ -1,0 +1,45 @@
+# The ore exchange price table.
+#
+# Set here, pushed to the API on startup and on /robtic reload. The Discord `/minecraft price`
+# commands are gone; this file is the only place a price is set.
+#
+# The API keeps its own copy of what is pushed and re-prices every sale from it rather than trusting
+# the numbers a client sends. That is why a sale is still safe even though the table is configured
+# on the game server: the plugin proposes the prices, the API is what applies them.
+#
+# robs    what one unit sells for, in robs. Whole numbers, 1 to 1000000.
+#         (`coins:` is still read as a fallback, so an older prices.yml keeps working.)
+# enabled false takes the item out of the exchange without losing the price you set.
+
+prices:
+  DIAMOND:
+    robs: 120
+    enabled: true
+
+  EMERALD:
+    robs: 100
+    enabled: true
+
+  GOLD_INGOT:
+    robs: 45
+    enabled: true
+
+  IRON_INGOT:
+    robs: 20
+    enabled: true
+
+  REDSTONE:
+    robs: 8
+    enabled: true
+
+  LAPIS_LAZULI:
+    robs: 8
+    enabled: true
+
+  COAL:
+    robs: 4
+    enabled: true
+
+  COPPER_INGOT:
+    robs: 4
+    enabled: true

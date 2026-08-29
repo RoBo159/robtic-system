@@ -1,0 +1,125 @@
+# DragonBattle — every player-facing string.
+#
+# A key you delete renders as a visible marker rather than a blank line, so a mistake here is
+# obvious rather than looking like a message that failed to send.
+
+prefix: "&8[&5Dragon&8] &r"
+
+player-only: "&cStand where you want it and run this in game."
+reloaded: "&aConfiguration reloaded."
+
+# %count%
+regenerated: "&aReplaced &f%count% &aconfig file(s) with this version's. The old ones are kept as &f.old&a. &7Your arenas were not touched."
+regenerate-failed: "&cNothing could be regenerated — check the console."
+
+usage:
+  header: |-
+    &8&m
+    &5&lDragonBattle
+    &7/dragonbattle create <name> &8— make an arena
+    &7/dragonbattle select <name> &8— choose what you are editing
+    &7/dragonbattle setspawn|playerspawn|portal|beacon
+    &7/dragonbattle crystal|gateway add|remove|list
+    &7/dragonbattle perch add [name] &8| remove <name> | list
+    &7/dragonbattle area pos1 | pos2 &8— confine the dragon
+    &7/dragonbattle egg set|remove|tp
+    &7/dragonbattle enable|disable|start|stop|reset|info|list
+    &8&m
+  create: "&7Usage: &f/dragonbattle create <name>"
+  delete: "&7Usage: &f/dragonbattle delete <name>"
+  select: "&7Usage: &f/dragonbattle select <name>"
+  # %what%
+  remove: "&7Usage: &f/dragonbattle %what% remove <index>"
+  perch-remove: "&7Usage: &f/dragonbattle perch remove <name>"
+
+arena:
+  # %arena%
+  created: "&aCreated arena &f%arena%&a, and selected it for editing."
+  exists: "&cAn arena called &f%arena% &calready exists."
+  deleted: "&aDeleted arena &f%arena%&a."
+  unknown: "&cThere is no arena called &f%arena%&c."
+  selected: "&aNow editing &f%arena%&a."
+  none-selected: "&cSelect an arena first: &f/dragonbattle select <name>&c."
+  none: "&7No arenas have been created yet."
+  enabled: "&aArena &f%arena% &ais enabled."
+  disabled: "&eArena &f%arena% &eis disabled."
+  # %problems%
+  not-ready: "&cThat arena is not ready: &f%problems%&c."
+  list-header: "&5Arenas"
+  # %arena% %state% %ready%
+  list-entry: "&8• &f%arena% &8— &7%state%, %ready%"
+  # %arena%
+  info-header: "&5%arena%"
+  # %key% %value%
+  info-line: "&8• &7%key%: &f%value%"
+
+position:
+  # %what% %where%
+  set: "&aSet the %what% to &f%where%&a."
+
+list:
+  # %what% %index% %where%
+  added: "&aAdded %what% &f#%index% &aat &f%where%&a."
+  removed: "&aRemoved %what% &f#%index%&a."
+  no-such-index: "&cThere is no %what% at index &f%index%&c."
+  not-a-number: "&f%value% &cis not a number."
+  empty: "&7No %what% positions are configured."
+  # %what% %count%
+  header: "&5%what% positions &7(%count%)"
+  # %index% %where%
+  entry: "&8• &f#%index% &7%where%"
+
+perch:
+  # %perch%
+  added: "&aAdded perch &f%perch%&a."
+  removed: "&aRemoved perch &f%perch%&a."
+  unknown: "&cThere is no perch called &f%perch%&c."
+  none: "&7No perches are configured — the dragon will never land."
+  # %count%
+  header: "&5Perches &7(%count%)"
+  entry: "&8• &7%perch%"
+
+area:
+  pos1: "&aFirst corner set. Stand at the opposite corner and run &f/dragonbattle area pos2&a."
+  no-pos1: "&cSet the first corner first: &f/dragonbattle area pos1&c."
+  different-world: "&cBoth corners must be in the same world."
+  # %region%
+  set: "&aArena area set — &7%region%"
+  builds-cleared: "&7The record of player-built blocks was cleared with it."
+  current: "&7Arena area: &f%region%"
+  # %count%
+  tracked: "&7Player-built blocks tracked: &f%count%"
+  unset: "&cNo area is set. Use &f/dragonbattle area pos1 &cthen &fpos2&c."
+
+egg:
+  # %where%
+  set: "&aDragon egg position set to &f%where%&a."
+  removed: "&aDragon egg position cleared."
+  current: "&7Dragon egg: &f%where%"
+  unset: "&cNo dragon egg position is set."
+
+crystal:
+  # %range%
+  no-target: "&cLook at the block the crystal should stand on, within %range% blocks."
+
+battle:
+  # %arena%
+  started: "&aThe battle in &f%arena% &ahas begun."
+  stopped: "&eThe battle in &f%arena% &ehas been stopped."
+  reset: "&eArena &f%arena% &ehas been reset."
+  # %reason%
+  cannot-start: "&cThat battle cannot start: &f%reason%&c."
+  # %arena%
+  completed: "&5&lThe dragon is slain."
+
+ritual:
+  # %arena%
+  started: "&5The crystals are complete. Something is coming."
+
+bossbar:
+  # Shown during the spawn animation, before the dragon exists. The bar fills as the countdown runs.
+  awakening: "&5&lDragon Awakening..."
+  # The fight bar. %name% %health%
+  fight: "&d&l%name% &8• &c%health% ❤"
+  # Used when the dragon has no custom name of its own.
+  default-name: "Ender Dragon"

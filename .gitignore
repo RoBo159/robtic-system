@@ -173,9 +173,6 @@ dist
 
 # Finder (MacOS) folder config
 .DS_Store
-minecraft-plugin/
-DragonBattle/
-robtic/
 
 # Environment files. The production .env lives on the server and is edited there by hand; it must
 # never appear here. The `.env` pattern above covers the plain name, this covers the suffixed forms.

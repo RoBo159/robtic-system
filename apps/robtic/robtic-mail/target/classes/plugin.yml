@@ -1,0 +1,17 @@
+name: RobticMail
+version: 4.0.0
+main: org.robtic.mail.RobticMailPlugin
+api-version: '1.21'
+author: Robtic
+description: Player mail, attachments and notifications.
+
+# See RobticPlugin for why RobticCore is softdepend rather than depend: softdepend gives load order
+# without throwing, and the requirement is enforced in code with one clear line.
+softdepend: [RobticCore]
+
+# Name, usage and aliases exactly as RobticMinecraft 3.x declared them.
+commands:
+  mail:
+    description: Open your mailbox.
+    usage: /mail
+    aliases: [ mailbox, mails ]

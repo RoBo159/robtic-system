@@ -1,0 +1,97 @@
+# RobticAuth — Discord-first authentication.
+#
+# There is no /register and no /login. A new player is put in the link world and runs /link, which
+# gives them a code to submit in Discord along with a password. Everyone after that authenticates
+# through a GUI on join, and a returning player on the same connection is not asked at all.
+#
+# The API is the authority for every decision here. This file only says what this server does with
+# the answers.
+
+auth:
+  enabled: true
+
+  # The world a player who has not linked their Discord account is put in.
+  #
+  # A tutorial, not a prison cell: they can walk around, read signs and talk to NPCs. Everything
+  # else is refused until they link. Leave blank to keep them where they joined, which is only
+  # sensible if the spawn area is already safe for an unlinked player.
+  link-world: link
+
+  # Ask for the password BEFORE the player enters the world.
+  #
+  # Paper can show a dialog during the connection's configuration phase — after the client has
+  # connected but before it has loaded a world — and hold the connection until it is answered. A
+  # player who logs in this way is never in the world unauthenticated at all, so none of the
+  # restrictions below ever apply to them, and a returning player with a valid session simply joins
+  # with no prompt of any kind.
+  #
+  # Only used for players who already have a password. Anyone who has to visit Discord first — a new
+  # player linking, or a legacy account setting its first password — is let into the link world
+  # instead, because holding a connection open for the minutes that takes is worse than letting them
+  # wait somewhere.
+  #
+  # Bedrock players skip this entirely: Geyser cannot render a Java dialog, so they would see an
+  # empty screen. They get the in-world flow.
+  #
+  # Turn this off to put every player through the in-world flow instead.
+  pre-join-login: true
+
+  # How long the pre-join dialog waits before giving up, in seconds.
+  #
+  # A connection blocked here holds a thread, so this is bounded rather than indefinite. On timeout
+  # the player is disconnected with an explanation and can simply rejoin.
+  pre-join-timeout-seconds: 120
+
+  # Kick a player who has not authenticated within this many seconds.
+  #
+  # Not a security measure — an unauthenticated player can do nothing anyway. It exists so an
+  # abandoned client does not hold a slot on a full server forever. 0 disables it.
+  timeout-seconds: 180
+
+  session:
+    # Skip the login GUI for a player who authenticated recently from the same connection.
+    enabled: true
+
+    # Require the session to be resumed from the address that opened it.
+    #
+    # LEAVE THIS ON unless your server is online-mode.
+    #
+    # The session is presented by the server, not by the client. On an offline-mode server anyone
+    # can connect claiming any username, so without this check an impostor is handed the account and
+    # the password is never asked for at all. The address is the one thing they cannot reproduce.
+    #
+    # The cost is that a player who changes network — wifi to mobile data, most often — logs in
+    # again. That is the right way round.
+    bind-to-ip: true
+
+  # What an unauthenticated player may not do.
+  #
+  # Everything here defaults to true and there is rarely a reason to change it. They are listed
+  # individually so an operator can permit something deliberately, not so the list can be ignored.
+  restrictions:
+    movement: false      # they may walk; it is the one thing that makes the link world a tutorial
+    chat: true
+    commands: true       # /link is always allowed, whatever this says
+    inventory: true
+    block-break: true
+    block-place: true
+    interact: true       # doors, buttons, containers
+    entity-interact: true
+    damage: true         # both dealt and taken
+    item-pickup: true
+    item-drop: true
+    portal: true
+    world-change: true
+    teleport: true
+
+  # Commands an unauthenticated player may still run, beyond /link.
+  #
+  # Kept short on purpose. Every entry here is a command running for somebody whose identity has not
+  # been established.
+  allowed-commands:
+    - link
+
+  sounds:
+    prompt: BLOCK_NOTE_BLOCK_PLING
+    success: ENTITY_PLAYER_LEVELUP
+    failure: ENTITY_VILLAGER_NO

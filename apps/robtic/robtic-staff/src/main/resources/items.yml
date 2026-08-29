@@ -1,0 +1,87 @@
+# The staff hotbar.
+#
+# Nothing about this kit is compiled into the plugin. Material, slot, name, lore, enchantments,
+# glow, cooldown, permission and the action each click runs all come from here — so moving "freeze"
+# from the blaze rod to a stick is an edit to this file and nothing else.
+#
+# Slots are 1-9 as you count hotbar positions.
+#
+# Available action ids:
+#   freeze_target        freeze or unfreeze whoever you are looking at
+#   player_list          the online-player grid
+#   teleport_menu        the teleport grid (vanish-aware)
+#   lobby_menu           the destinations from lobbies.yml
+#   staff_menu           the staff dashboard
+#   inspect_target       open the inventory of whoever you are looking at
+#   reports_menu         the open report queue
+#   exit_staff_mode      leave staff mode
+#   toggle_vanish        toggle /hide
+#   toggle_flight        toggle flight
+#   toggle_night_vision  toggle night vision
+#   toggle_spectator     toggle spectator mode
+#   toggle_speed         cycle walk and fly speed
+#   random_teleport      teleport to a random online player
+#   teleport_back        return to where you last teleported from
+
+items:
+  freeze_rod:
+    material: BLAZE_ROD
+    slot: 1
+    name: "&c&lFreeze"
+    lore:
+      - "&7Left click &fa player to freeze them"
+      - "&7Right click &fto open the player list"
+    glow: true
+    left-action: freeze_target
+    right-action: player_list
+    cooldown-ms: 500
+    permission: "robtic.staff.freeze"
+
+  teleport_compass:
+    material: COMPASS
+    slot: 3
+    name: "&b&lTeleport"
+    lore:
+      - "&7Right click &fto open the teleport menu"
+      - "&8Hidden staff are only shown to staff"
+    left-action: random_teleport
+    right-action: teleport_menu
+    cooldown-ms: 500
+    permission: "robtic.staff"
+
+  lobby_book:
+    material: BOOK
+    slot: 5
+    name: "&e&lLobbies"
+    lore:
+      - "&7Right click &fto travel"
+    left-action: inspect_target
+    right-action: lobby_menu
+    cooldown-ms: 500
+    permission: "robtic.staff"
+
+  utility_clock:
+    material: CLOCK
+    slot: 7
+    name: "&a&lTools"
+    lore:
+      - "&7Left click &fto open the reports queue"
+      - "&7Right click &fto open the staff dashboard"
+      - "&8The dashboard also has a Reports button"
+    # Reports are the thing staff reach for most often while on duty, so they get the cheaper of the
+    # two clicks. Flight is still one click away on the dashboard.
+    left-action: reports_menu
+    right-action: staff_menu
+    cooldown-ms: 500
+    permission: "robtic.staff"
+
+  exit_barrier:
+    material: BARRIER
+    slot: 9
+    name: "&4&lExit Staff Mode"
+    lore:
+      - "&7Restores your inventory and rank"
+    left-action: exit_staff_mode
+    right-action: exit_staff_mode
+    cooldown-ms: 1000
+    permission: "robtic.staff"

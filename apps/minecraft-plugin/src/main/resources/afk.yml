@@ -1,0 +1,119 @@
+# The AFK lobby.
+#
+# A player who stops doing anything for `timeout` seconds is moved to the lobby, and put back
+# exactly where they were the moment they do anything again. Their position, rotation, world,
+# gamemode and flight state are all restored.
+#
+# Set the lobby by standing where you want it and running /afk setlobby — the coordinates below are
+# written for you.
+
+afk:
+  enabled: true
+
+  # The AFK world.
+  #
+  # Players are moved to this world's spawn when they go AFK, and back to exactly where they were
+  # when they come back. Leave it blank to use only the `lobby` coordinates below.
+  #
+  # `lobby` wins when it is set and names a loaded world, so /afk setlobby still places players at a
+  # precise spot rather than at the world spawn. Setting the lobby inside this world is the usual
+  # arrangement; setting it in a different world is allowed and simply means that world is used.
+  world: afk
+
+  # Hide every other player from an AFK player, and the AFK player from everyone else.
+  #
+  # It is not a preference and it is not the /players toggle: it is applied on entering the AFK
+  # world and undone on leaving, so an AFK player is alone and is never seen standing idle. No
+  # command is involved.
+  hide-players: true
+
+  # Robs earned for time spent in the AFK world.
+  #
+  # Paid once, when the session ends — on returning from AFK or on disconnecting while AFK. Nothing
+  # is written to the database while a player is AFK, and no timer touches a balance: the reward is
+  # always computed from `now - start`, so it is correct whenever it happens to be asked for.
+  #
+  #   Reward = (AFK seconds / 3600) * robs-per-hour
+  #
+  # Robs carry two decimal places, so a session is paid exactly what it earned: at the rate below,
+  # five minutes is 0.83 and that is what lands. There is no rounding to carry forward.
+  #
+  # This used to be flooring to a whole number, which is why AFK looked broken — five minutes earned
+  # 0.83, floored to zero, and a player came back to an unchanged balance. Raising the rate is no
+  # longer necessary to make short sessions visible.
+  rewards:
+    enabled: true
+    robs-per-hour: 10
+
+  # The status line shown above an AFK player's hotbar.
+  #
+  # Displays how long they have been AFK and how many robs the session is worth so far. The number
+  # is the same one that gets paid when they come back — both are computed from `now - start`, so
+  # what they watch tick up is exactly what they receive, rather than a separate counter that would
+  # slowly drift away from it.
+  #
+  # The wording and colours are in messages.yml under `afk.overlay`.
+  overlay:
+    enabled: true
+
+    # How often the line is redrawn, in ticks. 20 = once a second.
+    #
+    # This is also what keeps it on screen at all: the action bar is transient and the client fades
+    # it after about three seconds regardless of the server, so anything above ~60 will flicker.
+    # Raising it does not save meaningful CPU — one pass over the AFK players is already cheap.
+    update-interval-ticks: 20
+
+  statistics:
+    track-total-time: true
+    track-today: true
+
+  profile:
+    show-afk-statistics: true
+
+  # Seconds of inactivity before a player is moved. Minimum 10.
+  timeout: 300
+
+  # How often the check runs, in ticks. 100 = 5 seconds.
+  #
+  # This is not how often each player is examined — nothing is scanned per tick. It is how precisely
+  # the timeout is honoured, so a lower value costs a little more for a little less overshoot.
+  check-interval-ticks: 100
+
+  # What counts as being present.
+  detect:
+    movement: true
+    # Looking around. Off deliberately: a mouse resting on a desk drifts the view by fractions of a
+    # degree, and counting that as activity means nobody is ever AFK.
+    rotation: false
+    commands: true
+    chat: true
+    inventory: true
+
+  # Bring players back automatically the moment they act. With this off they must run /afk back.
+  auto_return: true
+
+  # How long after being moved to the lobby activity is ignored, in milliseconds.
+  #
+  # Going AFK is itself movement: the teleport into the lobby fires a move event, and without this
+  # window the auto-return above fires on that event and puts the player straight back — /afk looked
+  # like it enabled and disabled in the same instant. Raise it if your lobby drops players onto a
+  # surface they slide across for longer than this. Minimum 250.
+  settle-ms: 2000
+
+  # Leave staff in /admin mode alone. They are working, not idle.
+  exempt-staff-mode: true
+
+  # Sound names are from the Bukkit Sound enum. Leave blank for silence; an unknown name is
+  # reported in the console and treated as blank rather than stopping the feature loading.
+  sounds:
+    enter: ENTITY_ENDERMAN_TELEPORT
+    leave: ENTITY_PLAYER_LEVELUP
+
+  # Written by /afk setlobby. A blank world means no lobby is configured and nobody is moved.
+  lobby:
+    world: ""
+    x: 0.0
+    y: 100.0
+    z: 0.0
+    yaw: 0.0
+    pitch: 0.0

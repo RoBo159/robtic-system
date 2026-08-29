@@ -1,0 +1,9 @@
+org/robtic/minecraft/license/LogicCheck.class
+org/robtic/minecraft/license/LogicCheck$1.class
+org/robtic/minecraft/license/SigCheck.class
+org/robtic/minecraft/structure/RegionCheck.class
+org/robtic/minecraft/structure/ValidationCheck.class
+org/robtic/minecraft/license/ConfigCheck.class
+org/robtic/minecraft/license/ConfigCheck$1.class
+org/robtic/minecraft/progression/ProgressionConfigCheck.class
+org/robtic/minecraft/structure/ConfigCheck.class

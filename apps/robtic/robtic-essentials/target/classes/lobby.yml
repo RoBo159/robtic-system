@@ -1,0 +1,183 @@
+# The lobby world.
+#
+# Everything the lobby does is configured here: which world it is, what sits in the hotbar, what is
+# forbidden, which commands survive, and every row of the information menu.
+#
+# What this file does NOT control is inventories. Multiverse-Inventories owns saving and restoring
+# them across worlds; this plugin only adds and removes its own tagged hotbar items. Nothing here
+# will ever clear or restore a survival inventory.
+
+enabled: true
+
+# Must match the Multiverse world name exactly.
+world: spawn
+
+# ─── Hotbar items ─────────────────────────────────────────────────────────────────────────────
+#
+# `slot` is a hotbar index, 0–8. `action` decides what a right-click opens:
+#
+#   profile      the player's own profile GUI
+#   inventory    the read-only survival inventory preview
+#   information  the information menu below
+#   settings     personal settings
+#
+# The items cannot be moved, dropped, stored or destroyed — they are tagged, so renaming another
+# item to match one of these will not impersonate it.
+items:
+  profile:
+    slot: 0
+    material: PLAYER_HEAD
+    name: "&aYour profile"
+    lore:
+      - "&7Rank, playtime, robs and more."
+      - ""
+      - "&eRight-click to open"
+    action: profile
+
+  inventory:
+    slot: 4
+    material: CHEST
+    name: "&6Survival inventory"
+    lore:
+      - "&7Look at what you left in survival."
+      - ""
+      - "&8Read-only — nothing can be taken."
+    action: inventory
+
+  information:
+    slot: 8
+    material: BOOK
+    name: "&bInformation"
+    lore:
+      - "&7Rules, links and support."
+      - ""
+      - "&eRight-click to open"
+    action: information
+
+# ─── Restrictions ─────────────────────────────────────────────────────────────────────────────
+#
+# An EMPTY list applies every restriction, which is the safe default for a lobby. List entries
+# explicitly to apply only those — useful for an event where, say, item pickup should work.
+#
+# Available keys:
+#   block-break  block-place  buckets      item-drop     item-pickup   offhand-swap
+#   item-damage  inventory-move  crafting  armor-swap    damage        pvp
+#   hunger       experience    fishing      vehicles
+#
+# Players holding `robtic.lobby.bypass`, and anyone in creative or spectator, are exempt entirely.
+restrictions: []
+
+# Commands usable in the lobby.
+#
+# An EMPTY list disables the filter rather than blocking everything, so the feature is opt-in. The
+# namespaced form (/plugin:command) is resolved to the plain label, so it cannot be used to slip past.
+allowed-commands:
+  - spawn
+  - profile
+  - friend
+  - friends
+  - players
+  - settings
+  - menu
+  - help
+  - msg
+  - report
+  - mail
+
+# How long between right-clicking players, in milliseconds. Stops a double-click opening two menus.
+interact-cooldown-ms: 500
+
+sounds:
+  click: UI_BUTTON_CLICK
+
+# ─── Menu titles ──────────────────────────────────────────────────────────────────────────────
+# %player% is replaced where a menu is about somebody.
+titles:
+  player: "&8%player%"
+  give: "&8Give to %player%"
+  information: "&8Information"
+  settings: "&8Settings"
+  preview: "&8%player%'s survival inventory"
+
+# ─── Information menu ─────────────────────────────────────────────────────────────────────────
+#
+# `action` is one of:
+#
+#   url      shows a clickable link (`value` is the address)
+#   command  runs `value` as the player
+#   menu     opens another menu — currently `settings`
+#   message  sends `value` as a coloured message
+#   none     does nothing but close
+information:
+  entries:
+    rules:
+      slot: 10
+      material: WRITTEN_BOOK
+      name: "&cRules"
+      lore:
+        - "&7What is and is not allowed."
+      action: message
+      value: "&c&lRules&r&7: be respectful, no cheating, no griefing."
+
+    discord:
+      slot: 11
+      material: PAPER
+      name: "&9Discord"
+      lore:
+        - "&7Join the community."
+      action: url
+      value: "https://discord.gg/robtic"
+
+    website:
+      slot: 12
+      material: COMPASS
+      name: "&bWebsite"
+      lore:
+        - "&7News and information."
+      action: url
+      value: "https://robtic.org"
+
+    store:
+      slot: 13
+      material: EMERALD
+      name: "&aStore"
+      lore:
+        - "&7Ranks and perks."
+      action: url
+      value: "https://robtic.org/store"
+
+    report:
+      slot: 14
+      material: BARRIER
+      name: "&cReport a player"
+      lore:
+        - "&7Tell the staff team about a problem."
+      action: command
+      value: "report"
+
+    faq:
+      slot: 15
+      material: KNOWLEDGE_BOOK
+      name: "&eFAQ"
+      lore:
+        - "&7Common questions."
+      action: message
+      value: "&eFAQ&7: see &f/help&7, or ask in Discord."
+
+    support:
+      slot: 16
+      material: BELL
+      name: "&6Support"
+      lore:
+        - "&7Need a hand?"
+      action: url
+      value: "https://discord.gg/robtic"
+
+    settings:
+      slot: 22
+      material: COMPARATOR
+      name: "&bYour settings"
+      lore:
+        - "&7Visibility, teleports and cosmetics."
+      action: menu
+      value: "settings"

@@ -1,0 +1,14 @@
+name: RobticPremium
+version: ${project.version}
+main: org.robtic.premium.RobticPremiumPlugin
+api-version: '1.21'
+author: Robtic
+description: Premium tiers and entitlements.
+
+# RobticEssentials is listed for load ORDER only: it registers the EntitlementSource this plugin
+# reads, and must be enabled first. It is not required — without it, one warning is logged and no
+# premium groups are applied.
+softdepend: [RobticCore, RobticEssentials, LuckPerms]
+
+# No commands. Premium is a tier that raises limits on features other plugins own, not a feature set
+# of its own — see RobticPremiumPlugin for why /back and /particle stayed in RobticEssentials.

@@ -1,0 +1,26 @@
+name: DragonBattle
+version: '${version}'
+main: org.robtic.dragonbattle.DragonBattlePlugin
+api-version: '1.21'
+authors: [ Robtic ]
+description: A fully configurable recreation of the Ender Dragon battle, with multiple arenas.
+
+# No dependencies, soft or otherwise. Region selection, configuration and scheduling are all built
+# in, so the plugin works on a server running nothing else.
+
+commands:
+  dragonbattle:
+    description: Create and manage dragon battle arenas.
+    usage: /dragonbattle <create|list|select|perch|crystal|start|...>
+    aliases: [ dragon, db ]
+    permission: dragonbattle.admin
+
+permissions:
+  dragonbattle.admin:
+    description: Create, configure and run dragon battles.
+    default: op
+  dragonbattle.use:
+    # Held by everyone: taking part in a fight is not a privilege, and a server that wants to gate
+    # entry does it with the arena's world rather than with this.
+    description: Take part in a dragon battle.
+    default: true

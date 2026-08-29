@@ -1,0 +1,162 @@
+# Workers — a business's employees.
+#
+# Two kinds, and they are genuinely different things:
+#
+#   NPC workers     permanent employees. Expensive to take on, paid wages, need maintenance, and
+#                   bound for life to ONE profession, ONE work area and ONE storage destination
+#   Player workers  real players the owner hires, with permissions, a wage and a task
+#
+# Both are gated three ways: the business must not be suspended, its BASE LEVEL must unlock the
+# `workers` system and have a free slot of the right kind, and the owner must hold a valid MANAGER
+# LICENCE. See workspace.yml → base-levels and → license.
+#
+# ─── NPC workers do not mine ────────────────────────────────────────────────────────────────────
+#
+# They produce. A worker is owed its profession's output for the time that has elapsed, and that
+# output appears in its assigned storage — no pathfinding, no block breaking, no chunks held loaded,
+# and it works identically whether or not anybody is nearby.
+#
+# That last part is the whole point of employing somebody: a business should earn while its owner is
+# offline, and an NPC simulated in an unloaded chunk earns nothing.
+
+workers:
+
+  enabled: true
+
+  # ─── The figures ────────────────────────────────────────────────────────────────────────────
+
+  npc:
+    # The npc.yml definition a worker's figure is spawned from.
+    definition: workspace_worker
+
+    # How far apart they stand around the building's anchor, so several do not share a block.
+    spacing: 2.5
+
+    # What it costs to take one on, once.
+    #
+    # High on purpose. An NPC worker is permanent, works while its owner is offline, and never
+    # complains — the brief calls it the expensive option and this is where that is set.
+    hire-cost: 50000
+
+    # What one is paid per wage interval below.
+    salary: 500
+
+  # ─── Wages ──────────────────────────────────────────────────────────────────────────────────
+
+  wages:
+    # How often wages fall due. 1440 minutes = one day.
+    interval-minutes: 1440
+
+  # ─── Maintenance ────────────────────────────────────────────────────────────────────────────
+  #
+  # Separate from wages, and it bites differently: an unpaid wage is a debt, an unmaintained worker
+  # STOPS PRODUCING until it is seen to. It is never dismissed and never deleted — the same
+  # principle the tax system follows, because deleting somebody's expensive permanent employee over
+  # a missed bill is not a consequence anybody would design on purpose.
+
+  maintenance:
+    # 10080 minutes = one week.
+    interval-minutes: 10080
+    cost: 2000
+
+  # ─── Yield ──────────────────────────────────────────────────────────────────────────────────
+  #
+  # What each profession's worker produces, per interval, into its storage destination.
+  #
+  #   material  what it produces
+  #   amount    how many per interval, before the chance roll
+  #   chance    0..1. Below 1 the whole entry is skipped on a failed roll rather than being scaled
+  #             down — a worker producing 0.3 diamonds an hour is a rounding argument, one producing
+  #             a diamond three hours in ten is a rate anybody can reason about
+  #
+  # A profession with no table here has workers that draw wages and produce nothing. That is
+  # visible to the owner and is the operator's decision, not an error.
+  #
+  # Balance note: these are deliberately below what a player doing the job themselves would earn.
+  # A worker is meant to be a slow, reliable floor under a business — not a reason to stop playing.
+
+  yield:
+    # How much time one unit of output represents.
+    interval-minutes: 30
+
+    # A ceiling on how many intervals a single catch-up may pay.
+    #
+    # Without it, a server down for a week credits every worker a week of output the instant it
+    # comes back — a shock to the economy, and indistinguishable from a duplication bug. 48 × 30
+    # minutes = one day of catch-up.
+    max-catch-up-intervals: 48
+
+    professions:
+
+      miner:
+        - material: COBBLESTONE
+          amount: 32
+          chance: 1.0
+        - material: COAL
+          amount: 6
+          chance: 1.0
+        - material: IRON_ORE
+          amount: 3
+          chance: 0.8
+        - material: GOLD_ORE
+          amount: 2
+          chance: 0.35
+        - material: DIAMOND
+          amount: 1
+          chance: 0.08
+
+      farmer:
+        - material: WHEAT
+          amount: 24
+          chance: 1.0
+        - material: CARROT
+          amount: 16
+          chance: 0.9
+        - material: POTATO
+          amount: 16
+          chance: 0.9
+        - material: PUMPKIN
+          amount: 4
+          chance: 0.5
+
+      fisher:
+        - material: COD
+          amount: 10
+          chance: 1.0
+        - material: SALMON
+          amount: 6
+          chance: 0.8
+        - material: TROPICAL_FISH
+          amount: 2
+          chance: 0.25
+        - material: PUFFERFISH
+          amount: 1
+          chance: 0.15
+
+      lumberjack:
+        - material: OAK_LOG
+          amount: 32
+          chance: 1.0
+        - material: BIRCH_LOG
+          amount: 16
+          chance: 0.7
+        - material: SPRUCE_LOG
+          amount: 16
+          chance: 0.7
+        - material: APPLE
+          amount: 2
+          chance: 0.3
+
+      hunter:
+        - material: BEEF
+          amount: 12
+          chance: 1.0
+        - material: LEATHER
+          amount: 8
+          chance: 0.9
+        - material: FEATHER
+          amount: 8
+          chance: 0.7
+        - material: GUNPOWDER
+          amount: 4
+          chance: 0.4

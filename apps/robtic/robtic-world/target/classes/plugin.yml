@@ -1,0 +1,27 @@
+name: RobticWorld
+version: 4.0.0
+main: org.robtic.world.RobticWorldPlugin
+api-version: '1.21'
+author: Robtic
+description: Generated structures and the building marker system.
+
+# See RobticPlugin for why Robtic dependencies are softdepend rather than depend: softdepend gives
+# load order without throwing, and RobticPlugin enforces the requirement in code with one clear line.
+softdepend: [RobticCore, BetterStructures]
+
+commands:
+  structure:
+    description: Design structures by placing building markers.
+    usage: /structure marker <edit|validate|scan|set|info|list|reload>
+    permission: robtic.markers
+    # `workspace` was the primary name in RobticMinecraft 3.x and is kept as an alias so
+    # /workspace marker edit keeps working. When RobticJobs registers `workspace` as its own primary
+    # command, Bukkit resolves that ahead of this alias and the handover needs no config change.
+    aliases: [ws, workspace]
+
+permissions:
+  robtic.markers:
+    # Op-only: a marker defines where a structure's protected area runs, so placing one is closer to
+    # an administrative act than a gameplay one.
+    description: Design structures with building markers.
+    default: op

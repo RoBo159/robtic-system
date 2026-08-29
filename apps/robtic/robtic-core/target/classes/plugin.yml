@@ -1,0 +1,63 @@
+name: RobticCore
+version: 4.0.0
+main: org.robtic.core.RobticCorePlugin
+api-version: '1.21'
+author: Robtic
+description: Shared infrastructure for the Robtic ecosystem.
+
+# RobticCore depends on no other Robtic plugin, and never will. That is the one rule the whole
+# ecosystem's dependency graph rests on — if Core could depend on a feature plugin, every cycle the
+# refactor removed would be reachable again.
+#
+# Both of these are external and optional. Without LuckPerms, permission and group synchronisation
+# is unavailable; without PlaceholderAPI, the single `robtic` expansion is not registered. Neither
+# stops the server or any other plugin.
+softdepend: [LuckPerms, PlaceholderAPI, Citizens]
+
+# Licences are Core infrastructure — a future marketplace, dungeon or reputation system gates on
+# them — so the command lives here rather than in a feature plugin. LicenseSystem binds it itself;
+# this declaration is what makes the binding possible.
+#
+# /titles is NOT here. The title service and storage are Core's, but the title menu shares an
+# inventory holder, an action type and a back-router with the job menu — so the command is declared
+# and bound by RobticJobs, which owns that GUI. Core owns the data; Jobs owns the screen.
+commands:
+  robs:
+    description: Show your robs balance, or manage another player's.
+    usage: /robs [top|add|give|remove|see <player> [amount]]
+    # /bal and /balance are the shortcuts players actually type. Bukkit routes an alias through the
+    # command it belongs to, so all three arrive at the same executor.
+    aliases: [ bal, balance ]
+  robtic:
+    description: Administrative commands for the Robtic integration.
+    usage: /robtic <status|prices|reload|queue|refresh>
+    permission: robtic.admin
+  license:
+    description: Browse, check and renew your Robtic licences.
+    usage: /license [list|info|check|renew|give|remove|setnpc]
+    permission: robtic.license.use
+    aliases: [licenses, licence, licences]
+
+permissions:
+  robtic.admin:
+    description: Administer the Robtic integration.
+    default: op
+  robtic.robs:
+    description: Hold and spend robs.
+    default: true
+  robtic.robs.give:
+    description: Add robs to another player's balance.
+    default: op
+  robtic.robs.admin:
+    description: Add, remove and inspect any player's balance.
+    default: op
+  robtic.license.use:
+    # Held by everybody: opening the browser and checking your own licences is not a privilege, and
+    # a server that wants to gate the system does it with licenses.yml → enabled rather than here.
+    description: Open the licence browser and check your own licences.
+    default: true
+  robtic.license.admin:
+    # Issuing, revoking and expiring licences, and linking licence NPCs. Separate from the above
+    # because the browser is for everybody and /license give is emphatically not.
+    description: Issue, revoke and expire licences, and manage licence NPCs.
+    default: op

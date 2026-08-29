@@ -1,0 +1,268 @@
+# DragonBattle — how a fight behaves.
+#
+# Everything here is a DEFAULT. Each arena stores its own copy in arenas.yml under `settings`, taken
+# from these values when the arena is created, and edits there override these without affecting any
+# other arena. That is what lets two arenas on one server play differently.
+
+# How long the spawn animation runs before the dragon appears, in ticks.
+#
+# 100 = five seconds, roughly the vanilla respawn. The boss bar fills across this time, so it is the
+# countdown players watch. Clamped between 20 and 2400 — below a second there is nothing to see, and
+# above two minutes players assume the server has hung.
+spawn-animation-ticks: 100
+
+defaults:
+
+  # ─── Portal ─────────────────────────────────────────────────────────────────────────────────
+
+  # Build the exit portal when the dragon dies.
+  generate-portal: true
+
+  # How the portal treats blocks already standing where it wants to build.
+  #
+  #   AIR_ONLY    only place into air, leaving anything already there untouched
+  #   REPLACE_ALL replace whatever is in the way, as vanilla does
+  #   WHITELIST   replace only the materials listed under `portal-whitelist` below
+  #
+  # AIR_ONLY is the default deliberately. An arena is almost always a build, and a portal that ate
+  # part of it is damage an operator cannot undo — so the safe mode is the one you get without
+  # thinking about it.
+  portal-replace-mode: AIR_ONLY
+
+  # Radius of the portal structure, in blocks.
+  portal-radius: 4
+
+  # ─── Beacon and gateways ────────────────────────────────────────────────────────────────────
+
+  spawn-beacon: true
+
+  # Which configured gateway position is used after each kill.
+  #
+  #   SEQUENTIAL  one per kill, in order, wrapping around — closest to vanilla's ring
+  #   RANDOM      one per kill, chosen at random from those not yet used
+  #   ALL         every configured position at once, on the first kill
+  gateway-mode: SEQUENTIAL
+
+  # There was a per-arena `cinematics` switch here, defaulting to false. It has been removed.
+  #
+  # It never did anything — the value was parsed and stored but nothing ever read it — while
+  # reading as though cinematics were off for every arena. Worse, it was written into arenas.yml,
+  # so making it work would have silently disabled cinematics on every arena created before now.
+  #
+  # Cinematics are controlled in one place: cinematics.yml. They are on unless you turn them off
+  # there, or leave a moment's name blank. A leftover `cinematics: false` in arenas.yml is ignored.
+
+  # ─── Destruction ────────────────────────────────────────────────────────────────────────────
+
+  # Whether the dragon may break blocks at all.
+  #
+  # OFF by default. An arena is usually a build, and a dragon that ate part of it on its first flight
+  # leaves damage nobody can undo. Turn this on and the dragon destroys everything *except* inside
+  # safe regions; add breakable regions to restrict it further to just those areas.
+  allow-block-damage: false
+
+  # ─── Landing ────────────────────────────────────────────────────────────────────────────────
+  #
+  # The dragon only ever lands on a perch you configured. If none is eligible it keeps flying — it
+  # will never come down on random terrain, which is the whole point of the perch system.
+
+  # How often the dragon considers landing, in ticks. 600 = every 30 seconds.
+  landing-interval-ticks: 600
+
+  # The chance it actually lands when it considers it. 0.5 = half the time.
+  #
+  # Together with the interval above this sets the rhythm of the fight: a low chance and a short
+  # interval gives unpredictable landings, a high chance and a long interval gives regular ones.
+  landing-chance: 0.5
+
+  # Prefer landing near a player rather than picking any perch by weight.
+  #
+  # With this on the dragon chooses a player, then the nearest perch within that perch's radius —
+  # which is what makes it feel like the dragon is coming for someone. When no perch is near the
+  # chosen player it falls back to a weighted pick rather than not landing at all.
+  prefer-player-landing: true
+
+# Values a newly added perch takes. Each perch stores its own copy and can be edited in arenas.yml.
+perch-defaults:
+
+  # How close a player must be for this perch to count as "near" them, in blocks. Only used by
+  # player-targeted landing.
+  radius: 24.0
+
+  # How long the dragon sits before taking off, in ticks. 200 = 10 seconds.
+  stay-ticks: 200
+
+  # How long this perch is unavailable after being used, in ticks. 600 = 30 seconds.
+  #
+  # Stops a fight settling into the same spot repeatedly. Cooldowns are per battle and are cleared
+  # when it ends.
+  cooldown-ticks: 600
+
+  # Relative likelihood of being chosen among eligible perches. Higher is more likely.
+  #
+  # Zero excludes a perch without deleting it, which is how you disable one temporarily.
+  weight: 1.0
+
+  # Whether players are protected from block damage while the dragon is on this perch.
+  safe: true
+
+# ─── Ground combat ──────────────────────────────────────────────────────────────────────────────
+#
+# What a landed dragon does to players around it.
+#
+# Roar and breath are the dragon's own animations and are left to the server — vanilla already does
+# them well. Bite and tail do not exist in vanilla at all (a landed dragon just breathes), so they
+# are this plugin's, and these are their numbers.
+#
+# Both are ARCS rather than circles: a bite hits in front, a tail sweep hits behind. That is what
+# makes where you stand matter.
+ground-combat:
+
+  bite:
+    # Damage before armour, in half-hearts. 8.0 = four hearts.
+    damage: 8.0
+    # How far in front the bite reaches, in blocks.
+    reach: 7.0
+    # Width of the arc it hits, in degrees, centred on the dragon's facing. 90 is a quarter circle.
+    arc-degrees: 90.0
+
+  tail:
+    # Less damage than a bite, far more knockback. The tail is what stops players parking behind the
+    # dragon and hitting it with impunity — being thrown is a more interesting punishment than being
+    # hurt.
+    damage: 6.0
+    reach: 9.0
+    # Wider than the bite, because a sweep should be harder to stand outside of than a lunge.
+    arc-degrees: 120.0
+    # How hard players are thrown. 1.4 is roughly a knockback II hit.
+    knockback: 1.4
+
+# Materials the portal may replace when `portal-replace-mode` is WHITELIST.
+portal-whitelist:
+  - AIR
+  - CAVE_AIR
+  - VOID_AIR
+  - END_STONE
+  - OBSIDIAN
+
+# ─── Crystals ───────────────────────────────────────────────────────────────────────────────────
+#
+# The end crystals players place to summon the dragon, and what happens to them afterwards.
+
+crystals:
+
+  # Leave the ritual's crystals standing once the dragon has spawned.
+  #
+  # True by default, and this is vanilla's loop: the crystals that summoned the dragon are the ones
+  # that heal it, so breaking them is how the fight is actually won. With this off the ritual
+  # consumes them and the fight has no crystal mechanic at all.
+  #
+  # Either way the beams stop pointing at the spawn the moment the dragon arrives.
+  keep-after-ritual: true
+
+  # Crystals heal the dragon.
+  #
+  # Implemented by this plugin rather than inherited: vanilla's healing belongs to its own
+  # DragonBattle object, which this plugin deliberately never touches, so a dragon spawned here has
+  # nothing healing it unless this does.
+  heal-dragon: true
+
+  # How far a crystal reaches, in blocks. Crystals outside the arena never heal, whatever this says.
+  heal-range: 64.0
+
+  # Health restored per crystal per battle tick, before `tick-interval` in config.yml is considered.
+  #
+  # Multiplied by how many crystals are alive, so clearing them is gradual progress rather than an
+  # all-or-nothing switch at the last one. A dragon has 200 health; at the default tick interval of
+  # one second, four crystals restore 4 health a second.
+  heal-per-tick: 1.0
+
+# ─── Movement ─────────────────────────────────────────────────────────────────────────────────
+#
+# The dragon's flight is entirely this plugin's. Vanilla's is switched off.
+#
+# ─── Why ──────────────────────────────────────────────────────────────────────────────────────
+#
+# A vanilla dragon steers towards a ring of flight points the server generates for the End, at a
+# height chosen for the End's own island — roughly y=80. Every vanilla movement phase targets one
+# of them, and none will leave. In the End that is invisible. In a custom arena it means the dragon
+# hangs near y=80 whatever your arena says, refuses to descend to a low perch, and climbs straight
+# back up if anything puts it lower.
+#
+# Those points are not exposed by any API and cannot be moved, so the only way to own the dragon's
+# altitude is to own its movement. The plugin now computes a destination every tick and steers the
+# dragon there itself.
+#
+# ─── What that means for you ──────────────────────────────────────────────────────────────────
+#
+#   * There is NO flight height setting, and there is not meant to be. The dragon flies wherever
+#     your arena and your perches are. An arena at y=20 gets a fight at y=20; one at y=200 gets a
+#     fight at y=200.
+#   * Perches below y=80 work. So does landing near a player standing at y=12.
+#   * Nothing pulls the dragon upward any more.
+#
+# The dragon is still a real ender dragon: same hitbox, same damage, same animations, same boss
+# bar, same death sequence. Only its navigation was replaced.
+
+movement:
+
+  # Blocks per tick. At 20 ticks a second, 0.55 is about 11 blocks a second.
+  #
+  # Cruise is normal flight and circling. Approach is the descent onto a perch — slower, so the
+  # landing reads as deliberate. Dive is the attack run and should be noticeably faster than both.
+  cruise-speed: 0.55
+  approach-speed: 0.45
+  dive-speed: 1.1
+
+  # The circle the dragon flies between attacks, around the middle of the arena.
+  #
+  # Radius is in blocks; period is how many ticks one full orbit takes. A larger radius in a small
+  # arena is harmless — the circle is clipped to the arena by the containment check below — but a
+  # radius that fits your arena looks far better.
+  circle-radius: 24.0
+  circle-period-ticks: 200
+
+  # The dive attack.
+  #
+  # dive-height is how far ABOVE the target player the dragon aims, so it passes over them rather
+  # than burying itself in the floor. dive-overshoot is how close it has to get before the pass
+  # counts as finished.
+  #
+  # Note that both are relative to the player. A player at y=12 is dived at y=12 plus the height.
+  dive-height: 6.0
+  dive-overshoot: 4.0
+
+  # The strafing run: the dragon circles a player at a distance, keeping its head on them.
+  #
+  # strafe-height is again relative to the target, so this works at any altitude.
+  strafe-radius: 16.0
+  strafe-height: 10.0
+  strafe-period-ticks: 160
+
+  # How close to a destination counts as having arrived, in blocks. Applies to perch landings and
+  # to scripted cinematic waypoints.
+  arrival-distance: 2.0
+
+# ─── Containment ──────────────────────────────────────────────────────────────────────────────
+#
+# The arena you select with pos1 and pos2 bounds the fight in all three dimensions.
+#
+# This is no longer how the arena is respected — the movement system above only ever aims at points
+# inside it, so the dragon is in the arena because everywhere it is sent is in the arena. What is
+# left here is a safety net for the dragon being moved by something else: a command, a portal,
+# another plugin.
+#
+# It never touches a destination the fight chose. You should not normally need to change either
+# value.
+
+flight:
+
+  # How far inside the arena walls the dragon's centre is kept, in blocks.
+  #
+  # The dragon's hitbox is wide, so treating its centre as the boundary would leave most of the
+  # model poking outside. An arena thinner than twice this value collapses to its own centre line
+  # on that axis, which is the safe reading.
+  wall-margin: 2.0
+
+  # How far outside the arena the dragon may be before it is put back, in blocks.
+  tolerance: 0.5

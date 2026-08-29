@@ -1,0 +1,14 @@
+name: RobticMarket
+version: 4.0.0
+main: org.robtic.market.RobticMarketPlugin
+api-version: '1.21'
+author: Robtic
+description: The ore exchange and player marketplace.
+
+softdepend: [RobticCore]
+
+commands:
+  exchange:
+    description: Open the ore exchange menu.
+    usage: /exchange
+    aliases: [ sell ]

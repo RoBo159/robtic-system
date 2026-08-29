@@ -1,0 +1,260 @@
+# Titles — the generic identity system.
+#
+# Titles do not belong to Jobs. Jobs unlock some of them; premium, achievements, dungeons, pets,
+# seasons and events will unlock others, and none of that requires a code change. A title carries a
+# `source` saying where it comes from and, optionally, `unlock` conditions gating whether it can be
+# worn — neither of which names any particular system.
+#
+# Job milestone titles are NOT written here. They are defined alongside the job in jobs.yml, under
+# that job's `titles` section, and registered into this same catalog at load. That keeps a job and
+# its ladder in one place, and makes it impossible for a milestone to name a title that was never
+# defined.
+
+# ─── Display ──────────────────────────────────────────────────────────────────────────────────
+
+display:
+  # Render the equipped title as a LuckPerms suffix instead of a prefix.
+  #
+  # Only affects where it appears. Ownership is always stored by Robtic — LuckPerms is told what to
+  # show and nothing else, so uninstalling it loses the display and no player data.
+  as-suffix: false
+
+# ─── Rarities ─────────────────────────────────────────────────────────────────────────────────
+#
+# Configured rather than fixed, so a season or a promotion can add one without a release.
+#
+#   order   sort position; higher is rarer. Used by "sort by rarity" and nothing else
+#   glow    whether owned titles of this rarity shimmer in the menu
+
+rarities:
+
+  common:
+    display: "Common"
+    color: GRAY
+    order: 0
+
+  uncommon:
+    display: "Uncommon"
+    color: GREEN
+    order: 1
+
+  rare:
+    display: "Rare"
+    color: AQUA
+    order: 2
+
+  epic:
+    display: "Epic"
+    color: LIGHT_PURPLE
+    order: 3
+    glow: true
+
+  legendary:
+    display: "Legendary"
+    color: GOLD
+    order: 4
+    glow: true
+
+  mythic:
+    display: "Mythic"
+    color: "#FF3860"
+    order: 5
+    glow: true
+
+# ─── Sources ──────────────────────────────────────────────────────────────────────────────────
+#
+# Where a title comes from. Unlimited — add one and its titles filter and group correctly with no
+# code change. The ones below cover what exists today plus what is planned; a future Pets plugin
+# adds `pet:` here and its titles work immediately.
+#
+# A source is a label for grouping and for telling a player where to go. It never decides whether
+# somebody has earned a title — that is what `unlock` is for.
+
+sources:
+
+  job:
+    display: "Profession"
+    icon: IRON_PICKAXE
+    description: "Earned by levelling a profession."
+
+  premium:
+    display: "Premium"
+    icon: GOLD_INGOT
+    description: "Included with a premium tier."
+
+  achievement:
+    display: "Achievement"
+    icon: DIAMOND
+    description: "Earned by completing a challenge."
+
+  dungeon:
+    display: "Dungeon"
+    icon: NETHERITE_SWORD
+    description: "Claimed from the depths."
+
+  pet:
+    display: "Pet"
+    icon: BONE
+    description: "Earned alongside a companion."
+
+  season:
+    display: "Season"
+    icon: SNOWBALL
+    description: "Awarded during a season. Gone when it ends."
+
+  event:
+    display: "Event"
+    icon: FIREWORK_ROCKET
+    description: "Handed out at a server event."
+
+  staff:
+    display: "Staff"
+    icon: NETHER_STAR
+    description: "Worn by the team."
+
+  custom:
+    display: "Special"
+    icon: PAPER
+    description: "One of a kind."
+
+# ─── Titles ───────────────────────────────────────────────────────────────────────────────────
+#
+# Every field is optional except the section key, which is the title's id.
+#
+#   display      what players see; & colour codes allowed
+#   color        the tint applied when `display` has no codes of its own. Defaults to the rarity's
+#   rarity       an id from `rarities` above
+#   source       an id from `sources` above
+#   icon         the material shown in the menu
+#   description  a line, or a list of lines
+#   priority     sort weight; higher floats to the top of the menu
+#   permission   an extra node that must also be held to wear it
+#   hidden       when true it is invisible in the menu until owned — a secret
+#   unlock       conditions that must hold before it can be equipped (see below)
+#   metadata     free-form key/values for whichever system defined it. Never read by the title code
+#
+# UNLOCK CONDITIONS
+#
+#   attribute-at-least   path, value      a number published by any system reaches a threshold
+#   attribute-equals     path, value      a string published by any system matches
+#   permission           node             the player holds a permission
+#   all-of / any-of      conditions       combine nested conditions
+#   not                  condition        invert one
+#   always                                no requirement
+#
+# Attribute paths are namespaced by whichever system publishes them. The job system publishes:
+#
+#   job.<id>.level      job.<id>.xp      job.<id>.active
+#   job.owned           job.active       job.highest.level
+#
+# So "any profession at level 25" is attribute-at-least on job.highest.level — with no mention of
+# which profession, and no code that knows professions exist.
+#
+# A missing attribute FAILS the condition rather than counting as zero. A title requiring
+# `job.miner.level >= 0` is not unlocked for somebody who has never been a Miner.
+
+titles:
+
+  # ─── Starter ────────────────────────────────────────────────────────────────────────────────
+
+  newcomer:
+    display: "Newcomer"
+    rarity: common
+    source: custom
+    icon: OAK_SAPLING
+    description: "Everyone starts somewhere."
+    priority: -100
+
+  # ─── Cross-profession ───────────────────────────────────────────────────────────────────────
+  #
+  # These read job.highest.level rather than naming a profession, so they work for every job the
+  # server has now and every one it adds later.
+
+  apprentice:
+    display: "&aApprentice"
+    rarity: uncommon
+    source: job
+    icon: LEATHER_CHESTPLATE
+    description: "Reached level 10 in a profession."
+    unlock:
+      - type: attribute-at-least
+        path: job.highest.level
+        value: 10
+        describe: "Level 10 in any profession"
+
+  journeyman:
+    display: "&bJourneyman"
+    rarity: rare
+    source: job
+    icon: IRON_CHESTPLATE
+    description: "Reached level 30 in a profession."
+    priority: 10
+    unlock:
+      - type: attribute-at-least
+        path: job.highest.level
+        value: 30
+        describe: "Level 30 in any profession"
+
+  master_of_trades:
+    display: "&6Master of Trades"
+    rarity: legendary
+    source: job
+    icon: NETHERITE_CHESTPLATE
+    description:
+      - "Levelled two professions to 50."
+      - "Few have the patience."
+    priority: 50
+    unlock:
+      - type: attribute-at-least
+        path: job.owned
+        value: 2
+        describe: "Two professions"
+      - type: attribute-at-least
+        path: job.highest.level
+        value: 50
+        describe: "Level 50 in one of them"
+
+  # ─── Premium ────────────────────────────────────────────────────────────────────────────────
+  #
+  # Gated on a permission rather than on an attribute, because premium is granted as a LuckPerms
+  # group by the existing premium sync.
+
+  supporter:
+    display: "&eSupporter"
+    rarity: epic
+    source: premium
+    icon: GOLD_INGOT
+    description: "Thank you for keeping the lights on."
+    priority: 30
+    unlock:
+      - type: permission
+        node: robtic.premium
+        describe: "A premium tier"
+
+  # ─── Staff ──────────────────────────────────────────────────────────────────────────────────
+
+  staff_member:
+    display: "&cStaff"
+    rarity: mythic
+    source: staff
+    icon: NETHER_STAR
+    description: "Here to help."
+    priority: 100
+    permission: robtic.staff
+    unlock:
+      - type: permission
+        node: robtic.staff
+        describe: "A staff rank"
+
+  # ─── Hidden ─────────────────────────────────────────────────────────────────────────────────
+  #
+  # Never appears in the menu until owned. Granted by command, or by a future system.
+
+  founder:
+    display: "&#FF3860Founder"
+    rarity: mythic
+    source: custom
+    icon: DRAGON_EGG
+    description: "Was here at the beginning."
+    priority: 200
+    hidden: true

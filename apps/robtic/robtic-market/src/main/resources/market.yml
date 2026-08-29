@@ -1,0 +1,26 @@
+# RobticMarket.
+#
+# Prices come from the API and the economy is Core's, so this plugin has no settings of its own
+# beyond the optional Discord section below.
+
+# ─── Discord ──────────────────────────────────────────────────────────────────────────────────
+#
+# Optional, and off by default. RobticMarket works completely without RobticDiscord; this only
+# mirrors exchange and marketplace activity into a channel.
+#
+# With `enabled: false` nothing is checked and nothing is logged at startup. With it on and
+# RobticDiscord missing you get exactly one warning and the plugin carries on normally.
+#
+# Channel IDs are the long numbers Discord shows under "Copy Channel ID" with Developer Mode on.
+#
+# Upgrading from RobticMinecraft 3.x? `coins_sold` is migrated here from its discord.log-actions
+# automatically on first start. The original config.yml is not modified.
+discord:
+  enabled: false
+
+  channels:
+    logs: ""
+
+  # Per-action routing. Anything not listed goes to `logs`.
+  # Action IDs owned by this plugin: coins_sold, listing_created, listing_sold
+  log-actions: {}

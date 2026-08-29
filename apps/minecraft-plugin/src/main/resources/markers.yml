@@ -1,0 +1,335 @@
+# Building markers — how a schematic tells Robtic what it is.
+#
+# You build a structure by hand, drop markers in it where things should happen, and save it with
+# BetterStructures. When BetterStructures generates that structure in the world, Robtic reads the
+# markers and configures the building from them. No coordinate is ever typed into a config file.
+#
+# ─── The workflow ─────────────────────────────────────────────────────────────────────────────
+#
+#   1.  Build the structure.
+#   2.  /workspace marker edit          — pick markers out of the menu.
+#   3.  Place them where things belong.
+#   4.  /workspace marker validate      — check it before you save. Changes nothing.
+#   5.  Save the schematic with BetterStructures, including the marker blocks.
+#   6.  BetterStructures generates it. Robtic reads it. Done.
+#
+# ─── What a marker actually is ────────────────────────────────────────────────────────────────
+#
+# A marker is a sign carrying hidden, plugin-written data: which marker it is, a unique id, a format
+# version, and any metadata. The sign's text is a label for you — it is never read back, so writing
+# the same words on your own sign does not make a marker.
+#
+# It has to be a block with a block entity, because that is the only thing a schematic preserves
+# arbitrary data on. Minecraft has no invisible block that can carry data: structure_void, barrier
+# and light all have nowhere to put it.
+#
+# So a marker is visible only while you are designing. The moment Robtic reads a generated structure
+# it replaces every marker block with `cleared-to` below — invisible, walk-through, no gameplay
+# effect — and everything the markers said now lives in the structure's saved record. That record is
+# what later upgrades read, which is why upgrading does not need the markers to still be there.
+#
+# Set `keep-after-scan: true` in a build world if you would rather they stayed.
+
+markers:
+
+  enabled: true
+
+  # Whether generated structures are read automatically as their chunks load. Off means nothing is
+  # ever registered except by /workspace marker scan.
+  scan-on-generate: true
+
+  marker:
+
+    # The block a marker is. Must have a block entity — a sign, or any container.
+    #
+    # A warped sign by default for two reasons. Signs have no collision, so markers are walk-through
+    # even while you are placing them. And nether wood appears in no overworld structure, which
+    # matters more than it sounds: every chunk that loads compares its block entities against this
+    # material, and choosing OAK_SIGN would mean every village and every player shop looks like a
+    # candidate structure.
+    #
+    # If you change this, existing schematics keep the old block and will stop being recognised.
+    block: WARPED_SIGN
+
+    # What a marker becomes once it has been read. STRUCTURE_VOID is invisible, has no collision and
+    # does nothing; AIR is equally fine. Structure void has the small advantage of still showing up
+    # in a structure block preview when you are working out why a building did not register.
+    cleared-to: STRUCTURE_VOID
+
+    # Keep the marker blocks after reading them. Off in production — markers are meant to be
+    # invisible during play. On in a build world, where re-running validation on the real blocks is
+    # worth more.
+    keep-after-scan: false
+
+  scan:
+
+    # How far out from a discovered marker to search for the rest of the structure. This is the
+    # limit on how large one building can be, measured from wherever the first marker happens to be
+    # found — so it wants to be comfortably more than half your largest structure.
+    #
+    # Clamped to 8–128. The scan reads block entities rather than blocks, so its cost tracks how much
+    # furniture is in range rather than the volume, but the chunks still have to be in memory.
+    radius: 48
+
+    # Refuse a structure whose corner markers are further apart than this many blocks in total. The
+    # symptom this catches is a corner marker accidentally left behind in a different building, which
+    # otherwise produces one enormous region that swallows everything between them. 0 disables it.
+    max-volume: 500000
+
+    # Worlds where generated structures are read. Empty means every world.
+    worlds: []
+
+  gui:
+    rows: 6
+    title: "&6Structure Markers"
+
+  # ─── Categories ─────────────────────────────────────────────────────────────────────────────
+  #
+  # Tabs in the marker menu. A marker type naming a category nobody declared still works; it just
+  # gets an unlabelled tab.
+
+  categories:
+
+    structure:
+      display: "&6Structure"
+      icon: STRUCTURE_BLOCK
+      order: 10
+
+    npc:
+      display: "&aNPCs"
+      icon: VILLAGER_SPAWN_EGG
+      order: 20
+
+    building:
+      display: "&bBuilding levels"
+      icon: SCAFFOLDING
+      order: 30
+
+    general:
+      display: "&7Other"
+      icon: PAPER
+      order: 1000
+
+  # ─── Marker types ───────────────────────────────────────────────────────────────────────────
+  #
+  #   category       which tab it appears under
+  #   display        shown in the menu and written on the placed sign
+  #   description    lines under the name in the menu
+  #   icon           material for the menu entry. The item you receive is always the marker block
+  #   model-data     custom model data for the menu entry, for a resource pack. 0 for none
+  #   cardinality    exactly-one | at-most-one | any
+  #   required       whether a structure missing this one is rejected
+  #   level          building level at which this marker becomes active. 0 means from the start
+  #   npc-role       which configured NPC stands here. The marker never names a Citizens NPC —
+  #                  it names a role, and the NPC config decides what that role is
+  #   bounds         origin | end | none. The two corners define the structure's whole area
+  #   metadata-keys  metadata this type understands. Anything else is reported as unrecognised
+  #   defaults       metadata written onto a fresh marker item
+  #
+  # Every marker understands `offset` (x,y,z from the marker block to where the thing goes, default
+  # 0,1,0) and `yaw` (facing in degrees). Facing normally comes from how you rotated the sign, so
+  # you rarely need to write it.
+  #
+  # Adding a type here is all it takes. The menu, the scan, the validation and the events all pick
+  # it up with no code anywhere.
+
+  types:
+
+    # ─── The area ─────────────────────────────────────────────────────────────────────────────
+    #
+    # These two are the only markers every structure must have. Everything else is measured against
+    # the box between them: protection, the upgrade area, and whether a marker is inside the
+    # building at all. Place them at opposite corners, in any order — the plugin sorts out which is
+    # which.
+
+    structure_origin:
+      category: structure
+      display: "&6Structure Origin"
+      description:
+        - "One corner of the whole building."
+        - "Place the other corner with"
+        - "Structure End."
+      icon: LODESTONE
+      cardinality: exactly-one
+      required: true
+      bounds: origin
+
+    structure_end:
+      category: structure
+      display: "&6Structure End"
+      description:
+        - "The opposite corner to"
+        - "Structure Origin."
+        - "Together they define the"
+        - "protected area."
+      icon: TARGET
+      cardinality: exactly-one
+      required: true
+      bounds: end
+
+    # ─── Building levels ──────────────────────────────────────────────────────────────────────
+    #
+    # Where each upgraded schematic is pasted from. An upgrade replaces only what these define, so
+    # ownership, storage and statistics all survive it.
+
+    level_1_structure:
+      category: building
+      display: "&bLevel 1 Structure"
+      description:
+        - "Where the level 1 building"
+        - "begins. BetterStructures"
+        - "generates this one."
+      icon: BRICKS
+      cardinality: at-most-one
+      metadata-keys:
+        - schematic
+
+    level_2_structure:
+      category: building
+      display: "&bLevel 2 Structure"
+      description:
+        - "Where the level 2 building"
+        - "is pasted from on upgrade."
+      icon: DEEPSLATE_BRICKS
+      cardinality: at-most-one
+      level: 2
+      metadata-keys:
+        - schematic
+
+    level_3_structure:
+      category: building
+      display: "&bLevel 3 Structure"
+      description:
+        - "Where the level 3 building"
+        - "is pasted from on upgrade."
+      icon: POLISHED_BLACKSTONE_BRICKS
+      cardinality: at-most-one
+      level: 3
+      metadata-keys:
+        - schematic
+
+    # ─── The recruiter ────────────────────────────────────────────────────────────────────────
+    #
+    # The only NPC that exists before anybody claims the building. Once it is claimed this one is
+    # gone for good and the workspace NPCs take over.
+
+    job_recruiter:
+      category: npc
+      display: "&eJob Recruiter"
+      description:
+        - "Stands here until somebody"
+        - "claims the building, then"
+        - "disappears for good."
+        - ""
+        - "Set `job` to choose which"
+        - "profession is offered."
+      icon: VILLAGER_SPAWN_EGG
+      cardinality: at-most-one
+      required: true
+      npc-role: recruiter
+      metadata-keys:
+        - job
+
+    # A second recruiter, for the rare buildings that offer more than one profession. The template
+    # is named in metadata rather than in this file, so a new multi-profession workspace is a
+    # schematic and a config entry — never a code change, and never a hard-coded profession here.
+    rare_recruiter:
+      category: npc
+      display: "&d&lRare Recruiter"
+      description:
+        - "For rare multi-profession"
+        - "buildings."
+        - ""
+        - "Set `template` to the"
+        - "recruiter template you want."
+      icon: WANDERING_TRADER_SPAWN_EGG
+      cardinality: at-most-one
+      npc-role: recruiter_rare
+      metadata-keys:
+        - template
+        - jobs
+
+    # ─── Workspace NPCs ───────────────────────────────────────────────────────────────────────
+    #
+    # These appear once the building is claimed, and never before.
+
+    npc_seller:
+      category: npc
+      display: "&aSeller NPC"
+      description:
+        - "Buys what the owner produces."
+        - "Appears after the building"
+        - "is claimed."
+      icon: EMERALD
+      cardinality: at-most-one
+      required: true
+      level: 1
+      npc-role: seller
+
+    npc_upgrade:
+      category: npc
+      display: "&aUpgrade NPC"
+      description:
+        - "Sells building upgrades."
+        - "Appears after the building"
+        - "is claimed."
+      icon: ANVIL
+      cardinality: at-most-one
+      required: true
+      level: 1
+      npc-role: upgrade
+
+    # ─── Unlocked by upgrading ────────────────────────────────────────────────────────────────
+    #
+    # Placed now, used later. A level 1 building simply ignores them.
+
+    npc_slot_3:
+      category: npc
+      display: "&bNPC Slot 3"
+      description:
+        - "Unlocks at building level 2."
+      icon: IRON_INGOT
+      cardinality: at-most-one
+      level: 2
+      npc-role: slot_3
+
+    npc_slot_4:
+      category: npc
+      display: "&bNPC Slot 4"
+      description:
+        - "Unlocks at building level 2."
+      icon: IRON_INGOT
+      cardinality: at-most-one
+      level: 2
+      npc-role: slot_4
+
+    npc_slot_5:
+      category: npc
+      display: "&3NPC Slot 5"
+      description:
+        - "Unlocks at building level 3."
+      icon: GOLD_INGOT
+      cardinality: at-most-one
+      level: 3
+      npc-role: slot_5
+
+  # ─── Adding your own ────────────────────────────────────────────────────────────────────────
+  #
+  # Nothing above is special. A mailbox, a pet spawn, a quest giver, a particle emitter or a sound
+  # trigger is the same shape, and needs no code in the marker system:
+  #
+  #   mailbox:
+  #     category: general
+  #     display: "&6Mailbox"
+  #     description:
+  #       - "Where the owner's mail arrives."
+  #     icon: BARREL
+  #     cardinality: at-most-one
+  #     metadata-keys:
+  #       - capacity
+  #     defaults:
+  #       capacity: "27"
+  #
+  # The marker system will place it, read it, validate it and report it. What it *means* is decided
+  # by whichever system listens for structures being scanned and looks for `mailbox` — which is the
+  # point: this file describes where things are, never what they do.

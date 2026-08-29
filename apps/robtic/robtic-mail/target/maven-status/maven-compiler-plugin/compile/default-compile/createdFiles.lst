@@ -1,0 +1,11 @@
+org/robtic/mail/RobticMailPlugin$1.class
+org/robtic/mail/ApiMailSender.class
+org/robtic/mail/RobticMailPlugin.class
+org/robtic/mail/Mail.class
+org/robtic/mail/BukkitMailbox.class
+org/robtic/mail/MailMenuHolder.class
+org/robtic/mail/MailMenu.class
+org/robtic/mail/MailMenuListener.class
+org/robtic/mail/MailService.class
+org/robtic/mail/MailCommand.class
+org/robtic/mail/MailConnectionListener.class

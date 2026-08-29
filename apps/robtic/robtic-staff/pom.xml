@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.robtic</groupId>
+        <artifactId>robtic-parent</artifactId>
+        <version>4.0.0</version>
+    </parent>
+
+    <artifactId>robtic-staff</artifactId>
+    <packaging>jar</packaging>
+
+    <name>RobticStaff</name>
+    <description>Server administration: moderation, freeze, vanish, inspection, staff chat, logs, admin tools and reports.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.robtic</groupId>
+            <artifactId>robtic-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+
+        <!-- Staff ranks are applied as LuckPerms groups during a staff-mode session. -->
+        <dependency>
+            <groupId>net.luckperms</groupId>
+            <artifactId>api</artifactId>
+        </dependency>
+        <!-- Placeholders are contributed to Core's expansion; the interface lives on PlaceholderAPI. -->
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+        </dependency>
+    </dependencies>
+</project>

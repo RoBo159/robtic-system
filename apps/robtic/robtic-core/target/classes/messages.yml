@@ -1,0 +1,1315 @@
+# Every player-facing string.
+#
+# Keys are addressed by name, so adding a message is an edit here and nothing else. A key you
+# delete shows a visible <missing message: key> marker rather than an empty line, so a mistake is
+# obvious instead of silent.
+#
+# Colours use legacy & codes. Placeholders are %name% and are listed per message below.
+
+prefix: "&8[&bRobtic&8] &r"
+
+link:
+  not-linked: "&cYou must link your Discord account. Run &e/link&c."
+  already-linked: "&aYour account is already linked to Discord."
+  unlinked: "&aYour account is no longer linked to Discord."
+  not-linked-yet: "&cYour account is not linked, so there is nothing to unlink."
+  # %code% %minutes%
+  instructions: |
+    &8&m--------------------------------
+    &fLink your Minecraft account.
+
+    &7Run this command in Discord:
+    &b/minecraft link &e%code%
+
+    &7This code expires in %minutes% minutes.
+    &8&m--------------------------------
+
+robs:
+  # Robs are the Minecraft currency. They are NOT Discord coins: a separate balance that never
+  # converts into the other, and one an unlinked player holds just as well as a linked one.
+  #
+  # %robs%
+  balance: "&fBalance: &e%robs% &6robs"
+  # %robs%
+  sale-complete: "&aSold your items for &e%robs% &6robs&a."
+  sale-queued: "&7(Offline — this sale will sync automatically when the connection returns.)"
+  balance-cached: "&7(Cached — the connection is down, this may be slightly out of date.)"
+  balance-pending: "&7(Includes robs from offline sales, syncing shortly.)"
+  # %robs%
+  synced: "&aYour offline earnings have synced. Balance: &e%robs% &6robs"
+  nothing-to-sell: "&cYou have none of that item in your inventory."
+  item-unavailable: "&cThat item cannot be sold right now."
+  # No longer a linking prompt: robs need no Discord account, so the only way to be locked out is
+  # for an operator to have taken the permission away.
+  locked: "&cYou do not have permission to use the robs economy."
+  unavailable: "&cThe economy is temporarily unavailable. Try again shortly."
+  # Shown when the API *answered* and refused — a key, guild or server-id problem rather than an
+  # outage. Retrying will not help, so the player is told to fetch someone who can read the console.
+  misconfigured: "&cThis server's Robtic connection is misconfigured — ask an admin to check the server console."
+
+  # Staff-facing robs management (/robs add|remove|see), permission robtic.robs.admin.
+  admin-usage: "&cUsage: &e/robs add|give|remove <player> <amount>&c or &e/robs see <player>"
+  # %value%
+  admin-bad-amount: "&c\"%value%\" is not a whole number above zero."
+  # %player% %robs%
+  admin-balance: "&f%player% has &e%robs% &6robs&f."
+  # %player% %amount% %robs%
+  admin-added: "&aGave &e%amount% &6robs &ato &f%player%&a. New balance: &e%robs%&a."
+  # %player% %amount% %robs%
+  admin-removed: "&aTook &e%amount% &6robs &afrom &f%player%&a. New balance: &e%robs%&a."
+  admin-insufficient: "&cThat player does not have enough robs for that."
+
+  # /robs top
+  top-header: "&6&lTop balances"
+  # %position% %player% %robs%
+  top-row: "&e#%position% &f%player% &7— &e%robs% &6robs"
+  # %position% %robs%
+  top-you: "&7You are &e#%position% &7with &e%robs% &6robs&7."
+  top-empty: "&7Nobody has earned any robs yet."
+
+afk:
+  enter: "&7You are now AFK."
+  leave: "&aWelcome back."
+  already: "&7You are already AFK."
+  not-afk: "&7You are not AFK."
+  no-lobby: "&cNo AFK world is set. An admin can set &eafk.world&c in afk.yml, or stand somewhere and run &e/afk setlobby&c."
+  usage: "&7Usage: &f/afk &7| &f/afk back &7| &f/afk setlobby|reload|status"
+  lobby-set: "&aAFK lobby set to your position."
+  lobby-save-failed: "&cCould not save the AFK lobby — see the console."
+  reloaded: "&aafk.yml reloaded."
+  # %world%
+  world-gone: "&cThe world you were in (&f%world%&c) is no longer loaded, so you were left here."
+  # %value%
+  status-enabled: "&7AFK enabled: &f%value%"
+  # %seconds%
+  status-timeout: "&7Timeout: &f%seconds%s"
+  # %value%
+  status-lobby: "&7Destination: &f%value%"
+  # %value%
+  status-rewards: "&7Rewards: &f%value%"
+  # %value%
+  status-hiding: "&7Hiding players: &f%value%"
+  # %count%
+  status-count: "&7Currently AFK: &f%count%"
+
+  # The status line above an AFK player's hotbar, redrawn once a second.
+  #
+  # %time%  how long they have been AFK, e.g. "12m" or "1h 4m"
+  # %robs%  robs this session is worth so far
+  # %total% their lifetime AFK robs, including this session
+  overlay: "&c&lAFK &8| &fCollecting Robs &8• &6+%robs% &7in %time%"
+
+  # The AFK panel on the profile GUI.
+  profile-title: "&bAFK"
+  # %status%
+  profile-status: "&7Status: %status%"
+  profile-status-yes: "&aAFK"
+  profile-status-no: "&7Not AFK"
+  # %time%
+  profile-session: "&7Current session: &f%time%"
+  # %time%
+  profile-today: "&7Today: &f%time%"
+  # %time%
+  profile-total: "&7Lifetime: &f%time%"
+  # %robs%
+  profile-robs: "&7Lifetime AFK robs: &6%robs%"
+  # What the running session has earned so far. %robs%
+  profile-earning: "&8This session so far: &e%robs% robs"
+
+auth:
+  must-login: "&cLog in first."
+  must-link: "&cLink your Discord account first. Run &e/link&c."
+  unavailable: "&cAuthentication is temporarily unavailable. Please try again shortly."
+  welcome: "&aWelcome back."
+  resumed: "&8Signed in automatically."
+  # Shown when a session was refused because the connection changed.
+  new-location: "&7You are connecting from somewhere new, so please log in again."
+  # %seconds%
+  kicked-timeout: "&cYou took too long to log in. Rejoin and try again."
+  # %minutes%
+  rate-limited: "&cToo many attempts. Try again in &f%minutes% minute(s)&c."
+  # %attempts%
+  wrong-password: "&cThat password is not right. &7%attempts% attempt(s) left."
+  # A linked account with no password is a MIGRATION, not a fault — it was linked before password
+  # authentication existed. Never phrase it as something the player got wrong.
+  no-password: "&eThis account needs a password to finish setup."
+  # /auth, for administrators.
+  admin-usage: "&7Usage: &f/auth <forcelink|forceunlink|resetpassword|resetsession|sessions> <player>"
+  admin-forcelink-usage: "&7Usage: &f/auth forcelink <player> <discordId>"
+  # %value%
+  admin-bad-discord-id: "&c\"%value%\" is not a Discord ID. Enable Developer Mode in Discord, then right-click the user and choose Copy User ID."
+  # %player%
+  admin-unknown-player: "&cThis server has never seen a player called &f%player%&c. Check the spelling, or have them join once."
+  # %summary%
+  admin-done: "&a%summary%"
+  # One live session. %server% %expires% %seen%
+  admin-session: "&8• &7%server% &8— &7expires in &f%expires%&7, last seen &f%seen% &7ago"
+  # %reason%
+  admin-failed: "&cThat did not work: &f%reason%"
+
+  linked: "&aYour account is linked."
+  password-changed: "&aYour password has been changed."
+  unlinked: "&cYour account has been unlinked."
+  empty-password: "&cEnter your password first."
+
+  # ─── The pre-join dialog (shown before the world loads) ─────────────────────────────────────
+  # %attempts%
+  wrong-password-remaining: "That password is not right. %attempts% attempt(s) left."
+  wrong-password-unknown: "That password is not right."
+  # Disconnect screens: read after the connection has closed, so they carry their own context.
+  prejoin-timeout: "&cYou took too long to log in.\n\n&7Reconnect and try again."
+  prejoin-unavailable: "&cThe login service is unavailable right now.\n\n&7Please try again in a moment."
+  # %code% %minutes%
+  prejoin-recovery: "&e&lYour reset code\n\n&f&l%code%\n\n&7Open &b#link-account &7in Discord, press &fChange Password&7,\n&7and enter it with your new password.\n\n&8Expires in %minutes% minutes. Reconnect once it is set."
+
+  # ─── The Paper Dialog screens (Java) ────────────────────────────────────────────────────────
+  #
+  # Colour codes are kept out of dialog text on purpose: a dialog is rendered by the client's own
+  # UI, which styles it to match the rest of the game. Legacy codes would fight that.
+
+  # Shown ONCE to an unlinked player. Closable — everything after this happens in chat and Discord.
+  dialog-link-title: "Welcome"
+  dialog-link-body: "Your Minecraft account is not linked to Discord yet."
+  dialog-link-steps: "Press the button below to get your link code, then open #link-account in Discord and press Link Account."
+  dialog-link-button: "Get my link code"
+  dialog-link-tooltip: "Runs /link for you"
+
+  # The legacy account screen — linked before passwords existed.
+  #
+  # One screen, not two: it carries the setup code AND the password box, so the player reads the
+  # code, sets their password in Discord, comes back to this same screen and types it in.
+  dialog-setup-title: "Create Password"
+  dialog-setup-body: "Finish setting up your Robtic account. This account was linked before passwords existed, so you have one step left. You will not need to link again."
+  # %minutes%
+  dialog-setup-steps: "Open #link-account in Discord, press Change Password, and enter the code above with the password you want. The code expires in %minutes% minutes."
+  dialog-setup-then: "Then type that password below."
+  # Shown before a code has been fetched, so the screen is complete on its own.
+  dialog-setup-need-code: "Press Get Setup Code below, then open #link-account in Discord and press Change Password."
+  dialog-setup-getcode-button: "Get setup code"
+  dialog-setup-login-button: "Login"
+  dialog-setup-login-tooltip: "Use the password you just set in Discord"
+  dialog-setup-again-button: "Show code again"
+  dialog-setup-again-tooltip: "Shows this screen and the same code again"
+
+  # The ordinary login.
+  dialog-login-title: "Login"
+  dialog-login-body: "Enter your password to continue."
+  dialog-login-field: "Password"
+  dialog-login-button: "Login"
+  dialog-forgot-button: "Forgot password"
+  dialog-forgot-tooltip: "Sends you a reset code to use in Discord"
+
+  # Replaces the login screen when Discord authenticated the player where they stood.
+  dialog-done-title: "You're in"
+  dialog-done-body: "Your password was set from Discord, so you have been signed in automatically."
+  dialog-done-button: "Continue"
+
+  # The code screen. %minutes%
+  dialog-recovery-title: "Your code"
+  dialog-recovery-body: "Open #link-account in Discord, press Change Password, and enter this code. It expires in %minutes% minutes and works once."
+  dialog-recovery-button: "Done"
+
+  # ─── The chat fallback ──────────────────────────────────────────────────────────────────────
+  #
+  # Used only when neither a dialog nor a Bedrock form is available.
+  chat-link:
+    - "&8&m                                        "
+    - "&e&lWelcome"
+    - ""
+    - "&7Your account is not linked to Discord yet."
+    - "&7Get a code, then open &b#link-account &7in Discord."
+  chat-link-button: "&a&l[ Get my link code ]"
+
+  # Printed first, without waiting on the API, so a legacy player always sees something.
+  chat-setup-intro:
+    - "&8&m                                        "
+    - "&e&lCreate Password"
+    - ""
+    - "&7This account was linked before passwords existed,"
+    - "&7so you have one step left. Fetching your code…"
+
+  # %code% %minutes%
+  chat-setup:
+    - "&8&m                                        "
+    - "&e&lCreate Password"
+    - ""
+    - "&7This account was linked before passwords existed,"
+    - "&7so you have one step left."
+    - ""
+    - "&f&l%code%"
+    - ""
+    - "&7Open &b#link-account &7in Discord, press &fChange Password&7,"
+    - "&7and enter that code with the password you want."
+    - "&8Expires in %minutes% minutes."
+    - ""
+    - "&7Then type that password here."
+    - "&8&m                                        "
+
+  chat-login:
+    - "&8&m                                        "
+    - "&e&lLogin"
+    - ""
+    - "&7Type your password in chat. Nobody else will see it."
+  chat-forgot-button: "&6&l[ Forgot password ]"
+
+  # Shown after a code is issued to a player who already had a password. %code% %minutes%
+  recovery-issued:
+    - "&8&m                                        "
+    - "&e&lYour recovery code"
+    - ""
+    - "&f&l%code%"
+    - ""
+    - "&7Open &b#link-account &7in Discord, press"
+    - "&fChange Password&7, and enter it."
+    - "&8Expires in %minutes% minutes. One use only."
+    - "&8&m                                        "
+
+  # The same code, for a player setting their FIRST password. Same mechanism, different sentence:
+  # nothing is being recovered, so calling it a recovery code would only confuse them.
+  # %code% %minutes%
+  setup-code-issued:
+    - "&8&m                                        "
+    - "&a&lYour setup code"
+    - ""
+    - "&f&l%code%"
+    - ""
+    - "&7Open &b#link-account &7in Discord, press"
+    - "&fChange Password&7, and enter it with the"
+    - "&7password you want to use from now on."
+    - "&8Expires in %minutes% minutes. One use only."
+    - "&8&m                                        "
+
+chat:
+  # %player% %message%
+  from-discord: "&9[Discord] &b%player%&f: &7%message%"
+
+staff:
+  enabled: "&aStaff mode enabled &8(&f%rank%&8)"
+  disabled: "&cStaff mode disabled."
+  inventory-restored: "&7Your inventory has been restored."
+  restore-failed: "&cCould not restore your inventory — it is safe, and will be restored on your next join."
+  not-linked: "&cLink your Discord account before using staff mode. Run &e/link&c."
+  no-permission: "&cYou do not have permission to do that."
+
+  # /staff promote|demote, permission robtic.staff.rank.
+  rank-usage: "&cUsage: &e/staff promote|demote <player> [rank]"
+  # %player% %from% %to%
+  rank-changed: "&a%player%: &f%from% &7→ &e%to%&a. The Discord role has been applied."
+  rank-not-linked: "&cThat player has not linked their Discord account, so they cannot hold a rank."
+  gate-set: "&aAdmin gate set to your position. /admin will drop staff here."
+  gate-save-failed: "&cCould not save the admin gate — check the server console."
+  rank-none-configured: "&cNo staff ranks are set up. Fill in &eplugins/RobticMinecraft/roles.yml&c, then run &e/robtic reload&c."
+  not-in-staff-mode: "&cEnable staff mode first with &e/admin&c."
+  system-disabled: "&cThe staff system is disabled on this server."
+  api-unavailable: "&cThe Robtic API is unreachable — staff mode is unavailable until it returns."
+  target-offline: "&cThat player is not online."
+  no-target: "&cLook at a player first."
+  # %action%
+  unknown-action: "&cUnknown staff action: &f%action%"
+  # %seconds%
+  tool-cooldown: "&7That tool is ready in &f%seconds%s"
+  # %player% %warnings% %jails% %reports%
+  join-alert: "&e[Staff] &f%player% &7joined with history — &fwarnings: %warnings%&7, jails: %jails%&7, reports: %reports%"
+  warn-usage: "&7Usage: &f/warn <player> <reason>"
+  note-usage: "&7Usage: &f/note <player> <text>"
+  lookup-usage: "&7Usage: &f<command> <player>"
+  # %player%
+  lookup-empty: "&7No records for &f%player%&7."
+  # %player% %count%
+  lookup-header: "&bRecords for &f%player% &8(&f%count%&8)"
+  # %text% %author% %date%
+  lookup-entry: "&8- &f%text% &7by %author% &8(%date%)"
+  lookup-failed: "&cCould not read those records."
+  # %player%
+  warn-added: "&aWarned &f%player%&a."
+  # %player%
+  note-added: "&aNote added for &f%player%&a."
+
+  # ─── Roster commands ───────────────────────────────────────────────────────────────────────
+  roster-usage: "&cUsage: &e/addstaff|promotestaff|demotestaff|firestaff <player>"
+  setrole-usage: "&cUsage: &e/setstaffrole <player> <role>"
+  # %player%
+  roster-unknown-player: "&cCould not find &f%player%&c."
+  roster-not-linked: "&cThat player must link their Discord account before becoming staff."
+  roster-already-staff: "&cThat player is already a staff member."
+  roster-not-staff: "&cThat player is not a staff member."
+  roster-already-highest: "&cThat player already has the highest staff rank."
+  roster-already-lowest: "&cThat player is already at the lowest staff rank. Use &e/firestaff &cto remove them."
+  # %rank% %ranks%
+  roster-unknown-rank: "&cThere is no rank called &f%rank%&c. Available: &7%ranks%"
+  # %player% %to%
+  roster-added: "&a%player% &ais now staff, at rank &f%to%&a."
+  # %player% %from% %to%
+  roster-promoted: "&a%player% &awas promoted from &f%from% &ato &f%to%&a."
+  roster-demoted: "&e%player% &ewas demoted from &f%from% &eto &f%to%&e."
+  roster-role-set: "&a%player%&a's rank is now &f%to%&a."
+  # %player% %from%
+  roster-fired: "&c%player% &cis no longer staff (was &f%from%&c)."
+staff-chat:
+  # %rank% %player% %message% %server%
+  format: "&8[&cStaff&8] &7[&f%rank%&7] &b%player%&f: &7%message%"
+  # %player% %message%
+  from-discord: "&8[&cStaff&8] &9[Discord] &b%player%&f: &7%message%"
+  usage: "&7Usage: &f/a <message>"
+  default-rank: "Staff"
+
+freeze:
+  title: "&c&lFROZEN"
+  # %reason%
+  subtitle: "&fDo not log out — &7%reason%"
+  # %reason%
+  actionbar: "&c&lFROZEN &8| &7%reason%"
+  # %reason%
+  target-notified: "&cYou have been frozen. Do not log out. Reason: &f%reason%"
+  target-released: "&aYou have been unfrozen."
+  # %player%
+  applied: "&aFroze &f%player%&a."
+  # %player%
+  released: "&aUnfroze &f%player%&a."
+  # %player%
+  already-frozen: "&c%player% is already frozen."
+  # %player%
+  not-frozen: "&c%player% is not frozen."
+  command-blocked: "&cYou cannot use that command while frozen."
+  # %moderator% %player% %reason%
+  broadcast: "&8[&cStaff&8] &f%moderator% &7froze &f%player% &8(&7%reason%&8)"
+  # %moderator% %player%
+  release-broadcast: "&8[&cStaff&8] &f%moderator% &7unfroze &f%player%"
+  # %player%
+  disconnected: "&8[&cStaff&8] &c%player% logged out while frozen!"
+  default-reason: "Staff investigation"
+  no-reason: "No reason given"
+  usage: "&7Usage: &f/freeze <player> [reason]"
+
+jail:
+  # %reason% %duration%
+  target-notified: "&cYou have been jailed for &f%duration%&c. Reason: &f%reason%"
+  target-released: "&aYou have been released."
+  # %player% %duration%
+  applied: "&aJailed &f%player% &afor &f%duration%&a."
+  # %player%
+  released: "&aReleased &f%player%&a."
+  # %player%
+  already-jailed: "&c%player% is already jailed."
+  # %player%
+  not-jailed: "&c%player% is not jailed."
+  # %reason%
+  still-serving: "&cYou are still jailed. Reason: &f%reason%"
+  command-blocked: "&cYou cannot use that command while jailed."
+  no-location: "&cNo jail location is set. Stand where you want it and run &e/jail-set&c."
+  location-set: "&aJail location saved."
+  location-save-failed: "&cCould not save the jail location — see the console."
+  # %input%
+  bad-duration: "&cInvalid duration: &f%input% &7(try 30m, 2h, 7d or perm)"
+  usage: "&7Usage: &f/jail <player> <duration|perm> <reason>"
+  unjail-usage: "&7Usage: &f/unjail <player> [reason]"
+  # %player%
+  use-command: "&7Use &f/jail %player% <duration> <reason> &7to jail them."
+  released-via-menu: "Released from the staff menu"
+  # %moderator% %player% %duration% %reason%
+  broadcast: "&8[&cStaff&8] &f%moderator% &7jailed &f%player% &7for &f%duration% &8(&7%reason%&8)"
+  # %moderator% %player%
+  release-broadcast: "&8[&cStaff&8] &f%moderator% &7released &f%player%"
+
+vanish:
+  enabled: "&aYou are now hidden from other players."
+  disabled: "&eYou are visible again."
+  moved-to-gate: "&7Moved you to the admin gate."
+
+fly:
+  enabled: "&aFlight enabled."
+  disabled: "&eFlight disabled."
+  # %player%
+  enabled-other: "&aFlight enabled for &f%player%&a."
+  # %player%
+  disabled-other: "&eFlight disabled for &f%player%&e."
+  # A creative or spectator player already flies. %player% %mode%
+  gamemode-flies: "&7%player% is in %mode% mode and can already fly."
+
+tools:
+  flight-on: "&aFlight enabled."
+  flight-off: "&eFlight disabled."
+  night-vision-on: "&aNight vision enabled."
+  night-vision-off: "&eNight vision disabled."
+  spectator-on: "&aSpectator mode enabled."
+  spectator-off: "&eSpectator mode disabled."
+  # %speed%
+  speed: "&aSpeed set to &f%speed%&a."
+  # %player%
+  teleported: "&aTeleported to &f%player%&a."
+  # %lobby%
+  teleported-lobby: "&aTeleported to &f%lobby%&a."
+  teleported-back: "&aReturned to your previous location."
+  no-previous-location: "&cNo previous location to return to."
+  nobody-online: "&cThere is nobody else online."
+
+menus:
+  player-list-title: "&8Online Players"
+  teleport-title: "&8Teleport"
+  # %player%
+  manage-title: "&8Managing &f%player%"
+  # %player%
+  inspect-title: "&8Inventory of &f%player%"
+  # %player%
+  enderchest-title: "&8Ender Chest of &f%player%"
+  dashboard-title: "&8Staff Dashboard"
+  # %player%
+  player-entry-name: "&b%player%"
+  # %ping%
+  player-entry-ping: "&7Ping: &f%ping%ms"
+  # %world%
+  player-entry-world: "&7World: &f%world%"
+  # %health%
+  player-entry-health: "&7Health: &f%health%"
+  # %gamemode%
+  player-entry-gamemode: "&7Gamemode: &f%gamemode%"
+  player-entry-manage-hint: "&eClick to manage"
+  player-entry-teleport-hint: "&eClick to teleport"
+  lobby-hint: "&eClick to travel"
+  # %world%
+  lobby-world-missing: "&cWorld &f%world% &cis not loaded"
+  button-freeze: "&bFreeze"
+  button-unfreeze: "&aUnfreeze"
+  button-jail: "&cJail"
+  button-unjail: "&aRelease"
+  button-teleport: "&bTeleport"
+  button-inspect: "&eInspect Inventory"
+  button-enderchest: "&5Ender Chest"
+  button-jail-history: "&7Jail History"
+  button-warnings: "&eWarnings"
+  button-punishments: "&cPunishments"
+  button-notes: "&fNotes"
+  button-discord: "&9Discord Account"
+  button-playtime: "&aPlay Time"
+  button-back: "&7Back"
+  dashboard-online-staff: "&bOnline Staff"
+  dashboard-players: "&aPlayers Online"
+  dashboard-frozen: "&bFrozen"
+  dashboard-jailed: "&cJailed"
+  dashboard-vanished: "&7Vanished"
+  dashboard-open-players: "&eOpen Player List"
+  dashboard-open-reports: "&cOpen Reports"
+  # %count%
+  dashboard-count: "&f%count%"
+
+  # ─── Reports ──────────────────────────────────────────────────────────────────────────────
+  #
+  # The Discord rows are shown whether or not this guild has configured Discord. A row that
+  # disappears leaves a staff member unable to tell "nothing to show" from "feature is off".
+  reports-title: "&8Open Reports"
+  reports-empty: "&aNothing waiting"
+  reports-empty-hint: "&7Every report has been dealt with."
+  # %id% %player%
+  report-entry-name: "&c#%id% &8• &f%player%"
+  # %id%
+  report-detail-title: "&8Report &c#%id%"
+  # %player%
+  report-reported: "&cReported: &f%player%"
+  # %player%
+  report-reporter: "&aReporter: &f%player%"
+  report-online: "&aonline"
+  report-offline: "&7offline"
+  # %where%
+  report-where: "&7Location: &f%where%"
+  # %discord%
+  report-discord: "&9Discord: &f%discord%"
+  report-no-discord: "not linked"
+  report-accept: "&a&lAccept &7(jails them)"
+  report-refuse: "&c&lRefuse"
+  report-claim: "&b&lClaim &7(private chat)"
+  # %status%
+  report-settled: "&7Already %status%"
+  # %player%
+  report-settled-by: "&8Handled by %player%"
+
+  # %player%
+  report-lore-reporter: "&7Reporter: &a%player%"
+  # %player% %state%
+  report-lore-reported: "&7Reported: &c%player% &8(%state%&8)"
+  # %reason%
+  report-lore-reason: "&7Reason: &f%reason%"
+  # %where%
+  report-lore-where: "&7Reported at: &f%where%"
+  # %where%
+  report-lore-reporter-where: "&7Reporter at: &f%where%"
+  # %discord%
+  report-lore-target-discord: "&9Reported Discord: &f%discord%"
+  # %discord%
+  report-lore-reporter-discord: "&9Reporter Discord: &f%discord%"
+  # %status%
+  report-lore-status: "&7Status: &f%status%"
+  # %date%
+  report-lore-filed: "&7Filed: &f%date%"
+  # %player%
+  report-lore-claimed: "&eClaimed by %player%"
+  report-lore-hint: "&eClick to open"
+
+admin:
+  usage: "&7Usage: &f/robtic <status|prices|reload|queue|refresh>"
+  reloaded: "&aConfiguration reloaded. An API key change is now live."
+  cache-cleared: "&aCache cleared — the next read pulls from the API."
+  # %count% %state%
+  queue-size: "&7Queued requests: &f%count% &8| &7API: &f%state%"
+  status-reported: "&aStatus reported to the Robtic API."
+  status-failed: "&cStatus report failed — see the console."
+  no-prices: "&eNo prices configured. Set them on Discord with &f/minecraft price set&e."
+  price-header: "&bOre exchange prices:"
+  # %item% %price%
+  price-entry: "&7- &f%item% &8→ &e%price% &6robs"
+  price-failed: "&cCould not read the price table."
+
+# ─── Survival ─────────────────────────────────────────────────────────────────────────────────
+#
+# Limits are never written into these strings — %limit% and %used% are filled from the player's
+# premium tier, which the API decides. Hardcoding "2 homes" here would go stale the moment a tier
+# changed.
+survival:
+  unavailable: "&cThat is temporarily unavailable. Try again shortly."
+  premium-only: "&cThat is a Premium feature. See the store on Discord."
+  world-missing: "&cThat place is in &f%world%&c, which is not loaded on this server."
+
+  # Spawn
+  spawn-teleported: "&aWelcome to spawn."
+  spawn-set: "&aSpawn set to where you are standing."
+  spawn-unset: "&cNo spawn has been set yet. An admin can set one with &e/setspawn&c."
+
+  # Homes
+  home-set: "&aHome &f%name% &aset. &7(%used%/%limit%)"
+  home-deleted: "&aDeleted home &f%name%&a. &7(%used%/%limit%)"
+  home-renamed: "&aRenamed &f%old% &ato &f%new%&a."
+  home-teleported: "&aTeleported to &f%name%&a."
+  home-none: "&7You have no homes yet. Set one with &e/sethome&7."
+  home-missing: "&cYou have no home called &f%name%&c. &7%names%"
+  home-bad-name: "&cThat is not a valid home name."
+  delhome-usage: "&cUsage: &e/delhome <name>"
+  renamehome-usage: "&cUsage: &e/renamehome <old> <new>"
+  homes-title: "&8Your homes"
+
+  # Back
+  back-teleported: "&aTeleported back. &7(%remaining%/%limit% left)"
+  back-nowhere: "&cThere is nowhere to go back to yet."
+  back-not-premium: "&c/back is a Premium feature."
+  back-exhausted: "&cYou have used all your /back uses. They reset in &f%reset%&c."
+
+  # Chests
+  no-chest-in-sight: "&cLook at a chest first."
+  chest-locked: "&aChest locked. &7(%used%/%limit%)"
+  chest-unlocked: "&aChest unlocked."
+  chest-owned: "&cThat chest belongs to &f%player%&c."
+  chest-protected: "&cThat chest is locked by &f%player%&c."
+  chest-not-locked: "&cThat chest is not locked."
+  lock-not-premium: "&cLocking chests is a Premium feature."
+  lock-limit: "&cYou have locked all &f%limit% &cof your chests. &7(%used%/%limit%)"
+  locks-none: "&7You have not locked any chests."
+  locks-header: "&6Your locked chests &7(%used%/%limit%)"
+  locks-row: "&7- &f%world% &7%x%, %y%, %z%"
+
+  # Portable chest and ender chest
+  chest-linked: "&aChest linked. Open it anywhere with &e/chest&a."
+  chest-not-linked: "&cYou have not linked a chest. Look at one and run &e/linkchest&c."
+  chest-gone: "&cYour linked chest is no longer there."
+  portable-not-premium: "&cThe portable chest is a Premium II feature."
+  ec-opened: "&7Opening your ender chest."
+
+  # Cosmetics
+  particle-title: "&8Choose a particle"
+  particle-set: "&aParticle set to &f%name%&a."
+  particle-off: "&aParticle trail turned off."
+  particle-unknown: "&cThere is no particle called &f%name%&c."
+  joinmessage-set: "&aJoin message set."
+  joinmessage-reset: "&aJoin message reset to the default."
+  leavemessage-set: "&aLeave message set."
+  leavemessage-reset: "&aLeave message reset to the default."
+  message-usage: "&cUsage: &e/joinmessage <text>&c, or &e/joinmessage reset"
+  message-too-long: "&cThat is too long — keep it under &f%max% &ccharacters."
+
+  # Profile
+  profile-title: "&8%player%'s profile"
+
+# ─── Friends ──────────────────────────────────────────────────────────────────────────────────
+friend:
+  usage: "&cUsage: &e/friend <add|accept|deny|remove|cancel|tp|settings> <player>"
+  menu-title: "&8Your friends"
+  settings-title: "&8Friend settings"
+  not-found: "&cCould not find &f%player%&c. They must be online to add."
+  not-online: "&f%player% &cis not online."
+  not-friends: "&cYou are not friends with &f%player%&c."
+  already: "&7You are already friends with &f%player%&7."
+  requested: "&aFriend request sent to &f%player%&a."
+  accepted: "&aYou are now friends with &f%player%&a."
+  denied: "&7Declined the request from &f%player%&7."
+  removed: "&7Removed &f%player% &7from your friends."
+  cancelled: "&7Cancelled your request to &f%player%&7."
+  no-request: "&cThere is no request from &f%player%&c."
+
+  tp-usage: "&cUsage: &e/friend tp <player>"
+  tp-done: "&aTeleported to &f%player%&a."
+  tp-arrived: "&f%player% &7teleported to you."
+  tp-requested: "&aAsked &f%player% &aif you may teleport to them."
+  tp-prompt:
+    - "&f%player% &7wants to teleport to you."
+  tp-accept-button: "&a&l[Accept]"
+  tp-deny-button: "&c&l[Deny]"
+  tp-nothing: "&cThere is no teleport request waiting."
+  tp-gone: "&cThey are no longer online."
+  tp-denied: "&f%player% &cdeclined your teleport request."
+  tp-denied-self: "&7Declined the request from &f%player%&7."
+  settings-auto: "&aFriends can now teleport to you instantly."
+  settings-manual: "&aYou will be asked before a friend teleports to you."
+
+# ─── Lobby ────────────────────────────────────────────────────────────────────────────────────
+lobby:
+  denied-build: "&cYou cannot build here."
+  denied-drop: "&cYou cannot drop items here."
+  denied-generic: "&cThat is not available in the lobby."
+  denied-command: "&cThat command is not available in the lobby."
+
+  # %count%
+  notifications-header: "&7While you were busy &8(&f%count%&8)&7:"
+
+  # %player%
+  friend-request-received: "&f%player% &7sent you a friend request."
+  # %player%
+  teleport-request-received: "&f%player% &7wants to teleport to you."
+
+  # %player% %amount% %item%
+  give-received: "&f%player% &agave you &f%amount%x %item%&a."
+  # %amount% %item% %player%
+  give-sent: "&aGave &f%amount%x %item% &ato &f%player%&a."
+  give-nothing-held: "&cHold the item you want to give first."
+  give-not-allowed: "&cThat item cannot be given away."
+  give-target-gone: "&cThat player is no longer online."
+  # %player%
+  give-target-full: "&f%player%&c has no room for that."
+
+  players-shown: "&aOther players are now visible."
+  players-hidden: "&7Other players are now hidden."
+  players-lobby-only: "&8Saved — this only applies in the lobby."
+
+  joinmessage-hint: "&7Set one with &e/joinmessage <text>&7, or clear it with &e/joinmessage reset&7."
+
+  # %url%
+  link: "&7Open: &b%url%"
+
+# ─── Reports and the staff roster ─────────────────────────────────────────────────────────────
+report:
+  usage: "&cUsage: &e/report <player> <reason>&7. The player does not have to be online."
+  id-usage: "&cUsage: &e/report accept <id> [duration]&c, or &e/report refuse <id>"
+  self: "&cYou cannot report yourself."
+
+  # %player% %id%
+  #
+  # The six-digit id is shown to the reporter deliberately: it is what they quote if they ever ask
+  # what happened to their report, and what the mail they receive later refers to.
+  submitted:
+    - "&8&m                                        "
+    - "&aYour report has been sent to the staff team."
+    - ""
+    - "&7Reported: &f%player%"
+    - "&7Reference: &e#%id%"
+    - ""
+    - "&7You will get a message when it has been reviewed."
+    - "&8&m                                        "
+
+  failed: "&cYour report could not be sent. Try again shortly."
+  # %player%
+  unknown-player: "&cNobody called &f%player% &chas ever played here."
+  # %id%
+  unknown-id: "&cThere is no report &e#%id%&c."
+  list-failed: "&cThe report queue could not be read."
+  decide-failed: "&cThat report could not be settled."
+
+  # How a position reads when there is not one to show.
+  location-unknown: "unknown"
+  location-offline: "offline, no last position recorded"
+  # %where%
+  location-last-seen: "%where% (last seen)"
+
+  # The interactive alert every on-duty staff member receives. Staff who are online but off duty
+  # get nothing — the report is filed regardless and waits in the queue.
+  # %id% %reporter% %reported% %where% %reason%
+  notification:
+    - "&8&m                                        "
+    - "&c&lNew Report &8#%id%"
+    - ""
+    - "&7Reporter: &a%reporter%"
+    - "&7Reported: &c%reported%"
+    - "&7Location: &f%where%"
+    - "&7Reason: &f%reason%"
+    - ""
+  accept-button: "&a&l[Accept]"
+  accept-hover: "&7Uphold this report and jail the reported player"
+  refuse-button: "&c&l[Refuse]"
+  refuse-hover: "&7Close this report with no action"
+
+  # %id% %player%
+  accepted: "&aReport &e#%id% &aaccepted — &f%player% &ahas been jailed."
+  accepted-already-jailed: "&eReport &e#%id% &eaccepted, but &f%player% &ewas already serving a sentence."
+  # %id% %player%
+  refused: "&7Report &e#%id% &7refused. &f%player% &7was not punished."
+
+  # %id% %reporter%
+  claimed: "&aYou claimed report &e#%id%&a. Reporter: &f%reporter%&a."
+  claim-failed: "&cThat report could not be claimed."
+  reporter-offline: "&7The reporter is no longer online."
+  # %player%
+  teleported: "&7Teleported to &f%player%&7."
+
+  # The private session between reporter and assigned staff.
+  # %staff%
+  session-opened-reporter:
+    - "&8&m                                        "
+    - "&a%staff% &7is handling your report."
+    - "&7Anything you type now goes only to them."
+    - "&8&m                                        "
+  # %reporter%
+  session-opened-staff:
+    - "&8&m                                        "
+    - "&7Private chat with &f%reporter% &7is open."
+    - "&7End it with &e/report close&7."
+    - "&8&m                                        "
+  # %player% %message%
+  chat-from-reporter: "&8[&cReport&8] &f%player%&7: %message%"
+  chat-from-staff: "&8[&cReport&8] &a%player%&7: %message%"
+  session-ended: "&7The report conversation has ended."
+  session-superseded: "&7Your previous report conversation was closed."
+  session-partner-left: "&7The other person left — the conversation has ended."
+  session-partner-offline: "&cThey are no longer online."
+  no-active-session: "&cYou are not handling a report right now."
+  resolved: "&aReport resolved."
+  dismissed: "&7Report dismissed."
+  close-failed: "&cThat report could not be closed."
+
+# ─── Mailbox ──────────────────────────────────────────────────────────────────────────────────
+#
+# Mail exists because everything that generates one — a report being upheld, a jail, a warning —
+# usually happens while the player is offline, and a chat line sent to somebody who is not connected
+# is simply lost. Anything marked important is shown on join before every other message.
+mail:
+  unavailable: "&cYour mailbox is temporarily unavailable. Try again shortly."
+
+  menu-title: "&8Your Mailbox"
+  empty-title: "&7No mail"
+  empty-hint: "&8Nothing has been sent to you yet."
+
+  # %subject%
+  entry-unread: "&e&l%subject%"
+  # %subject%
+  entry-read: "&7%subject%"
+  # %sender%
+  entry-from: "&7From: &f%sender%"
+  # %date%
+  entry-date: "&7Received: &f%date%"
+  entry-important: "&c&lImportant"
+  # %text%
+  entry-preview: "&8%text%"
+  entry-hint: "&eClick to read"
+
+  footer-title: "&6Mailbox"
+  # %count%
+  footer-total: "&7Total: &f%count%"
+  # %count%
+  footer-unread: "&7Unread: &e%count%"
+
+  # The book one mail opens as. %subject% %sender% %date%
+  book-subject: "&0&l%subject%"
+  book-from: "&8From: %sender%"
+  book-date: "&8%date%"
+  book-empty: "&8This message has no content."
+
+  profile-button: "&6Mailbox"
+  # %count%
+  profile-unread: "&e%count% unread"
+  profile-none: "&7Nothing unread"
+  profile-hint: "&eClick to open"
+
+  # Shown on join, ahead of everything else. %subject% %sender%
+  join-important:
+    - "&8&m                                        "
+    - "&e&lYou have a message"
+    - ""
+    - "&f%subject%"
+    - "&7From: &f%sender%"
+    - ""
+    - "&7Read it with &e/mail&7, or from your profile."
+    - "&8&m                                        "
+
+  # %count%
+  join-unread: "&7You have &e%count% &7unread message(s). &8/mail"
+
+
+# ─── Progression: jobs and titles ─────────────────────────────────────────────────────────────
+
+progression:
+
+  player-only: "&cRun this in game."
+  no-permission: "&cYou do not have permission to do that."
+
+  # Shown when a player's progression could not be loaded from storage. They are let in and can play
+  # normally; nothing will be saved for them until a load succeeds, which is what stops an outage
+  # overwriting real progress with an empty record.
+  not-loaded: "&cYour progression could not be loaded. Nothing will be saved until it can — please tell an admin."
+
+  jobs:
+    joined: "&aYou are now a &f%job%&a."
+    already-owned: "&cYou already have that profession."
+    # %limit%
+    limit-reached: "&cYou can only hold &f%limit% &cprofession(s). Leave one first, or upgrade."
+    no-permission: "&cThat profession is not open to you."
+    in-progress: "&7One moment — that is already being processed."
+    # %job%
+    unknown: "&cThere is no profession called &f%job%&c."
+    cancelled: "&cSomething prevented you from taking that profession."
+    not-owned: "&cYou do not have that profession."
+    none-owned: "&7You have not taken a profession yet. Find a guild building to join one."
+    recruiter-stale: "&cThat recruiter is no longer valid. Try reloading the area."
+
+    # ─── Licences ─────────────────────────────────────────────────────────────────────────────
+    #
+    # A profession may require a RobticCore licence — see the `license:` key in jobs.yml. The three
+    # refusals are separated because the fixes are different: find one, renew the one you have, or
+    # ask a member of staff. %license% is the licence id, %job% the profession's display name.
+    # %license%
+    license-missing: "&cYou need a &f%license% &clicence to take that profession. Ask the Licence Officer."
+    # %license%
+    license-expired: "&cYour &f%license% &clicence has expired. Renew it before taking that profession."
+    license-refused: "&cYour licence could not be used for that right now."
+
+    # ─── /jobs stats ──────────────────────────────────────────────────────────────────────────
+    # %job% %level% %max% %xp% %next%
+    stats-header: "&6%job% &7— level &f%level%&7/&f%max%&7, &f%xp% &7XP (&f%next% &7to next)"
+    # %action% %count%
+    stats-entry: "&8• &7%action% &8× &f%count%"
+
+    # ─── /jobs debug ──────────────────────────────────────────────────────────────────────────
+    # %backend% %loaded%
+    debug-header: "&7Progression: storage &f%backend%&7, loaded &f%loaded%"
+    # %owned% %owned-limit% %active% %active-limit%
+    debug-limits: "&7Professions: &f%owned%&7/&f%owned-limit% &7held, &f%active%&7/&f%active-limit% &7active"
+    # %job% %level% %active% %workspace%
+    debug-job: "&8• &f%job% &7lvl &f%level%&7, active &f%active%&7, workspace &f%workspace%"
+    # %count% %limit%
+    debug-workspaces: "&7Workspaces: &f%count%&7/&f%limit%"
+
+    activated: "&aThat profession is now active."
+    deactivated: "&7That profession is no longer earning. Its progress is untouched."
+    already-active: "&7That profession is already active."
+    active-limit: "&cYou cannot work any more professions at once."
+    # %job%
+    resign-confirm: "&cClick again to leave &f%job%&c. Its level, XP and titles are lost permanently."
+    resigned: "&7You have left &f%job%&7."
+
+    usage-leave: "&7Usage: &f/jobs leave <job>"
+    usage-activate: "&7Usage: &f/jobs activate <job> [job to stand down]"
+
+  titles:
+    # %title%
+    equipped: "&aNow wearing &f%title%&a."
+    unequipped: "&7Title removed."
+    cannot-equip: "&cYou cannot wear that title."
+    # %title% %requirement%
+    locked: "&f%title% &7is locked — &f%requirement%"
+    none: "&7You have not unlocked any titles yet."
+    # %count%
+    list-header: "&5Your titles &7(%count%)"
+    # %id% %title% %rarity%
+    list-entry: "&8• &f%title% &8(%id%, %rarity%)"
+    usage-equip: "&7Usage: &f/titles equip <id>"
+    search-prompt: "&7Type what you are looking for, or &fcancel&7."
+
+  workspace:
+    protected: "&cThis is somebody else's workspace."
+    not-yours: "&cThis workspace is not yours."
+    unknown: "&cThis workspace is no longer registered."
+    gone: "&cThat workspace no longer exists."
+
+    # ─── /workspace ───────────────────────────────────────────────────────────────────────────
+    none-owned: "&7You do not have a workspace. Take a profession at a guild building to claim one."
+    # %job%
+    none-for-profession: "&cYou do not have a workspace for &f%job%&c."
+    # %count% — shown only when a player holds more than one, which needs a premium tier
+    choose: "&7You have &f%count% &7workspaces. Pick one with &f/workspace <profession>&7:"
+    # %job% %id% %level% %where%
+    choose-entry: "&8• &f%job% &8(&7%id%&8) &7tier &f%level% &8— &7%where%"
+    # /workspace marker … is forwarded to RobticWorld's /structure command. This is shown only when
+    # that command is not registered, which means a plugin.yml problem rather than a missing plugin.
+    markers-unavailable: "&cThe marker tools are unavailable. Try &f/structure marker edit&c."
+
+    # ─── Claiming ─────────────────────────────────────────────────────────────────────────────
+    # %where%
+    claimed: "&aThis building is yours now. &7%where%"
+    claim-failed: "&cThe workspace could not be created. Your profession is unaffected."
+    disabled: "&cWorkspaces are switched off on this server."
+    not-ready: "&cWorkspaces are still loading. Try again in a moment."
+    structure-taken: "&cSomebody has already claimed this building."
+    already-owns: "&cYou already have a workspace for this profession."
+    # %limit%
+    limit-reached: "&cYou can only own &f%limit% &cworkspace(s)."
+    overlaps: "&cThis building is too close to another workspace."
+    too-large: "&cThe configured workspace region is too large. Tell an admin."
+    world-unloaded: "&cThat world is not loaded."
+
+    # ─── Upgrading ────────────────────────────────────────────────────────────────────────────
+    # %tier%
+    upgraded: "&aYour workspace is now a &f%tier%&a. Your storage is untouched."
+    cannot-afford: "&cYou cannot afford that upgrade."
+    max-tier: "&7Your workspace is already at its highest tier."
+    upgrade-suspended: "&cPay your maintenance before upgrading."
+    upgrade-vetoed: "&cSomething is preventing that upgrade."
+    upgrade-failed: "&cThe upgrade failed and you have not been charged."
+
+    # ─── Storage ──────────────────────────────────────────────────────────────────────────────
+    # %amount%
+    deposited: "&aStored &f%amount% &aitem(s)."
+    storage-full: "&eYour workspace storage is full. The rest is still in your inventory."
+    nothing-storable: "&7Your workspace does not accept any of what you are carrying."
+    inventory-full: "&cYour inventory is full."
+
+    # ─── Tax ──────────────────────────────────────────────────────────────────────────────────
+    # %amount%
+    tax-paid: "&aMaintenance paid — &f%amount% &arobs. Your workspace is running again."
+    tax-unpaid: "&cYou cannot afford the &f%amount% &crobs maintenance."
+    # %when%
+    tax-not-due: "&7No maintenance is due for another &f%when%h&7."
+    # %amount%
+    suspended: "&cYour workspace has been suspended — &f%amount% &crobs maintenance is overdue. Nothing has been lost; pay to restore it."
+    suspended-npc: "&cThis workspace is suspended. &f%amount% &crobs of maintenance is due."
+
+  sell:
+    # %amount% %paid%
+    sold: "&aSold &f%amount% &aitem(s) for &f%paid% &arobs."
+    nothing: "&7You are not carrying anything this profession buys."
+    # %reason%
+    refused: "&cYou cannot sell yet — &f%reason%"
+    # %quota%
+    quota: "&cYou have sold your daily limit of &f%quota% &citem(s)."
+    # %seconds%
+    cooldown: "&cWait &f%seconds%s &cbefore selling again."
+    failed: "&cThe sale failed and your items have been returned."
+
+  admin:
+    usage:
+      - "&8&m                                        "
+      - "&5&lProgression admin"
+      - "&7/jobs admin reload &8— re-read the config files"
+      - "&7/jobs admin give <player> <job>"
+      - "&7/jobs admin take <player> <job>"
+      - "&7/jobs admin grant <player> <title>"
+      - "&7/jobs admin revoke <player> <title>"
+      - "&7/jobs admin info <player>"
+      - "&8&m                                        "
+    usage-give: "&7Usage: &f/jobs admin give <player> <job>"
+    usage-take: "&7Usage: &f/jobs admin take <player> <job>"
+    usage-grant: "&7Usage: &f/jobs admin grant <player> <title>"
+    usage-revoke: "&7Usage: &f/jobs admin revoke <player> <title>"
+    usage-info: "&7Usage: &f/jobs admin info <player>"
+    reloaded: "&aProgression configuration reloaded."
+    # %player%
+    player-offline: "&f%player% &cis not online. These commands need a loaded player."
+    # %player% %job% %result%
+    give-result: "&7Gave &f%job% &7to &f%player%&7: &f%result%"
+    took-job: "&7Removed &f%job% &7from &f%player%&7."
+    granted-title: "&aGranted &f%title% &ato &f%player%&a."
+    revoked-title: "&7Revoked &f%title% &7from &f%player%&7."
+    already-owned: "&7They already own &f%title%&7."
+    not-owned: "&7They do not own &f%title%&7."
+    info-header: "&5Progression for &f%player%"
+    # %job% %level% %active%
+    info-job: "&8• &f%job% &7level %level% &8(active: %active%)"
+    # %count% %equipped%
+    info-titles: "&8• &7Titles: &f%count% &8(wearing: %equipped%)"
+
+  gui:
+    back: "Back"
+    previous: "Previous"
+    next: "Next"
+
+    titles:
+      # %page% %pages%
+      title: "&5Titles &8(%page%/%pages%)"
+      worn: "&a✔ Currently worn"
+      click-to-equip: "&eClick to wear"
+      # %reason%
+      owned-but-locked: "&cLocked — &7%reason%"
+      # %requirement%
+      locked: "&cLocked — &7%requirement%"
+      # %source%
+      from-source: "&8From: %source%"
+      # %sort%
+      sort: "&fSort: &e%sort%"
+      sort-hint: "&7Click to change"
+      # %value%
+      filter-rarity: "&fRarity: &e%value%"
+      filter-source: "&fSource: &e%value%"
+      filter-all: "All"
+      filter-rarity-title: "&5Filter by rarity"
+      filter-source-title: "&5Filter by source"
+      # %value%
+      search: "&fSearch: &e%value%"
+      search-none: "none"
+      clear: "&fClear filters"
+      # %shown% %total%
+      showing: "&7Showing &f%shown% &7of &f%total%"
+      hiding-none: "&fShowing locked titles"
+      owned-only: "&fShowing owned only"
+      unequip: "&cRemove title"
+      # %title%
+      currently: "&7Wearing: %title%"
+
+      refusal:
+        not-owned: "you do not own it"
+        no-permission: "you lack the permission"
+        not-loaded: "your progression is not loaded"
+        unknown: "it no longer exists"
+
+    jobs:
+      title: "&5Professions"
+      # %job%
+      detail-title: "&5%job%"
+      none: "&7You have no profession yet"
+      none-hint:
+        - "Professions are not chosen from a menu."
+        - "Explore. Find a guild building."
+        - "The recruiter inside will take you on."
+      # %level% %max%
+      level: "&7Level &f%level%&8/&7%max%"
+      # %xp% %next%
+      xp: "&7XP: &f%xp% &8(&7%next% to next&8)"
+      active: "&a✔ Active — earning XP"
+      inactive: "&7Inactive — progress kept, no XP earned"
+      click-detail: "&eClick for details"
+      limits: "&fYour limits"
+      # %used% %max%
+      limit-owned: "&7Professions held: &f%used%&8/&7%max%"
+      limit-active: "&7Active at once: &f%used%&8/&7%max%"
+      # %level%
+      title-unlocked: "&aUnlocked at level %level%"
+      title-locked: "&8Unlocks at level %level%"
+      statistics: "&fStatistics"
+      # %what% %count%
+      stat-line: "&8• &7%what%: &f%count%"
+      # %count%
+      stat-total: "&7Total actions: &f%count%"
+      no-stats: "&7Nothing recorded yet."
+      activate: "&aMake active"
+      activate-hint: "&7Start earning XP in this profession"
+      deactivate: "&7Stand down"
+      deactivate-hint: "&7Stops earning. Nothing is lost."
+      sell: "&aSell inventory"
+      sell-hint: "&7Sells everything this profession buys"
+      resign: "&cLeave profession"
+      resign-warning:
+        - "Removes the profession, its level,"
+        - "its XP and every title it gave you."
+        - "This cannot be undone."
+      workspace: "&fYour workspace"
+      # %where%
+      workspace-at: "&7%where%"
+      workspace-hint: "&eClick to open"
+
+    # ─── Workspace ────────────────────────────────────────────────────────────────────────────
+
+    workspace:
+      # %tier%
+      title: "&6Workspace &8— &f%tier%"
+      name: "&6%tier%"
+      # %profession%
+      profession: "&7Profession: &f%profession%"
+      # %level% %max%
+      level: "&7Tier &f%level%&8/&7%max%"
+      # %where%
+      where: "&8%where%"
+      suspended: "&c⚠ Suspended — maintenance overdue"
+      # %list%
+      capabilities: "&7Unlocked: &f%list%"
+
+      storage: "&fStorage"
+      # %used% %capacity%
+      storage-used: "&7%used% &8/ &7%capacity% items"
+      storage-hint: "&eClick to open"
+      # %page% %pages%
+      storage-title: "&6Storage &8(%page%/%pages%)"
+      # %amount%
+      stored: "&7Stored: &f%amount%"
+      withdraw-hint: "&eClick for a stack &8· &eShift-click for all"
+      storage-empty: "&7Nothing stored yet"
+      storage-empty-hint: "&7Deposit what your profession produces."
+      deposit: "&aDeposit everything"
+      deposit-hint: "&7Stores everything this profession accepts"
+
+      # %tier%
+      upgrade: "&eUpgrade to %tier%"
+      upgrade-title: "&6Workspace upgrades"
+      # %cost%
+      upgrade-cost: "&7Cost: &f%cost% &7robs"
+      # %from% %to%
+      upgrade-storage: "&7Storage: &f%from% &8→ &a%to%"
+      # %npc%
+      upgrade-npc: "&7Unlocks the &f%npc% &7NPC"
+      # %feature%
+      upgrade-feature: "&7Unlocks &f%feature%"
+      upgrade-safe: "&aYour storage is never touched by an upgrade."
+      max-tier: "&6Highest tier reached"
+      max-tier-hint: "&7There is nothing left to upgrade."
+      # %storage%
+      tier-storage: "&7Storage: &f%storage%"
+      tier-reached: "&aReached"
+      # %cost%
+      tier-locked: "&8Costs %cost% robs"
+
+      tax: "&fMaintenance"
+      tax-disabled: "&7Maintenance is disabled"
+      # %amount%
+      tax-amount: "&7Amount: &f%amount% &7robs"
+      # %when%
+      tax-due: "&7Due in &f%when%"
+      tax-overdue: "&cOverdue"
+      tax-hint: "&eClick to pay"
+
+# ─── Licences ─────────────────────────────────────────────────────────────────────────────────
+#
+# Everything the licence system says. The item's own lore is built from these too, so a server that
+# wants different wording — or another language — changes this file rather than the plugin.
+license:
+  no-permission: "&cYou do not have permission to do that."
+  player-only: "&cThat can only be run by a player."
+  # %player%
+  player-offline: "&cNo player called &f%player% &cis online."
+  # %license%
+  unknown: "&cThere is no licence called &f%license%&c."
+  permanent: "never expires"
+  reloaded: "&aLicences reloaded."
+
+  status-valid: "&aValid"
+  status-expired: "&cExpired"
+  status-permanent: "&dPermanent"
+
+  # ─── Renewal ────────────────────────────────────────────────────────────────────────────────
+  # %license%
+  renewed: "&aRenewed your &f%license%&a."
+  renew-not-held: "&cYou are not carrying a &f%license%&c."
+  renew-not-renewable: "&cThe &f%license% &ccannot be renewed."
+  renew-permanent: "&7Your &f%license% &7never expires — there is nothing to renew."
+  renew-cannot-afford: "&cYou cannot afford to renew your &f%license%&c."
+  renew-unavailable: "&cRenewals are unavailable right now. Try again shortly."
+
+  # ─── Admin ──────────────────────────────────────────────────────────────────────────────────
+  # %player% %license%
+  gave: "&aGave &f%player% &aa &f%license%&a."
+  received: "&aYou have been issued a &f%license%&a."
+  give-failed: "&cCould not issue &f%license%&c."
+  removed: "&aTook &f%license% &afrom &f%player%&a."
+  remove-failed: "&c%player% is not carrying a &f%license%&c."
+  expired-now: "&aExpired &f%player%&a's &f%license%&a."
+  expire-failed: "&cCould not expire &f%player%&a's &f%license%&c — they may not hold one, or it may be permanent."
+
+  # ─── NPCs ───────────────────────────────────────────────────────────────────────────────────
+  no-citizens: "&cCitizens is not installed, so licence NPCs are unavailable."
+  no-npc-selected: "&cSelect an NPC first with &f/npc select&c, then run this again."
+  # %npc%
+  npc-set: "&f%npc% &ais now a licence NPC."
+  npc-already: "&7%npc% &7is already a licence NPC."
+  npc-removed: "&f%npc% &ais no longer a licence NPC."
+  npc-not-set: "&7%npc% &7was not a licence NPC."
+
+  # ─── Listing ────────────────────────────────────────────────────────────────────────────────
+  none-registered: "&7No licences are registered."
+  # %count%
+  list-header: "&6Licences &7(%count%)"
+  # %id% %name% %category%
+  list-entry: "&8• &f%name% &8(&7%id%&8) &8— &7%category%"
+  # %player% %count%
+  check-header: "&6%player% &7holds &f%count% &7licence(s)"
+  check-none: "&7%player% is not carrying any licences."
+  # %name% %status% %remaining%
+  check-entry: "&8• &f%name% &8— %status% &8(&7%remaining%&8)"
+
+  # %name%
+  info-header: "&6%name%"
+  info-id: "&7Id: &f%id%"
+  info-category: "&7Category: &f%category%"
+  info-rarity: "&7Rarity: &f%rarity%"
+  info-duration: "&7Lasts: &f%duration%"
+  # %cost% %period%
+  info-renewal: "&7Renewal: &f%cost% robs &7for &f%period%"
+  info-obtain: "&8• &7%text%"
+
+  debug-header: "&6Licence system"
+  # %text%
+  debug-line: "&8• &7%text%"
+
+  usage-info: "&cUsage: &f/license info <licence>"
+  usage-renew: "&cUsage: &f/license renew <licence>"
+  usage-give: "&cUsage: &f/license give <player> <licence>"
+  usage-remove: "&cUsage: &f/license remove <player> <licence>"
+  usage-expire: "&cUsage: &f/license expire <player> <licence>"
+
+  help:
+    - "&8&m                                        "
+    - "&6Licences"
+    - "&f/license &8— &7open the licence browser"
+    - "&f/license list &8— &7every licence that exists"
+    - "&f/license info <licence> &8— &7everything about one"
+    - "&f/license check [player] &8— &7what somebody holds"
+    - "&f/license renew <licence> &8— &7renew one of yours"
+    - "&7Staff:"
+    - "&f/license give <player> <licence>"
+    - "&f/license remove <player> <licence>"
+    - "&f/license expire <player> <licence>"
+    - "&f/license setnpc &8— &7make the selected NPC a licence NPC"
+    - "&f/license removenpc &8— &7stop it being one"
+    - "&f/license reload &8· &f/license debug"
+    - "&8&m                                        "
+
+  # ─── The browser ────────────────────────────────────────────────────────────────────────────
+  gui:
+    # %page% %pages%
+    title: "&6Licences &8(&7%page%&8/&7%pages%&8)"
+    # %category%
+    category: "&7Category: &f%category%"
+    # %rarity%
+    rarity: "&7Rarity: &f%rarity%"
+    status-locked: "&8✖ Not owned"
+    status-permanent: "&d✔ Permanent"
+    # %remaining% %when%
+    status-valid: "&a✔ Valid &8— &7%remaining% left"
+    # %when%
+    status-expired: "&c✖ Expired &8(&7%when%&8)"
+    # %cost%
+    renewal-cost: "&7Renewal: &f%cost% robs"
+    # %period%
+    renewal-period: "&7Adds: &f%period%"
+    renew-hint: "&eClick to renew"
+    how-to-obtain: "&7How to obtain:"
+    requirements: "&7Requirements:"
+    # %text%
+    bullet: "&8• &7%text%"
+    all-categories: "All licences"
+    previous: "&7← Previous"
+    next: "&7Next →"
+    close: "&cClose"
+
+  # ─── The item ───────────────────────────────────────────────────────────────────────────────
+  #
+  # The lore on a licence in a player's hand. Same placeholders as the browser.
+  item:
+    # %category%
+    category: "&7Category: &f%category%"
+    # %rarity%
+    rarity: "&7Rarity: &f%rarity%"
+    status-valid: "&a✔ Valid"
+    status-permanent: "&d✔ Permanent"
+    # %when%
+    status-expired: "&c✖ Expired on &f%when%"
+    # %when%
+    expires: "&7Expires: &f%when%"
+    # %remaining%
+    remaining: "&7Remaining: &f%remaining%"
+    # %cost%
+    renewal-cost: "&7Renewal: &f%cost% robs"
+    # %period%
+    renewal-period: "&7Adds: &f%period%"
+    how-to-obtain: "&7How to obtain:"
+    # %text%
+    bullet: "&8• &7%text%"
+    footer: "&8Official Robtic document"

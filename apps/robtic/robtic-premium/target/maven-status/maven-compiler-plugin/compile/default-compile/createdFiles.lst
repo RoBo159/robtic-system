@@ -1,0 +1,8 @@
+org/robtic/premium/PremiumSyncService.class
+org/robtic/premium/config/PremiumSettings.class
+org/robtic/premium/RobticPremiumPlugin$1.class
+org/robtic/premium/RobticPremiumPlugin$TierEntitlements.class
+org/robtic/premium/RobticPremiumPlugin$JoinListener.class
+org/robtic/premium/config/PremiumSettings$Tier.class
+org/robtic/premium/RobticPremiumPlugin$2.class
+org/robtic/premium/RobticPremiumPlugin.class

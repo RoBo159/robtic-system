@@ -1,0 +1,24 @@
+# RobticMail.
+#
+# This plugin stores nothing locally — the API holds the mail, because nearly every message it
+# carries is generated while the recipient is offline. So this file exists only for the optional
+# Discord section below.
+
+# ─── Discord ──────────────────────────────────────────────────────────────────────────────────
+#
+# Optional, and off by default. RobticMail works completely without RobticDiscord; this only
+# mirrors mail activity into a channel.
+#
+# With `enabled: false` nothing is checked and nothing is logged at startup. With it on and
+# RobticDiscord missing you get exactly one warning and the plugin carries on normally.
+#
+# Channel IDs are the long numbers Discord shows under "Copy Channel ID" with Developer Mode on.
+discord:
+  enabled: false
+
+  channels:
+    logs: ""
+
+  # Per-action routing. Anything not listed goes to `logs`.
+  # Action IDs owned by this plugin: mail_sent, mail_claimed
+  log-actions: {}

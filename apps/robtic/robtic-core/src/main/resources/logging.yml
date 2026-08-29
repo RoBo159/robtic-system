@@ -1,0 +1,41 @@
+# Which staff actions this server reports.
+#
+# Note what is NOT here: no channel ids, no webhook URLs. The plugin names an action and the API
+# resolves where it goes from the guild's configuration. That keeps every Discord identifier out
+# of your game servers, and means re-pointing a log stream is a Discord-side change rather than an
+# edit-and-restart on each server.
+#
+# An action missing from the list below defaults to enabled: a new action added by a plugin update
+# should be audited by default, and you can silence it explicitly if you would rather not see it.
+
+# Mirror actions into the server console.
+console: true
+# Send actions to Discord.
+discord: true
+# Report API failures and authentication problems.
+api-errors: true
+
+actions:
+  staff_enabled: true
+  staff_disabled: true
+  freeze: true
+  unfreeze: true
+  jail: true
+  release: true
+  teleport: true
+  inventory_inspect: true
+  enderchest_inspect: true
+  player_report: true
+  warning_added: true
+  warning_removed: true
+  note_added: true
+  role_sync: true
+  player_linked: true
+  player_unlinked: true
+  coins_sold: false
+  server_started: true
+  server_stopped: true
+  plugin_loaded: false
+  plugin_error: true
+  api_error: true
+  auth_failure: true

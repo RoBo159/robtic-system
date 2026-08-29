@@ -1,0 +1,6 @@
+/app/robtic-discord/src/main/java/org/robtic/discord/ApiDiscordService.java
+/app/robtic-discord/src/main/java/org/robtic/discord/BridgeConsumerService.java
+/app/robtic-discord/src/main/java/org/robtic/discord/ChatBridgeService.java
+/app/robtic-discord/src/main/java/org/robtic/discord/LinkCommands.java
+/app/robtic-discord/src/main/java/org/robtic/discord/PlayerChatListener.java
+/app/robtic-discord/src/main/java/org/robtic/discord/RobticDiscordPlugin.java

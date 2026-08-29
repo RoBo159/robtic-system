@@ -1,0 +1,22 @@
+name: RobticAuth
+version: ${project.version}
+main: org.robtic.auth.RobticAuthPlugin
+api-version: '1.21'
+author: Robtic
+description: Registration, login and Discord verification.
+
+# RobticDiscord is REQUIRED, not optional: a player's identity is proven on Discord, and without the
+# bridge nobody could ever become authenticated — every player would be held at a prompt they could
+# not satisfy. RobticPlugin disables this plugin with one line rather than locking the server out.
+softdepend: [RobticCore, RobticDiscord]
+
+commands:
+  auth:
+    description: Manage a player's account link, password and sessions.
+    usage: /auth <forcelink|forceunlink|resetpassword|resetsession|sessions> <player> [discordId]
+    permission: robtic.auth.admin
+
+permissions:
+  robtic.auth.admin:
+    description: Inspect and reset player authentication.
+    default: op

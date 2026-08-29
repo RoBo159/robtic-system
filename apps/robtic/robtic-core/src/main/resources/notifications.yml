@@ -1,0 +1,99 @@
+# Notifications — one way to tell a player something, whatever way they are reachable.
+#
+# A system that needs to warn somebody does not choose chat, mail or Discord. It states the fact and
+# names a CATEGORY; this file decides which channels that category reaches. So an operator who wants
+# licence warnings to stop filling chat edits one list here, and no plugin changes.
+#
+# ─── Channels ─────────────────────────────────────────────────────────────────────────────────
+#
+#   chat      the player, in game, right now. Does nothing for an offline player
+#   mail      stored by the API and handed over on their next join. The only channel that can
+#             promise a returning player will see it — requires RobticMail
+#   discord   an embed in the channel below, mentioning the linked account. Skipped for a player who
+#             has not linked one — requires RobticDiscord
+#
+# Each covers a case the others cannot, which is why a category lists several rather than one. A
+# channel that is not installed is skipped silently: that is not a misconfiguration.
+#
+# Anything else — a toast, a boss bar, a webhook, your own replacement for one of the above —
+# registers itself from code and is named here like any other. See NotificationChannel.
+
+notifications:
+
+  enabled: true
+
+  # ─── Repeat suppression ─────────────────────────────────────────────────────────────────────
+  #
+  # Warnings come from sweeps, because the alternative is one timer per player per threshold and a
+  # restart loses all of them. A sweep re-observes the same fact every pass: a licence with one day
+  # left still has one day left a minute later.
+  #
+  # So a delivered notification's id is remembered and repeats are dropped. The window should be
+  # comfortably longer than the longest gap between two thresholds — with warnings at 3 days and
+  # 1 day, anything under two days would let the 3-day warning fire twice.
+  #
+  # 10080 minutes = one week.
+  dedupe-minutes: 10080
+
+  # A ceiling on how many ids are remembered, so this cannot grow without limit on a server that has
+  # been up for months. The oldest are dropped first; the only cost of dropping one is that a
+  # notification nobody has re-sent in weeks could be sent again.
+  dedupe-max: 20000
+
+  # ─── Routing ────────────────────────────────────────────────────────────────────────────────
+  #
+  # Where a category with no entry of its own goes.
+  default-channels: [chat]
+
+  # Notifications below this priority are dropped for categories that do not override it.
+  # One of: info, important, urgent.
+  default-minimum-priority: info
+
+  categories:
+
+    # Business — base levels, upgrades, workers, tax, and the licence lifecycle.
+    #
+    # All three channels, deliberately. Losing a business is the most expensive thing that happens
+    # to a player in this ecosystem, and a warning that only reached people who happened to be
+    # online would not be a warning.
+    business:
+      channels: [chat, mail, discord]
+      minimum-priority: info
+
+    # Licences generally — renewals, expiry, anything the Licence Officer would care about.
+    license:
+      channels: [chat, mail]
+      minimum-priority: info
+
+    # Anything a system has not classified. Chat only: an unclassified notice is by definition not
+    # important enough for somebody to have said where it belongs.
+    general:
+      channels: [chat]
+      minimum-priority: info
+
+  # ─── Channel settings ───────────────────────────────────────────────────────────────────────
+
+  channels:
+
+    chat:
+      enabled: true
+
+    mail:
+      enabled: true
+
+      # The API's mail category, which decides the icon in the mailbox. The API accepts:
+      # report_accepted, report_refused, jailed, warned, system.
+      #
+      # `system` is correct until a `business` category is added on the API side; an unknown value
+      # renders as a plain book rather than failing, so this is safe to change ahead of the API.
+      mail-category: system
+
+    discord:
+      enabled: true
+
+      # Where embeds are posted. Blank switches the channel off — it is not an error, and nothing
+      # is logged per message for it.
+      #
+      # Notifications are addressed to one player, so each post mentions their linked account. A
+      # player who has not linked one is skipped entirely rather than being written about in public.
+      channel-id: ""
