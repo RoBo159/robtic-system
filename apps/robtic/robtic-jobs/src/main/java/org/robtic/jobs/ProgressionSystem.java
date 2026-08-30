@@ -100,6 +100,7 @@ public final class ProgressionSystem implements RobticModule {
     private final WorkspaceService workspaceService;
     private final WorkspaceTaxService taxService;
     private final WorkspaceMenu workspaceMenu;
+    private final org.robtic.jobs.workspace.BusinessMenu businessMenu;
     private final WorkspaceController workspaceController;
 
     private final DiscoveryService discoveryService;
@@ -233,6 +234,7 @@ public final class ProgressionSystem implements RobticModule {
         // the same reason the storage filter is: the worker package never learns that jobs exist.
         this.workerService.professions(professionId -> jobCatalog.job(professionId).isPresent());
 
+
         this.lifecycleService = new org.robtic.jobs.workspace.lifecycle.BusinessLifecycleService(
                 plugin, workspaceService, workerService);
 
@@ -271,10 +273,14 @@ public final class ProgressionSystem implements RobticModule {
 
         this.workspaceMenu = new WorkspaceMenu(workspaceService, taxService, messages);
 
+        this.businessMenu = new org.robtic.jobs.workspace.BusinessMenu(
+                workspaceService, workerService, workerYieldService, messages);
+
         // What a workspace will accept into storage is a job's price list — so the filter is a
         // function of profession id, and the workspace never learns that jobs exist.
         this.workspaceController = new WorkspaceController(
-                plugin, workspaceService, taxService, workspaceMenu, messages,
+                plugin, workspaceService, taxService, workspaceMenu, businessMenu, workerService,
+                messages,
                 professionId -> jobCatalog.job(professionId)
                         .map(job -> job.prices().keySet())
                         .orElse(java.util.Set.of()));
@@ -331,6 +337,11 @@ public final class ProgressionSystem implements RobticModule {
         sellService.economy(economy);
         workspaceService.economy(economy);
         taxService.economy(economy);
+
+        // Hiring fees, wages and maintenance all go through the same seam, so a server with no
+        // economy has staff who cost nothing rather than a system that fails to start.
+        workerService.economy(economy);
+        workerYieldService.economy(economy);
     }
 
     /**
@@ -399,7 +410,7 @@ public final class ProgressionSystem implements RobticModule {
         // plugs in exactly the same way — see WorkspaceNpcRole.Handler.
         workspaceService.handler(WorkspaceNpcRole.SELLER, workspaceController::openFromNpc);
         workspaceService.handler(WorkspaceNpcRole.UPGRADE, workspaceController::openFromNpc);
-        workspaceService.handler(WorkspaceNpcRole.MANAGER, workspaceController::openFromNpc);
+        workspaceService.handler(WorkspaceNpcRole.MANAGER, workspaceController::openWorkersFromNpc);
 
         // A job may name its own seller NPC — a Fishmonger rather than the generic Buyer. Supplied as
         // a function for the same reason the storage filter is: the workspace package never learns

@@ -163,7 +163,20 @@ public final class BusinessLifecycleService {
 
         for (Workspace workspace : workspaces.repository().all()) {
             try {
-                evaluate(workspace, now);
+                // An owner who is online gets their licence re-read first.
+                //
+                // Without this the snapshot is only ever taken on join, and a player who joins,
+                // plays for a week and renews their licence on day three keeps the expiry from day
+                // one — so their business suspends itself while they are stood next to it holding a
+                // valid licence. Re-reading here costs an inventory scan per online owner per sweep.
+                Workspace current = workspace;
+                Player owner = plugin.getServer().getPlayer(workspace.owner());
+
+                if (owner != null && owner.isOnline()) {
+                    current = refreshSnapshot(owner, workspace, now);
+                }
+
+                evaluate(current, now);
             } catch (RuntimeException failure) {
                 // One business's problem must never stop the rest being evaluated — and this is the
                 // sweep that decides whether businesses are destroyed, so an exception escaping it
@@ -218,7 +231,7 @@ public final class BusinessLifecycleService {
         // period warns again — otherwise a licence renewed and left to lapse a second time would
         // lapse in silence.
         if (expiresAt > workspace.licenseExpiresAt()) {
-            forgetWarnings.accept(warningPrefix(workspace));
+            forgetWarnings.accept(prefixOf(workspace));
         }
 
         Workspace updated = workspace.withLicenseSnapshot(expiresAt, now);
@@ -284,7 +297,7 @@ public final class BusinessLifecycleService {
             }
 
             notifications.send(Notification.to(workspace.owner())
-                    .id(warningPrefix(workspace) + threshold.toMinutes())
+                    .id(idFor(workspace, "licence") + threshold.toMinutes())
                     .category(CATEGORY)
                     .title("&e⚠ &fYour Workspace Licence expires in "
                             + Durations.format(threshold.toMillis()))
@@ -306,29 +319,65 @@ public final class BusinessLifecycleService {
         }
     }
 
-    /** Puts a suspended business back to work once its licence is valid again. */
+    /**
+     * Puts a business back to work once its licence is valid again.
+     *
+     * <h2>Restoration cannot be detected from the suspension flag, because there isn't one</h2>
+     *
+     * Licence suspension is <em>derived</em> from the snapshot rather than stored, which is what
+     * keeps the two from ever disagreeing. The cost is that the moment a licence is renewed the
+     * business simply stops being suspended, and there is nothing left to compare against to notice
+     * that it just changed.
+     *
+     * An earlier version tried to test {@code suspended()} here and it was dead code: this runs only
+     * when the licence is valid, where {@code suspended()} reduces to {@code taxSuspended()}, so the
+     * two guards were mutually exclusive and the restore never ran once. A renewed licence left the
+     * NPCs gone until something else happened to re-staff them.
+     *
+     * So the world is asked instead of the flag: are the NPCs this business should have actually
+     * standing? Re-staffing is idempotent and does nothing in the overwhelmingly common case, and a
+     * missing suspendable role is a reliable signal that the business was stopped and is not any
+     * more.
+     */
     private void restoreIfSuspended(Workspace workspace) {
-        if (!workspaces.suspended(workspace)) {
-            return;
-        }
-
-        // Only the licence half is this service's to lift. A business also behind on tax stays
-        // suspended, and the tax service restores it when that is settled — two independent causes
-        // with one effect, and neither may clear the other's.
+        // A business also behind on tax stays suspended, and the tax service restores it when that
+        // is settled — two independent causes with one effect, and neither may clear the other's.
         if (workspace.taxSuspended()) {
             return;
         }
 
+        boolean wasStopped = missingStaff(workspace);
+
         workspaces.staffNpcs(workspace);
         workers.repair(workspace);
 
+        if (!wasStopped) {
+            return;
+        }
+
         notifications.send(Notification.to(workspace.owner())
-                .id("business-restored:" + workspace.id() + ":" + workspace.licenseExpiresAt())
+                .id(idFor(workspace, "restored") + workspace.licenseExpiresAt())
                 .category(CATEGORY)
                 .title("&a✔ &fYour business is trading again")
                 .line("&7Everything was kept: your base level, upgrades, storage and staff.")
                 .priority(Notification.Priority.IMPORTANT)
                 .build());
+    }
+
+    /**
+     * Whether a role this base level staffs is absent.
+     *
+     * Only suspendable roles count. A decoration that failed to spawn for an unrelated reason is not
+     * evidence that the business was ever stopped, and treating it as such would announce a
+     * restoration that never happened.
+     */
+    private boolean missingStaff(Workspace workspace) {
+        var base = workspaces.baseOf(workspace);
+
+        return workspaces.settings().roles().all().stream()
+                .filter(role -> base.staffs(role.id()))
+                .filter(org.robtic.jobs.workspace.WorkspaceNpcRole::suspendable)
+                .anyMatch(role -> workspace.npc(role.id()).isEmpty());
     }
 
     /**
@@ -342,7 +391,7 @@ public final class BusinessLifecycleService {
         workspaces.staffNpcs(workspace);
 
         notifications.send(Notification.to(workspace.owner())
-                .id("business-suspended:" + workspace.id() + ":" + workspace.licenseExpiresAt())
+                .id(idFor(workspace, "suspended") + workspace.licenseExpiresAt())
                 .category(CATEGORY)
                 .title("&c✖ &fYour Workspace Licence has expired")
                 .line("&7Your business is suspended: no selling, upgrades, hiring or worker output.")
@@ -361,20 +410,32 @@ public final class BusinessLifecycleService {
     /**
      * Takes the business away and offers the building to somebody else.
      *
+     * <h2>The record is deleted, not reset</h2>
+     *
+     * An earlier version reset the fields in place — level back to 1, upgrades and staff cleared,
+     * a new profession written on — and kept the row. That was wrong in two ways that only show up
+     * together: the workspace still named its old owner, and the structure still counted as claimed.
+     * So the recruiter appeared, and every player who clicked it was refused because the building
+     * already belonged to somebody who no longer had it. The building was unclaimable forever, which
+     * is the precise opposite of what abandonment is for.
+     *
+     * Releasing it is both simpler and correct. A fresh claim creates a new record at base level 1
+     * with empty storage and no staff, so "reset to level 1" falls out of the existing claim path
+     * rather than being a second implementation of it that can drift.
+     *
      * <h2>Order matters, and this is the order</h2>
      *
-     * The owner is told first, while there is still a business to describe. Staff are dismissed and
-     * their figures removed before the record is reset, because a worker's NPC is owned by the
-     * business id and would otherwise outlive the employment that justified it. The record is reset
-     * only then, and the reassignment — a new profession and its recruiter — runs last, against a
-     * business that is already clean.
+     * The owner is told first, while there is still a business to describe. Staff are dismissed
+     * before the release, because a worker's figure is owned by the business id and the release is
+     * what forgets that id. The recruiter is placed last, once the structure is genuinely free —
+     * placing it earlier would offer a building that still refuses to be claimed.
      */
     private void abandon(Workspace workspace) {
         UUID owner = workspace.owner();
         String professionWas = workspace.professionId();
 
         notifications.send(Notification.to(owner)
-                .id("business-abandoned:" + workspace.id() + ":" + workspace.licenseExpiresAt())
+                .id(idFor(workspace, "abandoned") + workspace.licenseExpiresAt())
                 .category(CATEGORY)
                 .title("&4✖ &fYour business has been abandoned")
                 .line("&7Your Workspace Licence lapsed and the grace period ran out.")
@@ -402,37 +463,47 @@ public final class BusinessLifecycleService {
         // Staff go first, so their figures are removed while the records that own them still exist.
         workers.dismissAll(workspace);
 
-        // Then every role NPC. The building is about to belong to nobody.
-        workspaces.unstaffNpcs(workspace);
+        // Every notification this business ever sent is forgotten, so the next owner starts a clean
+        // licence period. Scoped to this workspace: an earlier version passed the bare prefix
+        // "business-", which matched every business on the server and re-armed everybody's warnings
+        // each time anybody anywhere was abandoned.
+        forgetWarnings.accept(prefixOf(workspace));
 
-        // Warnings are forgotten wholesale: the next owner starts a clean licence period, and a
-        // leftover id would mean their first warning never fires.
-        forgetWarnings.accept("business-");
+        // Re-read before releasing. Anything that happened on the tick meanwhile — a deposit, a
+        // repair pass writing an NPC handle — is in the repository and not in the snapshot this
+        // call started from, and the release logs what was held.
+        Workspace current = workspaces.byId(workspace.id()).orElse(workspace);
 
-        Optional<Workspace> latest = workspaces.byId(workspace.id());
-        Workspace current = latest.orElse(workspace);
+        // The release is what unstaffs the remaining NPCs, tells the extensions, logs the storage
+        // being discarded and — the part that matters here — removes the record, freeing both the
+        // owner's workspace slot and the structure id.
+        workspaces.release(current);
 
+        // Last, and only now that the structure is genuinely unclaimed. The reassigner both rolls
+        // the trade and places its recruiter; calling it any earlier would offer players a building
+        // that still refuses every claim.
         reassigner.reassign(current, profession -> {
             if (profession.isEmpty()) {
-                // Nothing could be chosen — no professions configured, or none eligible. The
-                // business is released rather than left owned by somebody who no longer has it;
-                // an operator rescanning the structure can place a recruiter later.
+                // No professions configured, or none eligible. The building is already free — it
+                // simply has nothing standing outside it offering a trade.
                 plugin.getLogger().warning("Business " + current.id() + " was abandoned but no new"
-                        + " profession could be assigned, so it was released. Rescan the structure"
-                        + " to place a recruiter.");
-
-                workspaces.release(current);
-                return;
+                        + " profession could be assigned. The building is claimable again, but has"
+                        + " no recruiter — run \"/structure marker scan\" nearby to place one.");
             }
-
-            // One write, resetting everything a previous owner built. See Workspace#abandoned for
-            // exactly what survives and what does not.
-            workspaces.repository().put(current.abandoned(profession.get(), System.currentTimeMillis()));
         });
     }
 
-    /** The id prefix every warning for one business shares, so they can be forgotten together. */
-    private static String warningPrefix(Workspace workspace) {
-        return "business-licence:" + workspace.id() + ":";
+    /**
+     * The id prefix every notification about one business shares.
+     *
+     * Every id in this class is built from it, which is what makes "forget everything about this
+     * business" a single prefix removal — and what stops that removal reaching any other business.
+     */
+    private static String prefixOf(Workspace workspace) {
+        return "business:" + workspace.id() + ":";
+    }
+
+    private static String idFor(Workspace workspace, String kind) {
+        return prefixOf(workspace) + kind + ":";
     }
 }

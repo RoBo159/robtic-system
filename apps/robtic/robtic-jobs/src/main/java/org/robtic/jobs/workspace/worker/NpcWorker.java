@@ -111,9 +111,28 @@ public record NpcWorker(
                 now, lastPaidAt, maintenanceDueAt);
     }
 
+    /**
+     * Records that this interval's wage has been dealt with.
+     *
+     * "Dealt with" rather than "paid": the clock advances whether or not the owner could afford it,
+     * because a missed wage that stayed owed would compound into a bill nobody could ever clear.
+     * See {@code WorkerYieldService#charge} for why that is the lesser of the two evils.
+     */
+    public NpcWorker wagePaid(long now) {
+        return new NpcWorker(id, professionId, npc, workAreaId, storageDestination, salary, hiredAt,
+                lastYieldAt, now, maintenanceDueAt);
+    }
+
+    /**
+     * Records that maintenance has been paid, and schedules the next.
+     *
+     * Separate from {@link #wagePaid} because the two fail differently: an unpaid wage is a debt
+     * quietly forgiven, an unpaid maintenance stops the worker producing until it is settled.
+     * Sharing a field would make one clear the other.
+     */
     public NpcWorker maintained(long now, long intervalMillis) {
         return new NpcWorker(id, professionId, npc, workAreaId, storageDestination, salary, hiredAt,
-                lastYieldAt, now, now + intervalMillis);
+                lastYieldAt, lastPaidAt, now + intervalMillis);
     }
 
     /** Whether maintenance is overdue. An unmaintained worker stops producing; it is never deleted. */

@@ -58,6 +58,7 @@ public final class ProgressionConfigCheck {
         checkNpcs(npcs, jobs);
         checkDuplicateTitleIds(titles, jobs);
         checkWorkspace(workspace, npcs, licenses);
+        checkWorkers(load("workers.yml"), jobs, npcs);
         checkMarkerRoles(load("markers.yml"), jobs, workspace);
         checkStatistics(statistics);
         checkMessages(messages);
@@ -732,6 +733,110 @@ public final class ProgressionConfigCheck {
      * "recruiter", and a structure whose recruiter marker uses a role not in that set is scanned,
      * validated and then quietly ignored.
      */
+    // ─── Workers ──────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Cross-checks {@code workers.yml} against the professions and NPCs it names.
+     *
+     * Two mistakes here are silent at runtime and expensive: a yield table keyed on a profession
+     * that was renamed means workers of that trade draw wages and produce nothing forever, and an
+     * NPC definition that does not exist means every hire succeeds and no figure ever appears.
+     */
+    private static void checkWorkers(
+            Map<String, Object> root,
+            Map<String, Object> jobsRoot,
+            Map<String, Object> npcs
+    ) {
+        Map<String, Object> config = section(root, "workers");
+
+        if (config.isEmpty()) {
+            fail("workers.yml has a \"workers\" section");
+            return;
+        }
+
+        Set<String> jobIds = section(jobsRoot, "jobs").keySet();
+        Set<String> npcIds = section(npcs, "npcs").keySet();
+
+        if (config.get("npc") instanceof Map<?, ?> npc) {
+            String definition = string(npc, "definition", "");
+
+            require(npcIds.contains(definition), "workers.yml → npc → definition names \""
+                    + definition + "\", which npc.yml defines");
+
+            // A worker's figure is reached through the workspace interaction listener, which only
+            // dispatches SELLER. Any other kind stands there and ignores every click.
+            require("SELLER".equals(npcKind(npcs, definition)), "workers.yml → npc → definition"
+                    + " names \"" + definition + "\", which is kind SELLER");
+
+            require(number(npc, "hire-cost", 0d) >= 0d,
+                    "workers.yml → npc → hire-cost is not negative");
+            require(number(npc, "salary", 0d) >= 0d,
+                    "workers.yml → npc → salary is not negative");
+        }
+
+        if (config.get("maintenance") instanceof Map<?, ?> maintenance) {
+            require(integer(maintenance, "interval-minutes", 1) > 0,
+                    "workers.yml → maintenance → interval-minutes is positive");
+            require(number(maintenance, "cost", 0d) >= 0d,
+                    "workers.yml → maintenance → cost is not negative");
+        }
+
+        if (!(config.get("yield") instanceof Map<?, ?> yield)) {
+            fail("workers.yml has a \"yield\" section");
+            return;
+        }
+
+        require(integer(yield, "interval-minutes", 1) > 0,
+                "workers.yml → yield → interval-minutes is positive");
+        require(integer(yield, "max-catch-up-intervals", 1) > 0,
+                "workers.yml → yield → max-catch-up-intervals is positive");
+
+        if (!(yield.get("professions") instanceof Map<?, ?> professions)) {
+            fail("workers.yml → yield has a \"professions\" section");
+            return;
+        }
+
+        professions.forEach((rawId, entries) -> {
+            String id = String.valueOf(rawId);
+
+            require(jobIds.contains(id), "workers.yml → yield → professions → " + id
+                    + " names a profession jobs.yml defines");
+
+            if (!(entries instanceof List<?> list) || list.isEmpty()) {
+                fail("workers.yml → yield → professions → " + id + " lists at least one output");
+                return;
+            }
+
+            int index = 0;
+
+            for (Object entry : list) {
+                String where = "workers.yml → yield → professions → " + id + "[" + index++ + "]";
+
+                if (!(entry instanceof Map<?, ?> output)) {
+                    fail(where + " is a mapping");
+                    continue;
+                }
+
+                require(output.get("material") != null, where + " names a material");
+                require(integer(output, "amount", 0) > 0, where + " has a positive amount");
+
+                double chance = number(output, "chance", 1d);
+
+                // A chance outside 0..1 is clamped at runtime, which means a typed 50 (meaning
+                // "50%") silently becomes "always" and nobody finds out.
+                require(chance > 0d && chance <= 1d,
+                        where + " has a chance between 0 and 1 (not a percentage)");
+            }
+        });
+
+        // Every profession that can own a business should be able to employ somebody usefully. One
+        // without a yield table is a trade whose workers cost wages and produce nothing.
+        for (String job : jobIds) {
+            require(professions.containsKey(job),
+                    "workers.yml → yield → professions covers the profession \"" + job + "\"");
+        }
+    }
+
     private static void checkMarkerRoles(
             Map<String, Object> markersFile,
             Map<String, Object> jobsFile,

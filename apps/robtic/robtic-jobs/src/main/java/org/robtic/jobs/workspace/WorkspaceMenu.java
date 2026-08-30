@@ -79,6 +79,19 @@ public final class WorkspaceMenu {
         inventory.setItem(13, upgradeItem(workspace, tier));
         holder.bind(13, new ProgressionHolder.Action.OpenUpgrade(workspace.id()));
 
+        // The two systems this business gained. Both are always shown — a business below the level
+        // that unlocks workers still sees the page, and the page tells it so. Hiding what a player
+        // is working towards is how a feature stays undiscovered.
+        inventory.setItem(12, MenuItems.of(Material.ANVIL,
+                messages.text("progression.gui.workspace.upgrades"),
+                List.of(messages.text("progression.gui.workspace.upgrades-hint"))));
+        holder.bind(12, new ProgressionHolder.Action.OpenUpgrades(workspace.id()));
+
+        inventory.setItem(14, MenuItems.of(Material.CARTOGRAPHY_TABLE,
+                messages.text("progression.gui.workspace.workers"),
+                List.of(messages.text("progression.gui.workspace.workers-hint"))));
+        holder.bind(14, new ProgressionHolder.Action.OpenWorkers(workspace.id()));
+
         inventory.setItem(15, taxItem(workspace));
 
         // Not bound when tax is switched off. The controller refuses the action anyway, but a button
@@ -107,11 +120,36 @@ public final class WorkspaceMenu {
 
         if (workspaces.suspended(workspace)) {
             // First and unmissable: everything else on this screen is secondary to the fact that the
-            // business is not currently working. Both causes read the same to a player — they cannot
-            // trade — so they share a line rather than being spelled out separately here.
+            // business is not currently working.
             lore.add(messages.text("progression.gui.workspace.suspended"));
             lore.add("");
         }
+
+        // The licence, always — not only when it has lapsed.
+        //
+        // Both halves matter. A player whose business is suspended needs to know it is the licence
+        // rather than the tax bill, and how long they have left before it is gone for good; a player
+        // whose licence is fine needs to see it running down while there is still time to act. A
+        // panel that only spoke up after the lapse would be a receipt rather than a warning.
+        long now = System.currentTimeMillis();
+
+        if (workspace.licenseExpiresAt() <= 0L) {
+            lore.add(messages.text("progression.gui.workspace.license-unknown"));
+        } else if (workspace.licenseLapsed(now)) {
+            long graceEndsAt = workspace.licenseExpiresAt()
+                    + workspaces.settings().licenseGrace().toMillis();
+
+            lore.add(messages.text("progression.gui.workspace.license-expired"));
+            lore.add(messages.text("progression.gui.workspace.license-grace",
+                    "grace", org.robtic.core.util.Durations.format(Math.max(0L, graceEndsAt - now))));
+            lore.add(messages.text("progression.gui.workspace.license-renew-hint"));
+        } else {
+            lore.add(messages.text("progression.gui.workspace.license-remaining",
+                    "remaining", org.robtic.core.util.Durations.format(
+                            workspace.licenseRemaining(now))));
+        }
+
+        lore.add("");
 
         // Whatever future systems want to say about this business. See WorkspaceExtension.
         workspaces.describeExtensions(workspace).forEach(line -> lore.add("&7" + line));

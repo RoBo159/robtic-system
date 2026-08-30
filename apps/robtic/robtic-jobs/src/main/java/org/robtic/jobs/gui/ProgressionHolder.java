@@ -37,7 +37,12 @@ public final class ProgressionHolder implements InventoryHolder {
         FILTER_SOURCE,
         WORKSPACE,
         WORKSPACE_STORAGE,
-        WORKSPACE_UPGRADE
+        /** The base-level ladder — what the business IS. */
+        WORKSPACE_UPGRADE,
+        /** The workspace-upgrade catalogue — what the business HAS. A different axis entirely. */
+        WORKSPACE_UPGRADES,
+        /** Hiring, dismissing and reviewing employees. */
+        WORKSPACE_WORKERS
     }
 
     /** What clicking a slot does. */
@@ -131,6 +136,34 @@ public final class ProgressionHolder implements InventoryHolder {
 
         /** Pay the outstanding maintenance. */
         record PayTax(String workspaceId) implements Action {
+        }
+
+        // ─── The second axis, and the staff ───────────────────────────────────────────────────
+
+        /** Open the workspace-upgrade catalogue. Not the base-level ladder; see the View enum. */
+        record OpenUpgrades(String workspaceId) implements Action {
+        }
+
+        /** Buy the next level of one workspace upgrade. */
+        record BuyUpgrade(String workspaceId, String upgradeId) implements Action {
+        }
+
+        /** Open the workforce page. */
+        record OpenWorkers(String workspaceId) implements Action {
+        }
+
+        /**
+         * Take on an NPC worker for a profession.
+         *
+         * The profession is carried rather than taken from the business, because a business may
+         * eventually employ workers of trades other than its own — and a binding that important
+         * should be explicit at the point it is decided.
+         */
+        record HireWorker(String workspaceId, String professionId) implements Action {
+        }
+
+        /** Dismiss an employee of either kind. */
+        record DismissWorker(String workspaceId, String workerId) implements Action {
         }
 
         /**

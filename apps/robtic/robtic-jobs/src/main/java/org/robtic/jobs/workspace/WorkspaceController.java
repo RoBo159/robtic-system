@@ -48,11 +48,16 @@ public final class WorkspaceController {
      */
     private final Function<String, Set<String>> professionItems;
 
+    private final BusinessMenu business;
+    private final org.robtic.jobs.workspace.worker.WorkerService workers;
+
     public WorkspaceController(
             Plugin plugin,
             WorkspaceService workspaces,
             WorkspaceTaxService tax,
             WorkspaceMenu menu,
+            BusinessMenu business,
+            org.robtic.jobs.workspace.worker.WorkerService workers,
             MessageCatalog messages,
             Function<String, Set<String>> professionItems
     ) {
@@ -60,6 +65,8 @@ public final class WorkspaceController {
         this.workspaces = workspaces;
         this.tax = tax;
         this.menu = menu;
+        this.business = business;
+        this.workers = workers;
         this.messages = messages;
         this.professionItems = professionItems;
     }
@@ -99,6 +106,26 @@ public final class WorkspaceController {
             case ProgressionHolder.Action.DepositAll deposit ->
                     with(player, deposit.workspaceId(), workspace ->
                             depositAll(player, workspace, deposit.page()));
+
+            case ProgressionHolder.Action.OpenUpgrades open ->
+                    with(player, open.workspaceId(), workspace ->
+                            player.openInventory(business.buildUpgrades(player, workspace)));
+
+            case ProgressionHolder.Action.BuyUpgrade buy ->
+                    with(player, buy.workspaceId(), workspace ->
+                            buyUpgrade(player, workspace, buy.upgradeId()));
+
+            case ProgressionHolder.Action.OpenWorkers open ->
+                    with(player, open.workspaceId(), workspace ->
+                            player.openInventory(business.buildWorkers(player, workspace)));
+
+            case ProgressionHolder.Action.HireWorker hire ->
+                    with(player, hire.workspaceId(), workspace ->
+                            hireWorker(player, workspace, hire.professionId()));
+
+            case ProgressionHolder.Action.DismissWorker dismiss ->
+                    with(player, dismiss.workspaceId(), workspace ->
+                            dismissWorker(player, workspace, dismiss.workerId()));
 
             default -> {
                 return false;
@@ -162,6 +189,109 @@ public final class WorkspaceController {
     }
 
     // ─── Upgrading ────────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Buys the next level of one workspace upgrade.
+     *
+     * The menu is redrawn from the stored record afterwards rather than from the snapshot this
+     * started with — the purchase crossed a network, and redrawing the old state would show a player
+     * their money gone and their upgrade unchanged.
+     */
+    private void buyUpgrade(Player player, Workspace workspace, String upgradeId) {
+        workspaces.buyUpgrade(player, workspace, upgradeId, result -> {
+            switch (result) {
+                case SUCCESS -> {
+                    player.sendMessage(messages.prefixed("progression.workspace.upgrade-bought",
+                            "upgrade", upgradeId));
+                    player.playSound(player.getLocation(),
+                            org.bukkit.Sound.BLOCK_ANVIL_USE, 0.8f, 1.2f);
+                }
+                case CANNOT_AFFORD -> player.sendMessage(
+                        messages.prefixed("progression.workspace.upgrade-cannot-afford"));
+                case BASE_LEVEL_TOO_LOW -> player.sendMessage(
+                        messages.prefixed("progression.workspace.upgrade-needs-base-level"));
+                case MISSING_DEPENDENCY -> player.sendMessage(
+                        messages.prefixed("progression.workspace.upgrade-needs-dependency"));
+                case MAX_LEVEL -> player.sendMessage(
+                        messages.prefixed("progression.workspace.upgrade-maxed-out"));
+                case SUSPENDED -> player.sendMessage(
+                        messages.prefixed("progression.workspace.suspended-action"));
+                case NOT_OWNER -> player.sendMessage(
+                        messages.prefixed("progression.workspace.not-owner"));
+                case UNAVAILABLE -> player.sendMessage(
+                        messages.prefixed("progression.workspace.upgrade-unavailable"));
+                default -> player.sendMessage(
+                        messages.prefixed("progression.workspace.upgrade-failed"));
+            }
+
+            workspaces.byId(workspace.id()).ifPresent(current ->
+                    player.openInventory(business.buildUpgrades(player, current)));
+        });
+    }
+
+    /**
+     * Takes on an NPC worker.
+     *
+     * Every refusal names its own cause. The licence ones especially: "you need a Manager Licence"
+     * and "your Manager Licence has expired" are different problems with different fixes, and the
+     * service keeps them apart precisely so this can too.
+     */
+    private void hireWorker(Player player, Workspace workspace, String professionId) {
+        workers.hireNpc(player, workspace, professionId, "", result -> {
+            switch (result) {
+                case SUCCESS -> {
+                    player.sendMessage(messages.prefixed("progression.workspace.worker-hired",
+                            "profession", professionId));
+                    player.playSound(player.getLocation(),
+                            org.bukkit.Sound.ENTITY_VILLAGER_YES, 0.8f, 1.0f);
+                }
+                case NO_LICENCE -> player.sendMessage(
+                        messages.prefixed("progression.workspace.worker-no-licence"));
+                case LICENCE_EXPIRED -> player.sendMessage(
+                        messages.prefixed("progression.workspace.worker-licence-expired"));
+                case LOCKED -> player.sendMessage(
+                        messages.prefixed("progression.workspace.worker-locked"));
+                case NO_SLOTS -> player.sendMessage(
+                        messages.prefixed("progression.workspace.worker-no-slots"));
+                case SUSPENDED -> player.sendMessage(
+                        messages.prefixed("progression.workspace.suspended-action"));
+                case NOT_OWNER -> player.sendMessage(
+                        messages.prefixed("progression.workspace.not-owner"));
+                case UNKNOWN_PROFESSION -> player.sendMessage(
+                        messages.prefixed("progression.workspace.worker-unknown-profession",
+                                "profession", professionId));
+                case CANNOT_AFFORD -> player.sendMessage(
+                        messages.prefixed("progression.workspace.worker-cannot-afford"));
+                default -> player.sendMessage(
+                        messages.prefixed("progression.workspace.worker-hire-failed"));
+            }
+
+            workspaces.byId(workspace.id()).ifPresent(current ->
+                    player.openInventory(business.buildWorkers(player, current)));
+        });
+    }
+
+    /**
+     * Dismisses an employee.
+     *
+     * No confirmation screen, deliberately: dismissing is reversible by hiring again, and the
+     * expensive part — the hire cost — is already spent either way. The destructive actions that do
+     * warrant a confirmation are the ones that destroy data, and this destroys none.
+     */
+    private void dismissWorker(Player player, Workspace workspace, String workerId) {
+        if (!workspace.ownedBy(player.getUniqueId())
+                && !player.hasPermission(WorkspaceService.BYPASS)) {
+            player.sendMessage(messages.prefixed("progression.workspace.not-owner"));
+            return;
+        }
+
+        if (workers.dismiss(workspace, workerId)) {
+            player.sendMessage(messages.prefixed("progression.workspace.worker-dismissed"));
+        }
+
+        workspaces.byId(workspace.id()).ifPresent(current ->
+                player.openInventory(business.buildWorkers(player, current)));
+    }
 
     private void upgrade(Player player, Workspace workspace) {
         workspaces.upgrade(player, workspace, result -> {
@@ -409,6 +539,21 @@ public final class WorkspaceController {
      */
     public void openFromNpc(Player player, Workspace workspace) {
         open(player, workspace);
+    }
+
+    /**
+     * Opens the workforce page, for the Worker Manager role.
+     *
+     * A separate handler rather than routing through the panel, because the whole reason the manager
+     * is a staffed NPC — arriving with the base level that unlocks workers — is to be the visible
+     * front door to hiring. Walking up to him and getting the same panel the seller opens would make
+     * him decoration.
+     *
+     * Ownership is still checked by {@code with}, so this is not a way around the panel's gate.
+     */
+    public void openWorkersFromNpc(Player player, Workspace workspace) {
+        with(player, workspace.id(), current ->
+                player.openInventory(business.buildWorkers(player, current)));
     }
 
     /**

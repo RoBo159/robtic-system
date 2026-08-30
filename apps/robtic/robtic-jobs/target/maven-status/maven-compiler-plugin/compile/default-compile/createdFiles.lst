@@ -53,6 +53,7 @@ org/robtic/jobs/npc/providers/CitizensNpcProvider.class
 org/robtic/jobs/listeners/NpcInteractionListener$1.class
 org/robtic/jobs/npc/NpcProvider$NpcInteraction.class
 org/robtic/jobs/workspace/lifecycle/BusinessLifecycleService$1.class
+org/robtic/jobs/workspace/BusinessMenu.class
 org/robtic/jobs/license/JobLicenseGate$LicenceSnapshot.class
 org/robtic/jobs/gui/ProgressionHolder$Action$OpenWorkspace.class
 org/robtic/jobs/workspace/WorkspaceStorage$Deposit.class
@@ -85,12 +86,14 @@ org/robtic/jobs/gui/ProgressionHolder$Action$Back.class
 org/robtic/jobs/gui/ProgressionHolder$Action$PayTax.class
 org/robtic/jobs/gui/ProgressionHolder$Action$FilterSource.class
 org/robtic/jobs/gui/ProgressionHolder$Action$Close.class
+org/robtic/jobs/gui/ProgressionHolder$Action$OpenUpgrades.class
 org/robtic/jobs/license/JobLicenseGate$LicenceSnapshot$Presence.class
 org/robtic/jobs/workspace/worker/Worker.class
 org/robtic/jobs/workspace/WorkspaceMenu.class
 org/robtic/jobs/events/PlayerSwitchJobEvent.class
 org/robtic/jobs/market/SellConditions.class
 org/robtic/jobs/market/SellService$Result$PaymentFailed.class
+org/robtic/jobs/gui/ProgressionHolder$Action$OpenWorkers.class
 org/robtic/jobs/gui/ProgressionMenuListener$1.class
 org/robtic/jobs/workspace/lifecycle/BusinessLifecycleService$Reassigner.class
 org/robtic/jobs/events/ProgressionPlayerEvent.class
@@ -114,6 +117,7 @@ org/robtic/jobs/storage/ProgressionRepository.class
 org/robtic/jobs/gui/ProgressionHolder$Action$ToggleLocked.class
 org/robtic/jobs/storage/ApiProgressionStorage.class
 org/robtic/jobs/events/PlayerGainJobEvent.class
+org/robtic/jobs/gui/ProgressionHolder$Action$HireWorker.class
 org/robtic/jobs/workspace/building/WorldEditSchematicPaster$Bindings.class
 org/robtic/jobs/storage/FileProgressionStorage.class
 org/robtic/jobs/events/WorkspaceClaimEvent.class
@@ -136,6 +140,7 @@ org/robtic/jobs/jobs/JobService$SwitchResult.class
 org/robtic/jobs/npc/NpcHandle.class
 org/robtic/jobs/hooks/ProgressionPlaceholders.class
 org/robtic/jobs/listeners/StructureScanListener.class
+org/robtic/jobs/gui/ProgressionHolder$Action$DismissWorker.class
 org/robtic/jobs/gui/TitleMenuState$Sort.class
 org/robtic/jobs/npc/providers/BuiltinNpcProvider.class
 org/robtic/jobs/market/RobsJobEconomy.class
@@ -143,6 +148,7 @@ org/robtic/jobs/gui/ProgressionHolder$Action$DeactivateJob.class
 org/robtic/jobs/gui/ProgressionHolder$Action$OpenJob.class
 org/robtic/jobs/workspace/WorkspaceUpgrade.class
 org/robtic/jobs/workspace/building/SchematicPaster$1.class
+org/robtic/jobs/gui/ProgressionHolder$Action$BuyUpgrade.class
 org/robtic/jobs/gui/ProgressionHolder$Action.class
 org/robtic/jobs/market/SellService$Result.class
 org/robtic/jobs/workspace/WorkspaceNpcRole.class

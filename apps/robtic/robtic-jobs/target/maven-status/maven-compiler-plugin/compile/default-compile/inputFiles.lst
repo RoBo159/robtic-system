@@ -52,6 +52,7 @@
 /app/robtic-jobs/src/main/java/org/robtic/jobs/storage/ProgressionRepository.java
 /app/robtic-jobs/src/main/java/org/robtic/jobs/storage/ProgressionStorage.java
 /app/robtic-jobs/src/main/java/org/robtic/jobs/workspace/BaseLevel.java
+/app/robtic-jobs/src/main/java/org/robtic/jobs/workspace/BusinessMenu.java
 /app/robtic-jobs/src/main/java/org/robtic/jobs/workspace/DiscoveryService.java
 /app/robtic-jobs/src/main/java/org/robtic/jobs/workspace/StructureMarker.java
 /app/robtic-jobs/src/main/java/org/robtic/jobs/workspace/Workspace.java

@@ -80,6 +80,14 @@ public final class WorkerService {
     /** Resolves the Manager Licence. Open until the hook is registered; see {@link JobLicenseGate}. */
     private volatile JobLicenseGate licences = JobLicenseGate.OPEN;
 
+    /** Charges the hire fee. Without one, staff are free — see {@link #hireNpc}. */
+    private volatile org.robtic.jobs.market.JobEconomy economy =
+            org.robtic.jobs.market.JobEconomy.NONE;
+
+    public void economy(org.robtic.jobs.market.JobEconomy economy) {
+        this.economy = economy == null ? org.robtic.jobs.market.JobEconomy.NONE : economy;
+    }
+
     /** Whether a profession exists, so an NPC worker cannot be bound to one that does not. */
     private volatile java.util.function.Predicate<String> professionExists = profession -> true;
 
@@ -199,11 +207,33 @@ public final class WorkerService {
             return;
         }
 
+        // The fee, before the licence.
+        //
+        // Order is load-bearing and easy to get backwards. The licence check can CONSUME a
+        // single-use licence, so it has to be the last thing that can refuse — taking somebody's
+        // Manager Licence and then telling them they cannot afford the worker would spend an
+        // expensive item for nothing. Money, by contrast, is refundable and the failure is cheap.
+        //
+        // An earlier version had no fee at all: workers.yml declared `hire-cost`, the menu
+        // advertised it, HireResult.CANNOT_AFFORD existed, and nothing ever charged a rob. Every
+        // permanent employee on the server was free.
+        double fee = settings.npcHireCost();
+
+        if (org.robtic.core.util.Robs.isPositive(fee)
+                && !economy.pay(owner.getUniqueId(), owner.getName(), -fee,
+                        "worker-hire:" + workspace.id() + ":" + profession)) {
+
+            busy.remove(workspace.id());
+            whenDone.accept(HireResult.CANNOT_AFFORD);
+            return;
+        }
+
         // Last, because it can consume. Everything above is free to refuse.
         HireResult licence = checkLicence(owner, "worker-hire:npc:" + profession);
 
         if (licence != null) {
             busy.remove(workspace.id());
+            refund(owner, fee, workspace, "licence");
             whenDone.accept(licence);
             return;
         }
@@ -217,7 +247,50 @@ public final class WorkerService {
                 settings.maintenanceInterval().toMillis(),
                 now);
 
-        commit(workspace, worker, whenDone);
+        commit(workspace, worker, fee, whenDone);
+    }
+
+    /**
+     * Gives the hire fee back.
+     *
+     * Said loudly when it fails, because a refund that did not land is real money a player is owed
+     * and needs a human rather than a retry — the same treatment {@code WorkspaceService} gives a
+     * failed upgrade refund.
+     */
+    private void refund(Player owner, double fee, Workspace workspace, String why) {
+        if (!org.robtic.core.util.Robs.isPositive(fee)) {
+            return;
+        }
+
+        if (!economy.pay(owner.getUniqueId(), owner.getName(), fee,
+                "worker-hire-refund:" + workspace.id())) {
+
+            plugin.getLogger().severe("Could not refund " + fee + " to " + owner.getName()
+                    + " after a worker hire failed (" + why + ") at business " + workspace.id()
+                    + ". They have been charged and have no worker — refund this by hand.");
+        }
+    }
+
+    /**
+     * Refunds the owner by id, for the paths that no longer hold the {@link Player}.
+     *
+     * The persistence callbacks run later and the player may have logged out by then, so the refund
+     * is addressed to the account rather than to the session.
+     */
+    private void refundFee(Workspace workspace, double fee) {
+        if (!org.robtic.core.util.Robs.isPositive(fee)) {
+            return;
+        }
+
+        String name = java.util.Optional
+                .ofNullable(plugin.getServer().getOfflinePlayer(workspace.owner()).getName())
+                .orElse("");
+
+        if (!economy.pay(workspace.owner(), name, fee, "worker-hire-refund:" + workspace.id())) {
+            plugin.getLogger().severe("Could not refund " + fee + " to " + workspace.owner()
+                    + " after a worker hire failed to save at business " + workspace.id()
+                    + ". They have been charged and have no worker — refund this by hand.");
+        }
     }
 
     /**
@@ -263,7 +336,10 @@ public final class WorkerService {
         PlayerWorker worker = PlayerWorker.hire(
                 target, permissions, salary, System.currentTimeMillis());
 
-        commit(workspace, worker, whenDone);
+        // No fee for hiring a player. The recurring wage is the cost, and charging an up-front fee
+        // as well would make employing a real person dearer than buying a permanent NPC that never
+        // logs out — which is backwards.
+        commit(workspace, worker, 0d, whenDone);
     }
 
     /**
@@ -317,6 +393,7 @@ public final class WorkerService {
     private void commit(
             Workspace workspace,
             Worker worker,
+            double fee,
             java.util.function.Consumer<HireResult> whenDone
     ) {
         String workspaceId = workspace.id();
@@ -326,6 +403,7 @@ public final class WorkerService {
 
         if (latest.isEmpty()) {
             busy.remove(workspaceId);
+            refundFee(workspace, fee);
             whenDone.accept(HireResult.SAVE_FAILED);
             return;
         }
@@ -337,14 +415,23 @@ public final class WorkerService {
             busy.remove(workspaceId);
 
             if (!saved) {
+                refundFee(hired, fee);
                 whenDone.accept(HireResult.SAVE_FAILED);
                 return;
             }
 
             // The world is touched only once the record is safe, exactly as the claim path does: a
             // failed save must never leave a figure standing for an employee nobody has.
+            //
+            // The handle is a second write, because it does not exist until the figure does. A
+            // failure to spawn is not a failure to hire — the employee is real, is paid and
+            // produces; `repair` puts the figure back on its next pass.
             if (worker instanceof NpcWorker npcWorker) {
-                spawn(hired, npcWorker);
+                Workspace staffed = spawn(hired, npcWorker);
+
+                if (staffed != hired) {
+                    workspaces.repository().put(staffed);
+                }
             }
 
             try {
@@ -352,7 +439,7 @@ public final class WorkerService {
             } catch (RuntimeException failure) {
                 // A listener that throws must not turn a completed hire into a reported failure —
                 // the employee exists and the money is spent either way.
-                plugin.getLogger().log(Level.WARNING,
+                plugin.getLogger().log(java.util.logging.Level.WARNING,
                         "A listener threw while recording a hire; the hire itself stands.", failure);
             }
 
@@ -368,11 +455,28 @@ public final class WorkerService {
      * A failed spawn is not a failed hire. The employee exists in the record, is paid, and produces
      * — the figure is a representation of it, and {@link #repair} puts it back on the next pass.
      */
-    private void spawn(Workspace workspace, NpcWorker worker) {
+    /**
+     * Puts one worker's figure in the world.
+     *
+     * <h2>Returns rather than persists</h2>
+     *
+     * It used to write the workspace itself, and that was a bug the moment more than one worker
+     * needed repairing: each call built its write from the same snapshot it was handed, so three
+     * spawns produced three writes that each knew about one handle, and the last one to land erased
+     * the other two. The figures existed in the world with nothing recording them, so the next
+     * repair pass spawned three more.
+     *
+     * Returning the updated workspace makes the caller responsible for accumulating, which is the
+     * only place that can do it correctly.
+     *
+     * @return the workspace with this worker's handle recorded, or the one passed in when nothing
+     *         could be spawned
+     */
+    private Workspace spawn(Workspace workspace, NpcWorker worker) {
         Optional<Location> anchor = workspace.anchor().toLocation();
 
         if (anchor.isEmpty()) {
-            return;
+            return workspace;
         }
 
         // Fanned out around the anchor so several workers do not stand inside one another. The exact
@@ -387,8 +491,9 @@ public final class WorkerService {
 
         Optional<NpcHandle> handle = npcs.spawn(settings.npcDefinition(), where, workspace.id());
 
-        handle.ifPresent(spawned ->
-                workspaces.repository().put(workspace.withWorker(worker.withNpc(spawned))));
+        return handle
+                .map(spawned -> workspace.withWorker(worker.withNpc(spawned)))
+                .orElse(workspace);
     }
 
     /**
@@ -396,19 +501,27 @@ public final class WorkerService {
      *
      * The same repair pass {@code WorkspaceService#repairAll} runs for role NPCs, and for the same
      * reasons: a chunk purge, a crash, an operator removing one by hand, a backend switch. Cheap,
-     * because a worker whose figure is alive costs one existence check.
+     * because a worker whose figure is alive costs one existence check and no write at all.
      */
     public void repair(Workspace workspace) {
         if (workspace.anchor().toLocation().isEmpty()) {
             return;
         }
 
+        Workspace current = workspace;
+
         for (NpcWorker worker : workspace.npcWorkers()) {
             boolean alive = worker.npc().map(npcs::exists).orElse(false);
 
             if (!alive) {
-                spawn(workspace, worker);
+                current = spawn(current, worker);
             }
+        }
+
+        // One write for the whole pass, and none at all in the common case where every figure is
+        // already standing.
+        if (current != workspace) {
+            workspaces.repository().put(current);
         }
     }
 

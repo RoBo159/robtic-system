@@ -47,6 +47,10 @@ public final class WorkerYieldService {
 
     private volatile WorkerSettings settings;
 
+    /** How wages and maintenance are charged. Without one, staff work for nothing. */
+    private volatile org.robtic.jobs.market.JobEconomy economy =
+            org.robtic.jobs.market.JobEconomy.NONE;
+
     /** Cancelled on disable. */
     private int taskId = -1;
 
@@ -64,6 +68,10 @@ public final class WorkerYieldService {
 
     public void settings(WorkerSettings replacement) {
         this.settings = replacement;
+    }
+
+    public void economy(org.robtic.jobs.market.JobEconomy economy) {
+        this.economy = economy == null ? org.robtic.jobs.market.JobEconomy.NONE : economy;
     }
 
     /**
@@ -144,9 +152,96 @@ public final class WorkerYieldService {
             current = produce(current, worker, (int) due);
         }
 
+        Workspace afterPay = charge(current, now);
+
+        if (afterPay != current) {
+            current = afterPay;
+            changed = true;
+        }
+
         if (changed) {
             workspaces.repository().put(current);
         }
+    }
+
+    /**
+     * Takes wages and maintenance from the owner.
+     *
+     * <h2>Maintenance is a consequence; wages are a debt</h2>
+     *
+     * They fail differently on purpose. An owner who cannot pay MAINTENANCE keeps the worker and the
+     * worker stops producing until it is settled — the same shape the tax system uses, because
+     * deleting somebody's expensive permanent employee over a missed bill is not a consequence
+     * anybody would design deliberately.
+     *
+     * An owner who cannot pay WAGES simply does not pay them this interval; the clock still advances,
+     * so the debt does not compound into a bill that can never be cleared. A worker is not dismissed
+     * for it either. Between "employee vanishes" and "employee keeps working", the second is the one
+     * a player can recover from.
+     *
+     * <h2>Charged on the tick, and why that is acceptable here</h2>
+     *
+     * {@code JobEconomy#pay} crosses a network, and the upgrade path goes to some length to keep it
+     * off the main thread. This does not, because the sweep already runs on the main thread and
+     * moving the charge off it would mean reconciling a worker record that may have changed
+     * meanwhile — for a payment made every wage interval per worker, which is a handful per business
+     * per day. If a server ever has enough workers for this to show up in a timings report, the fix
+     * is to batch a business's charges into one call rather than to make each one asynchronous.
+     */
+    private Workspace charge(Workspace workspace, long now) {
+        long wageInterval = settings.payInterval().toMillis();
+        long maintenanceInterval = settings.maintenanceInterval().toMillis();
+
+        String ownerName = java.util.Optional
+                .ofNullable(plugin.getServer().getOfflinePlayer(workspace.owner()).getName())
+                .orElse("");
+
+        Workspace current = workspace;
+
+        for (NpcWorker worker : workspace.npcWorkers()) {
+            // Wages. lastPaidAt of zero means never paid, and is measured from the hire so a worker
+            // taken on an hour ago does not immediately owe a full interval.
+            long since = worker.lastPaidAt() == 0L ? worker.hiredAt() : worker.lastPaidAt();
+
+            if (now - since >= wageInterval && org.robtic.core.util.Robs.isPositive(worker.salary())) {
+                boolean paid = economy.pay(workspace.owner(), ownerName, -worker.salary(),
+                        "worker-wage:" + workspace.id() + ":" + worker.id());
+
+                // The clock advances either way — see NpcWorker#wagePaid.
+                current = current.withWorker(latest(current, worker).wagePaid(now));
+
+                if (!paid) {
+                    plugin.getLogger().fine("Business " + workspace.id() + " could not pay a worker's"
+                            + " wage of " + worker.salary() + ". The worker was kept.");
+                }
+            }
+
+            // Maintenance. Unlike a wage, failing to pay this stops the worker producing — see
+            // NpcWorker#maintenanceOverdue, which the yield tick reads. So the due date moves only
+            // on success: an owner who cannot pay stays overdue until they can.
+            if (worker.maintenanceOverdue(now)
+                    && org.robtic.core.util.Robs.isPositive(settings.maintenanceCost())
+                    && economy.pay(workspace.owner(), ownerName, -settings.maintenanceCost(),
+                            "worker-maintenance:" + workspace.id() + ":" + worker.id())) {
+
+                current = current.withWorker(latest(current, worker).maintained(now, maintenanceInterval));
+            }
+        }
+
+        return current;
+    }
+
+    /**
+     * The current copy of a worker, since earlier steps in this pass may have replaced it.
+     *
+     * Wages and maintenance both write the same record in one loop iteration. Applying the second
+     * change to the snapshot the loop started from would silently undo the first.
+     */
+    private static NpcWorker latest(Workspace workspace, NpcWorker worker) {
+        return workspace.worker(worker.id())
+                .filter(NpcWorker.class::isInstance)
+                .map(NpcWorker.class::cast)
+                .orElse(worker);
     }
 
     /**

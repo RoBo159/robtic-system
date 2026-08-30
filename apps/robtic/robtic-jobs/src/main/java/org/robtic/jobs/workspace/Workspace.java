@@ -385,34 +385,18 @@ public record Workspace(
         return Optional.ofNullable(extras.get(key));
     }
 
-    /**
-     * Reassigns the business to a new profession and returns it to a fresh state.
-     *
-     * The abandonment path's one mutation, kept here rather than assembled in the service so that
-     * "what survives an abandonment" is a single readable list rather than a sequence of calls
-     * somebody could reorder. Identity, place and protected area survive; everything a previous
-     * owner built or bought does not.
-     */
-    public Workspace abandoned(String newProfessionId, long now) {
-        return toBuilder()
-                .professionId(newProfessionId)
-                .level(1)
-                .upgrades(Map.of())
-                .workers(Map.of())
-                .storage(WorkspaceStorage.EMPTY)
-                .npcs(Map.of())
-                .lastAccessAt(now)
-                .lastTaxPaidAt(0L)
-                .lastUpgradeAt(0L)
-                .licenseExpiresAt(0L)
-                .licenseCheckedAt(0L)
-                .taxSuspended(false)
-                // Cleared wholesale. Extras belong to systems that attached themselves to the
-                // previous owner's business; carrying them into the next owner's would hand over
-                // state nobody can attribute and nothing knows how to reset.
-                .extras(Map.of())
-                .build();
-    }
+    // There was an `abandoned(newProfession, now)` here that reset a business in place — level back
+    // to 1, upgrades and staff cleared, a new trade written on — and kept the record.
+    //
+    // It was wrong, and wrong in a way that only showed up when both halves were considered
+    // together: the record still named the previous owner, so the structure still counted as
+    // claimed. The recruiter appeared and refused every player who clicked it, leaving the building
+    // permanently unclaimable — the exact opposite of what abandonment exists to do.
+    //
+    // Abandonment now releases the record instead, and a fresh claim builds a new one at base
+    // level 1 through `create` above. "Reset to level 1" therefore falls out of the claim path that
+    // is already tested rather than being a second implementation of it that can drift from the
+    // first. See BusinessLifecycleService#abandon.
 
     // ─── Builder ──────────────────────────────────────────────────────────────────────────────
 

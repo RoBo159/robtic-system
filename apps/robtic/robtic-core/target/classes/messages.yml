@@ -975,6 +975,36 @@ progression:
     suspended: "&cYour workspace has been suspended — &f%amount% &crobs maintenance is overdue. Nothing has been lost; pay to restore it."
     suspended-npc: "&cThis workspace is suspended. &f%amount% &crobs of maintenance is due."
 
+    # ─── Workspace upgrades ───────────────────────────────────────────────────────────────────
+    #
+    # The second axis: things a business HAS, bought level by level, independent of its base level.
+    not-owner: "&cThis is not your business."
+    suspended-action: "&cYour business is suspended. Renew your Workspace Licence or pay your maintenance first."
+    # %upgrade%
+    upgrade-bought: "&aBought the next level of &f%upgrade%&a."
+    upgrade-cannot-afford: "&cYou cannot afford that."
+    upgrade-needs-base-level: "&cYour headquarters is not high enough for that yet."
+    upgrade-needs-dependency: "&cAnother upgrade has to come first."
+    upgrade-maxed-out: "&7That upgrade is already at its highest level."
+    upgrade-unavailable: "&cThat upgrade is not available to your business."
+
+    # ─── Workers ──────────────────────────────────────────────────────────────────────────────
+    #
+    # Every refusal names its own cause. "You need a Manager Licence" and "your Manager Licence has
+    # expired" are different problems with different fixes, and a player told the wrong one goes to
+    # the wrong place.
+    # %profession%
+    worker-hired: "&aHired a &f%profession% &aworker. They start straight away."
+    worker-dismissed: "&7Worker dismissed."
+    worker-no-licence: "&cYou need a &fManager Licence &cto hire. Buy one from the Licence Officer."
+    worker-licence-expired: "&cYour &fManager Licence &chas expired. Renew it to hire again."
+    worker-locked: "&cYour headquarters is not high enough to employ anybody yet."
+    worker-no-slots: "&cEvery worker slot is full. Raise your base level for more."
+    worker-cannot-afford: "&cYou cannot afford to take anybody on."
+    # %profession%
+    worker-unknown-profession: "&cThere is no profession called &f%profession%&c."
+    worker-hire-failed: "&cThe hire failed and you have not been charged."
+
   sell:
     # %amount% %paid%
     sold: "&aSold &f%amount% &aitem(s) for &f%paid% &arobs."
@@ -1148,14 +1178,85 @@ progression:
       upgrade-npc: "&7Unlocks the &f%npc% &7NPC"
       # %feature%
       upgrade-feature: "&7Unlocks &f%feature%"
-      upgrade-safe: "&aYour storage is never touched by an upgrade."
-      max-tier: "&6Highest tier reached"
+      upgrade-safe: "&aNothing you own is touched by an upgrade."
+      max-tier: "&6Highest base level reached"
       max-tier-hint: "&7There is nothing left to upgrade."
       # %storage%
       tier-storage: "&7Storage: &f%storage%"
       tier-reached: "&aReached"
       # %cost%
       tier-locked: "&8Costs %cost% robs"
+
+      # ─── Base levels and workers ──────────────────────────────────────────────────────────
+      #
+      # Storage no longer moves with a base level — it is a workspace upgrade of its own — so what
+      # a base level is worth showing for is the headcount it permits and the systems it opens.
+      #
+      # %from% %to%
+      upgrade-workers: "&7Workers: &f%from% &8→ &a%to%"
+      # %npc% %player%
+      tier-workers: "&7Workers: &f%npc% &7NPC, &f%player% &7player"
+
+      # ─── The licence ──────────────────────────────────────────────────────────────────────
+      #
+      # A suspended business keeps everything. Every one of these lines says so, because the first
+      # thing a player assumes when their business stops working is that they have lost it.
+      # %remaining%
+      license-remaining: "&7Licence: &f%remaining% &7remaining"
+      license-unknown: "&7Licence: &8not yet checked"
+      license-expired: "&cLicence expired — your business is suspended"
+      # %grace%
+      license-grace: "&c%grace% &7left to renew before it is abandoned"
+      license-renew-hint: "&7Renew at the Licence Officer. Nothing has been lost."
+
+      # ─── Workers ──────────────────────────────────────────────────────────────────────────
+      workers: "&6Workers"
+      # %hired% %limit%
+      workers-count: "&7Employed: &f%hired%&7/&f%limit%"
+      # %npc% %player%
+      workers-breakdown: "&7&f%npc% &7NPC, &f%player% &7hired players"
+      workers-locked: "&8Unlocks at a higher base level"
+      workers-no-licence: "&cA Manager Licence is required to hire"
+      workers-hint: "&7Right-click the Worker Manager to hire."
+      workers-idle-suspended: "&cYour workers are idle: the business is suspended"
+      workers-idle-maintenance: "&eA worker is overdue for maintenance and has stopped"
+
+      # ─── The upgrade catalogue ────────────────────────────────────────────────────────────
+      upgrades: "&eWorkspace upgrades"
+      upgrades-hint: "&7Storage, market, workshop and more."
+      upgrades-title: "&6Workspace upgrades"
+      # %level% %max%
+      upgrade-level: "&7Level: &f%level%&7/&f%max%"
+      upgrade-maxed: "&aFully upgraded"
+      # %level% %cost%
+      upgrade-next: "&7Next: level &f%level% &7for &f%cost% &7robs"
+      # %level%
+      upgrade-needs-base: "&cNeeds base level &f%level%"
+      # %upgrade% %level%
+      upgrade-needs-other: "&cNeeds &f%upgrade% &clevel &f%level%"
+
+      # ─── The workforce ────────────────────────────────────────────────────────────────────
+      workers-title: "&6Your workforce"
+      # %profession%
+      worker-npc: "&a%profession% worker"
+      # %player%
+      worker-player: "&b%player%"
+      # %profession%
+      worker-profession: "&7Trade: &f%profession%"
+      # %salary%
+      worker-salary: "&7Wage: &f%salary% &7robs"
+      # %when%
+      worker-hired: "&7Employed for &f%when%"
+      # %list%
+      worker-permissions: "&7May: &f%list%"
+      # %task%
+      worker-task: "&7Task: &f%task%"
+      worker-maintenance-due: "&eMaintenance overdue — this worker has stopped"
+      worker-dismiss: "&cClick to dismiss"
+      worker-empty: "&7Empty worker slot"
+      # %cost% %profession%
+      worker-empty-hint: "&7Click to hire a &f%profession% &7worker for &f%cost% &7robs."
+      worker-empty-licence: "&7Requires a valid &fManager Licence&7."
 
       tax: "&fMaintenance"
       tax-disabled: "&7Maintenance is disabled"
